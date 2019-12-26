@@ -1,0 +1,6 @@
+url: https://github.com/cynkra/cynkratemplate
+
+template:
+  package: cynkratemplate
+
+destination: docs
