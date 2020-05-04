@@ -93,6 +93,13 @@ figcaption {
   color: fff;
 }
 
+.cynkra-pkg-font {
+  font-weight: normal;
+  color: #1F65B7;
+  /*font-size: 12pt;*/
+  padding-left: 10pt
+}
+
 .workshop-detail{
   font-size: small;
 }
@@ -178,4 +185,13 @@ padding-left: 0px;
   padding-top: 10px;
 }
 
+
+
+/* nav link */
+
+.navbar-nav>li>a {
+  color: rgba(45, 50, 56, 0.8);
+  display: block;
+  padding: 0.5rem 1rem;
+}
 
