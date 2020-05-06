@@ -104,15 +104,14 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 .navbar-brand {
     text-transform: none;
     font-family: "frutiger-light", "Helvetica Neue", Helvetica, Arial, sans-serif;
-    padding-top: 17px !important;
+    padding-top: 15px !important;
 }
 
 
 /* body font */
-body {
+html, body {
   font-family: "frutiger-light", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 16px;
-  font-weight: 300;
   color: black;
   padding-top: 15px; /* a bit of space to the navbar */
 }
