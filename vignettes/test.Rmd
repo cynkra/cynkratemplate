@@ -1,5 +1,5 @@
 ---
-title: "test"
+title: "Showcase vignette"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{test}
@@ -20,24 +20,44 @@ library(cynkratemplate)
 
 # Title 1
 
-## Subtitle 1
-
-## Subtitle 2 is actually very very long wow
-
-# Title 2
-
 YAML Optionen koennen durch ein  (`#`) auskommentiert werden. Das template
 unterstützt Deutsch, Englisch, Italienisch und Französisch. Um die
 Dokumentsprache inklusive Adresse, Tabellenbeschriftungen und Grafiken auf
 Englisch zu setzen, muss der YAML Header folgendermassen abgeändert werden:
 
-## Markdown
 
-R Markdown Dokumente werden -- Überraschung! -- in Markdown verfasst. Mehr
-Details dazu findet man [hier](https://www.rstudio.com/wp-
-content/uploads/2015/03/rmarkdown-reference.pdf).
+```{r eval = FALSE}
+library(ggplot2)
 
-Die Basis-Formatierungen umfassen, **fett**, *kursiv* und `fixe Breite`.
-Aber man kann auch fast alles machen \uwave{was mit \LaTeX\ möglich ist.}
-Schreibt man `r round(rnorm(1), 4)`, so evaluiert R den Code, womit man leicht
-Dokumente erstellen kann, welche immer die neusten Zahlen enthalten.[^fn]
+centre <- function(x, type, ...) {
+  switch(type,
+         mean = mean(x),
+         median = median(x),
+         trimmed = mean(x, trim = .1))
+}
+
+```
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum eu diam nibh. Aliquam sit amet mattis ligula. Morbi maximus hendrerit justo. Morbi vulputate ex in lorem lacinia mollis. Curabitur eget mi non lectus dignissim suscipit. Duis in lorem porta, commodo erat porttitor, rhoncus felis. Nunc nec pretium ex, ut blandit quam. Nullam aliquam viverra nunc, id semper velit. Etiam in purus rhoncus odio sollicitudin condimentum. Praesent malesuada quam sed mi tincidunt, sed aliquam lorem laoreet. Etiam non tellus bibendum, bibendum diam eu, tempor felis. Morbi ultrices faucibus dignissim. Aliquam mattis, est nec ultrices euismod, sapien tellus aliquam dolor, eu imperdiet ipsum augue quis neque. Fusce ut libero neque. Nullam eget risus at libero rutrum rutrum eget eget diam.
+
+Morbi posuere imperdiet erat, at commodo odio mollis sit amet. Maecenas dignissim dui ac ornare luctus. Sed non feugiat metus. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Quisque diam mauris, sodales ac ligula nec, lobortis rhoncus turpis. Donec vestibulum orci non mi euismod, nec tempus arcu tincidunt. Aenean mollis, nibh ac lobortis feugiat, ex dolor tempor tortor, nec posuere orci lacus sit amet risus. Suspendisse lectus leo, mattis a libero non, congue mollis ipsum. Proin a eleifend velit.
+
+## Subtitle 1
+
+Suspendisse consequat felis a enim malesuada tempor. Mauris ut tortor ante. Proin commodo sapien vitae cursus dapibus. Ut in purus euismod nisi condimentum dapibus at id tortor. Curabitur eu ligula in neque molestie rutrum. Morbi nisi dui, vulputate quis quam mollis, iaculis commodo ligula. Mauris vel pulvinar ipsum. Suspendisse aliquet interdum aliquet.
+
+Aliquam non odio ornare, tincidunt neque ac, pharetra odio. Donec eu nibh posuere, iaculis neque eget, vulputate velit. Praesent pellentesque blandit quam et semper. Etiam vitae risus sollicitudin, fermentum sem sit amet, viverra magna. Proin sapien felis, maximus in sapien sed, dapibus accumsan urna. Cras mollis facilisis neque, et interdum enim tristique eget. Proin et rutrum turpis. Aliquam et leo nec leo tincidunt tincidunt non et lorem.
+
+Nam metus libero, faucibus eget tincidunt quis, tempus eget nibh. Vestibulum id lobortis risus, ut pretium dolor. Curabitur non dolor at enim sodales pellentesque. Quisque mollis eros sit amet tellus egestas tincidunt. Sed at dui sagittis, dapibus arcu vitae, cursus turpis. Fusce pulvinar tortor enim, id laoreet eros tempor non. Aenean non tincidunt libero. Morbi mauris arcu, semper eu semper non, sodales ac enim. Proin tempor et odio id maximus. Nullam ac augue ullamcorper, venenatis neque at, aliquam ipsum. Maecenas porttitor velit quis erat tincidunt ultrices. Aenean tempor dolor sed justo egestas, sed congue nibh suscipit. Suspendisse non porttitor ipsum.
+
+## Subtitle 2 tests a very long subtitle that might even cause a linbreak at some time?
+
+Aenean consectetur ornare nisl et porta. Morbi ultricies id massa eget volutpat. Pellentesque ac sem a metus commodo dapibus. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Aliquam erat volutpat. Suspendisse fringilla, tellus at semper hendrerit, mauris ante eleifend felis, in ultricies mauris odio ut turpis. Ut in tellus a nisl venenatis pellentesque nec et massa. Nam vulputate erat tortor, id dictum erat venenatis eu. Pellentesque tristique neque nec nisl cursus cursus. Vivamus venenatis efficitur lectus eget cursus. Vivamus quis metus id felis gravida rhoncus. Quisque interdum at neque in pulvinar. Nunc nisi dui, viverra quis hendrerit sed, posuere a nisi. Maecenas ut tempus mi. Fusce vestibulum diam eget ante venenatis luctus.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus bibendum efficitur neque in aliquet. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nullam ligula enim, facilisis eu viverra sit amet, luctus quis nisi. Curabitur leo purus, convallis ut placerat luctus, pulvinar non enim. Etiam et lacinia dolor, fringilla rutrum ex. Vestibulum vitae lectus at quam tincidunt scelerisque. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; In hac habitasse platea dictumst. Morbi eu dolor volutpat, imperdiet sem a, interdum massa. In efficitur at sapien quis maximus. Pellentesque vel massa enim.
+
+Nulla facilisis dictum mi ut tempus. Aenean semper lectus eget lectus imperdiet, et pretium erat lacinia. Etiam id aliquet turpis. Phasellus congue ex ligula, vulputate lacinia ipsum tristique viverra. Vivamus porta lacinia dolor, eget auctor lectus feugiat a. Nunc varius malesuada tellus, eget pharetra nunc commodo vel. Proin commodo, sapien ut hendrerit malesuada, quam erat iaculis ligula, ut ultrices turpis risus pharetra massa. Vestibulum quis velit nisi. Ut accumsan semper ipsum et faucibus. Cras scelerisque ex dolor, sit amet consectetur nunc luctus ac.
+
+Integer vitae leo aliquet, hendrerit risus nec, luctus magna. Etiam eu consequat purus. Curabitur vel risus et nunc efficitur mattis. Mauris urna est, efficitur id nulla eget, ultrices maximus lectus. Cras faucibus sit amet velit nec dapibus. Fusce id mi sit amet elit accumsan efficitur. Integer fringilla turpis vitae eros tempor vulputate. Maecenas dapibus sit amet nulla sit amet malesuada. Proin molestie massa metus, quis interdum dolor imperdiet sed.
+
+Sed id purus a tellus posuere consequat eget sit amet dui. Integer dapibus neque id lobortis interdum. Aliquam id nibh volutpat dolor porttitor mollis at vitae lacus. Proin vestibulum scelerisque ex, et pulvinar magna pharetra ac. Etiam aliquet, ligula et convallis porttitor, lorem quam condimentum felis, ut tincidunt ex libero quis magna. Ut gravida purus velit, ac aliquet nisi iaculis et. Fusce nec mi dolor. Nulla facilisi. Pellentesque lobortis laoreet dui, eget sodales tortor ultrices vitae. Aliquam fermentum est lobortis, hendrerit neque eu, accumsan ante. Mauris id metus ut nulla rutrum blandit a vel ante. Vivamus maximus ac felis vel mollis. Vestibulum congue lobortis nisi ut elementum. Nunc vitae aliquet augue. In hac habitasse platea dictumst. 
