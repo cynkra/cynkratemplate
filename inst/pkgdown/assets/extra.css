@@ -1,5 +1,6 @@
 /* import fonts font */
 @import url(https://fonts.googleapis.com/css?family=Roboto + Mono);
+@import url(https://fonts.googleapis.com/css?family=Fira+Code);
 @import url(https://fonts.googleapis.com/css?family=IBM + Plex + Mono:300, 400);
 
 @font-face {
@@ -76,8 +77,9 @@ code,
 kbd,
 pre,
 samp {
-  font-family: Roboto Mono, monospace;
-  font-size: 12px;
+  font-family: Fira Code, monospace;
+  font-size: 85%;
+  background-color: #f5f5f5;
 }
 
 /* headers ------------------------------------------------------------------ */
@@ -102,7 +104,7 @@ h6,
 html,
 body {
   font-family: "frutiger-light", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 300;
 }
 
@@ -224,13 +226,14 @@ small,
 }
 
 footer {
+  margin-top: 20px;
   padding: 15px 0px 36px 0px;
 }
 
 /* navbar ------------------------------------------------------------------- */
 
 .navbar-default .navbar-nav > li > a {
-  font-size: 100% !important;
+  font-size: 85% !important;
   color: rgb(45, 50, 56);
 }
 
@@ -252,17 +255,14 @@ footer {
   color: #1f65b7;
 }
 
-/* sidebar ------------------------------------------------------------------ */
-
-li {
-  font-size: 85%;
+/* font-size of bootstrap ToC entries */
+nav[data-toggle="toc"] .nav > li > a {
+    font-size: 1.0rem;
+    font-weight: 300;
 }
+
+/* sidebar ------------------------------------------------------------------ */
 
 #pkgdown-sidebar h2 {
   font-size: 1.3em;
-}
-
-nav[data-toggle="toc"] .nav > li > a {
-  font-size: 1.2rem;
-  font-weight: 300;
 }
