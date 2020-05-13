@@ -241,6 +241,7 @@ footer {
   text-transform: none; /* no uppercase package title */
   font-family: "frutiger-light", "Helvetica Neue", Helvetica, Arial, sans-serif;
   padding-top: 15px !important;
+  line-height: inherit;
 }
 
 .navbar {
