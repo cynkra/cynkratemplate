@@ -7,12 +7,10 @@ Authors@R:
              role = c("aut", "cre"),
              email = "christoph.sax@gmail.com",
              comment = c(ORCID = "0000-0002-7192-7044")),
-      person(given = "Kirill",
-             family = "M\u00fcller",
+      person(given = "Patrick",
+             family = "Schratz",
              role = "aut",
-             email = "krlmlr+r@mailbox.org"),
-      person(given = "RStudio",
-             role = "cph"))
+             email = "patrick@cynkra.com"))
 Description: This is a private template for use by cynkra
     packages. Please don't use it for your own package.
 License: MIT + file LICENSE
