@@ -1,9 +1,18 @@
 Package: cynkratemplate
 Title: pkgdown template for cynkra packages
 Version: 0.0.0.9000
-Authors@R: person("Christoph", "Sax", email = "christoph.sax@gmail.com", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7192-7044"))
-Description: This is a private template for use by cynkra packages. Please don't
-             use it for your own package.
+Authors@R: 
+    c(person(given = "Christoph",
+             family = "Sax",
+             role = c("aut", "cre"),
+             email = "christoph.sax@gmail.com",
+             comment = c(ORCID = "0000-0002-7192-7044")),
+      person(given = "Patrick",
+             family = "Schratz",
+             role = "aut",
+             email = "patrick@cynkra.com"))
+Description: This is a private template for use by cynkra
+    packages. Please don't use it for your own package.
 License: MIT + file LICENSE
 URL: https://github.com/cynkra/cynkratemplate
 BugReports: https://github.com/cynkra/cynkratemplate/issues
