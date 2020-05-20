@@ -16,10 +16,16 @@
       </div>
     </div>
     <div id="navbar" class="navbar-collapse collapse">
-      <ul class="nav navbar-nav navbar-right">
-        {{{left}}}
-        {{{right}}}
+      {{#left}}
+      <ul class="nav navbar-nav navbar-left">
+        {{{.}}}
       </ul>
+      {{/left}}
+      {{#right}}
+      <ul class="nav navbar-nav navbar-right">
+        {{{.}}}
+      </ul>
+      {{/right}}
       {{#yaml}}{{#docsearch}}
       <form class="navbar-form navbar-right docsearch" role="search">
         <div class="form-group">
