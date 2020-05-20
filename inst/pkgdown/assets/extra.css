@@ -187,7 +187,7 @@ small,
   font-size: 85% !important;
   color: #1f65b7 !important;
   padding-left: 2px !important;
-  padding-top: 17px;
+  padding-top: 16px;
   padding-right: 15px;
   float: left;
   line-height: 20px;
@@ -198,7 +198,7 @@ small,
   font-weight: bold;
   /* color: rgb(108, 111, 115);   text color */
   color: rgb(45, 50, 56);
-  padding-top: 15px;
+  padding-top: 14px;
   float: left;
   line-height: 20px;
 }
@@ -207,6 +207,7 @@ small,
   font-size: 85% !important;
   color: #1f65b7 !important;
   padding-left: 1.5px !important;
+  line-height: 20px;
 }
 .cynkra-logo-font-footer {
   font-size: 14px;
@@ -232,16 +233,11 @@ footer {
 
 /* navbar ------------------------------------------------------------------- */
 
-.navbar-default .navbar-nav > li > a {
-  font-size: 85% !important;
-  color: rgb(45, 50, 56);
-}
-
 .navbar-brand {
   text-transform: none; /* no uppercase package title */
   font-family: "frutiger-light", "Helvetica Neue", Helvetica, Arial, sans-serif;
   padding-top: 15px !important;
-  line-height: inherit;
+  line-height: 20px;
 }
 
 .navbar {
@@ -260,6 +256,22 @@ footer {
 nav[data-toggle="toc"] .nav > li > a {
     font-size: 1.0rem;
     font-weight: 300;
+}
+
+.navbar-default .navbar-right  > li > a {
+  color: rgb(45, 50, 56);
+  font-size: 85%;
+  font-weight: 400;
+}
+
+.navbar-default .navbar-left  > li > a {
+  color: gray;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 20px;
+  padding-right: 0px;
+  padding-left: 10px;
+  padding-top: 16.5px;
 }
 
 /* sidebar ------------------------------------------------------------------ */
