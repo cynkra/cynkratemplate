@@ -17,14 +17,15 @@ To do so, click on "Edit" in the Exoscale S3 bucket and paste the snippet into t
 <?xml version="1.0" ?>
 <CORSConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
   <CORSRule>
-    <AllowedOrigin>https://cynkra.com</AllowedOrigin>
+    <AllowedOrigin>*</AllowedOrigin>
     <AllowedMethod>*</AllowedMethod>
     <AllowedHeader>Content-*</AllowedHeader>
   </CORSRule>
 </CORSConfiguration>
 ```
 
-This allows access only for the cynkra.com domain.
-To open up for everyone, replace `https://cynkra.com` by `*`.
+This allows access for any domain.
+To restrict access, replace `*` by `https://cynkra.com`.
+However note that this only applies to this exact domain and does not include subdomains like `xyz.cynkra.com`.
 
 Also ensure that the ACL settings are set to "public read" so the files can actually be accessed in the first place.
