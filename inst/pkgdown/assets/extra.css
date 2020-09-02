@@ -280,3 +280,12 @@ nav[data-toggle="toc"] .nav > li > a {
 #pkgdown-sidebar h2 {
   font-size: 1.3em;
 }
+
+/* outdated information -------------------------------------------------------- */
+
+.page-header:after {
+  content: "You are viewing an outdated page which is not going to be updated anymore. Please go to <https://dm.cynkra.com> for the latest version.";
+  font-size: 12px;
+  font-style: italic;
+  color: #f03333;
+}
