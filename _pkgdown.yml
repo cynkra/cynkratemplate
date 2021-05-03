@@ -8,21 +8,35 @@ destination: docs
 
 navbar:
   structure:
-    right: [reference, articles, projects, consulting, github]
+    right: [reference, articles, opensource, consulting, rstudio, workshops, about, blog, github]
   components:
     home: ~
     reference:
       text: REFERENCE
       href: reference/index.html
-    projects:
-      text: PROJECTS
-      href: https://www.cynkra.com/projects.html
+    opensource:
+      text: OPEN SOURCE
+      href: https://www.cynkra.com/opensource.html
     consulting:
       text: CONSULTING
       href: https://www.cynkra.com/consulting.html
+    rstudio:
+      text: RSTUDIO
+      href: https://www.cynkra.com/rstudio.html
+    workshops:
+      text: WORKSHOPS
+      href: https://www.cynkra.com/workshops.html
+    about:
+      text: ABOUT
+      href: https://www.cynkra.com/about.html
+    blog:
+      text: BLOG
+      href: https://www.cynkra.com/blog/
 
 authors:
   Christoph Sax:
-    href: http://www.christophsax.com/
+    href: https://www.cynkra.com/about.html
   Kirill Müller:
-    href: http://krlmlr.info
+    href: https://www.cynkra.com/about.html
+  Patrick Schratz:
+    href: https://www.cynkra.com/about.html
