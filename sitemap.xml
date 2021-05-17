@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://github.com/cynkra/cynkratemplate/404.html</loc>
+  </url>
+  <url>
+    <loc>https://github.com/cynkra/cynkratemplate/LICENSE-text.html</loc>
+  </url>
+  <url>
+    <loc>https://github.com/cynkra/cynkratemplate/LICENSE.html</loc>
+  </url>
+  <url>
+    <loc>https://github.com/cynkra/cynkratemplate/authors.html</loc>
+  </url>
+  <url>
     <loc>https://github.com/cynkra/cynkratemplate/index.html</loc>
+  </url>
+  <url>
+    <loc>https://github.com/cynkra/cynkratemplate/reference/cynkratemplate.html</loc>
+  </url>
+  <url>
+    <loc>https://github.com/cynkra/cynkratemplate/reference/index.html</loc>
   </url>
 </urlset>

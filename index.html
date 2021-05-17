@@ -84,12 +84,12 @@
   <div class="contents col-md-9">
 <div id="cynkratemplate" class="section level1">
 <div class="page-header"><h1 class="hasAnchor">
-<a href="#cynkratemplate" class="anchor"></a>cynkratemplate</h1></div>
+<a href="#cynkratemplate" class="anchor" aria-hidden="true"></a>cynkratemplate</h1></div>
 
 <p>This is a private template for use by cynkra packages. Please don’t use it for your own package.</p>
 <div id="fonts" class="section level2">
 <h2 class="hasAnchor">
-<a href="#fonts" class="anchor"></a>Fonts</h2>
+<a href="#fonts" class="anchor" aria-hidden="true"></a>Fonts</h2>
 <p>Our private “Frutiger” fonts are hosted on Exoscale in the “cynkraweb” S3 bucket. Some browsers (e.g. Firefox) block the font access if the “CORS” headers are not set correctly.</p>
 <p>To allow access, the following XML configuration file needs to be applied recursively to all elements in the S3 bucket. To do so, click on “Edit” in the Exoscale S3 bucket and paste the snippet into the “CORS” field</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode xml"><code class="sourceCode xml"><span id="cb1-1"><a href="#cb1-1"></a><span class="kw">&lt;?xml</span> version="1.0" <span class="kw">?&gt;</span></span>
@@ -100,7 +100,7 @@
 <span id="cb1-6"><a href="#cb1-6"></a>    <span class="kw">&lt;AllowedHeader&gt;</span>Content-*<span class="kw">&lt;/AllowedHeader&gt;</span></span>
 <span id="cb1-7"><a href="#cb1-7"></a>  <span class="kw">&lt;/CORSRule&gt;</span></span>
 <span id="cb1-8"><a href="#cb1-8"></a><span class="kw">&lt;/CORSConfiguration&gt;</span></span></code></pre></div>
-<p>This allows access for any domain. To restrict access, replace <code><a href="https://rdrr.io/r/base/Arithmetic.html" class="external-link">*</a></code> by <code>https://cynkra.com</code>. However note that this only applies to this exact domain and does not include subdomains like <code>xyz.cynkra.com</code>.</p>
+<p>This allows access for any domain. To restrict access, replace <code>*</code> by <code>https://cynkra.com</code>. However note that this only applies to this exact domain and does not include subdomains like <code>xyz.cynkra.com</code>.</p>
 <p>Also ensure that the ACL settings are set to “public read” so the files can actually be accessed in the first place.</p>
 </div>
 </div>
@@ -120,9 +120,8 @@
 <div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
-<li>
-<a href="https://opensource.org/licenses/mit-license.php">MIT</a> + file <a href="LICENSE-text.html">LICENSE</a>
-</li>
+<li><a href="LICENSE.html">Full license</a></li>
+<li><small><a href="https://opensource.org/licenses/mit-license.php">MIT</a> + file <a href="LICENSE-text.html">LICENSE</a></small></li>
 </ul>
 </div>
 
