@@ -43,8 +43,8 @@
       </button>
 
       <div class="navbar-brand-container">
-        <a class="cynkra-logo-font" href="https://www.cynkra.com">cynkra</a>
-        <a class="cynkra-logo" href="https://www.cynkra.com">■</a>
+        <a class="external-link cynkra-logo-font" href="https://www.cynkra.com">cynkra</a>
+        <a class="external-link cynkra-logo" href="https://www.cynkra.com">■</a>
         <a class="navbar-brand" href="index.html">cynkratemplate <small>v0.0.0.9000</small></a>
       </div>
     </div>
@@ -55,10 +55,10 @@
   <a href="reference/index.html">Reference</a>
 </li>
 <li>
-  <a href="https://www.cynkra.com/projects.html">Projects</a>
+  <a href="https://www.cynkra.com/projects.html" class="external-link">Projects</a>
 </li>
 <li>
-  <a href="https://www.cynkra.com/consulting.html">Consulting</a>
+  <a href="https://www.cynkra.com/consulting.html" class="external-link">Consulting</a>
 </li>
 <li>
   <a href="https://github.com/cynkra/cynkratemplate/">
@@ -78,24 +78,24 @@
 
       </header><div class="row">
   <div class="contents col-md-9">
-<div id="cynkratemplate" class="section level1">
-<div class="page-header"><h1 class="hasAnchor">
-<a href="#cynkratemplate" class="anchor" aria-hidden="true"></a>cynkratemplate</h1></div>
+<div class="section level1">
+<div class="page-header"><h1 id="cynkratemplate">cynkratemplate<a class="anchor" aria-label="anchor" href="#cynkratemplate"></a>
+</h1></div>
 
 <p>This is a private template for use by cynkra packages. Please don’t use it for your own package.</p>
-<div id="fonts" class="section level2">
-<h2 class="hasAnchor">
-<a href="#fonts" class="anchor" aria-hidden="true"></a>Fonts</h2>
+<div class="section level2">
+<h2 id="fonts">Fonts<a class="anchor" aria-label="anchor" href="#fonts"></a>
+</h2>
 <p>Our private “Frutiger” fonts are hosted on Exoscale in the “cynkraweb” S3 bucket. Some browsers (e.g. Firefox) block the font access if the “CORS” headers are not set correctly.</p>
 <p>To allow access, the following XML configuration file needs to be applied recursively to all elements in the S3 bucket. To do so, click on “Edit” in the Exoscale S3 bucket and paste the snippet into the “CORS” field</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode xml"><code class="sourceCode xml"><span id="cb1-1"><a href="#cb1-1"></a><span class="kw">&lt;?xml</span> version="1.0" <span class="kw">?&gt;</span></span>
-<span id="cb1-2"><a href="#cb1-2"></a><span class="kw">&lt;CORSConfiguration</span><span class="ot"> xmlns=</span><span class="st">"http://s3.amazonaws.com/doc/2006-03-01/"</span><span class="kw">&gt;</span></span>
-<span id="cb1-3"><a href="#cb1-3"></a>  <span class="kw">&lt;CORSRule&gt;</span></span>
-<span id="cb1-4"><a href="#cb1-4"></a>    <span class="kw">&lt;AllowedOrigin&gt;</span>*<span class="kw">&lt;/AllowedOrigin&gt;</span></span>
-<span id="cb1-5"><a href="#cb1-5"></a>    <span class="kw">&lt;AllowedMethod&gt;</span>*<span class="kw">&lt;/AllowedMethod&gt;</span></span>
-<span id="cb1-6"><a href="#cb1-6"></a>    <span class="kw">&lt;AllowedHeader&gt;</span>Content-*<span class="kw">&lt;/AllowedHeader&gt;</span></span>
-<span id="cb1-7"><a href="#cb1-7"></a>  <span class="kw">&lt;/CORSRule&gt;</span></span>
-<span id="cb1-8"><a href="#cb1-8"></a><span class="kw">&lt;/CORSConfiguration&gt;</span></span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode xml"><code class="sourceCode xml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">&lt;?xml</span><span class="ot"> version=</span><span class="st">"1.0"</span> <span class="fu">?&gt;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">CORSConfiguration</span><span class="ot"> xmlns=</span><span class="st">"http://s3.amazonaws.com/doc/2006-03-01/"</span>&gt;</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  &lt;<span class="kw">CORSRule</span>&gt;</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">AllowedOrigin</span>&gt;*&lt;/<span class="kw">AllowedOrigin</span>&gt;</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">AllowedMethod</span>&gt;*&lt;/<span class="kw">AllowedMethod</span>&gt;</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">AllowedHeader</span>&gt;Content-*&lt;/<span class="kw">AllowedHeader</span>&gt;</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  &lt;/<span class="kw">CORSRule</span>&gt;</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">CORSConfiguration</span>&gt;</span></code></pre></div>
 <p>This allows access for any domain. To restrict access, replace <code>*</code> by <code>https://cynkra.com</code>. However note that this only applies to this exact domain and does not include subdomains like <code>xyz.cynkra.com</code>.</p>
 <p>Also ensure that the ACL settings are set to “public read” so the files can actually be accessed in the first place.</p>
 </div>
@@ -106,10 +106,8 @@
     <div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
-<li>Browse source code at <br><a href="https://github.com/cynkra/cynkratemplate/">https://​github.com/​cynkra/​cynkratemplate/​</a>
-</li>
-<li>Report a bug at <br><a href="https://github.com/cynkra/cynkratemplate/issues">https://​github.com/​cynkra/​cynkratemplate/​issues</a>
-</li>
+<li><a href="https://github.com/cynkra/cynkratemplate/">Browse source code</a></li>
+<li><a href="https://github.com/cynkra/cynkratemplate/issues">Report a bug</a></li>
 </ul>
 </div>
 
@@ -117,16 +115,23 @@
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
 <li><a href="LICENSE.html">Full license</a></li>
-<li><small><a href="https://opensource.org/licenses/mit-license.php">MIT</a> + file <a href="LICENSE-text.html">LICENSE</a></small></li>
+<li><small><a href="https://opensource.org/licenses/mit-license.php" class="external-link">MIT</a> + file <a href="LICENSE-text.html">LICENSE</a></small></li>
 </ul>
 </div>
 
+
+<div class="citation">
+<h2 data-toc-skip>Citation</h2>
+<ul class="list-unstyled">
+<li><a href="authors.html#citation">Citing cynkratemplate</a></li>
+</ul>
+</div>
 
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
 <li>
-<a href="http://www.christophsax.com/">Christoph Sax</a> <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-7192-7044" target="orcid.widget" aria-label="ORCID"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<a href="http://www.christophsax.com/" class="external-link">Christoph Sax</a> <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-7192-7044" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
 <li>Patrick Schratz <br><small class="roles"> Author </small>  </li>
 </ul>
 </div>
@@ -143,11 +148,11 @@
 
 
       <footer><div class="footer-left">
-  <p>cynkratemplate is sponsored by <a class="cynkra-logo-font-footer" href="https://www.cynkra.com">cynkra</a><a class="cynkra-logo-footer" href="https://www.cynkra.com">■</a>. Learn more at <a href="https://www.cynkra.com/">www.cynkra.com</a>.</p>
+  <p>cynkratemplate is sponsored by <a class="external-link cynkra-logo-font-footer" href="https://www.cynkra.com">cynkra</a><a class="external-link cynkra-logo-footer" href="https://www.cynkra.com">■</a>. Learn more at <a href="https://www.cynkra.com/" class="external-link">www.cynkra.com</a>.</p>
 </div>
 
 <div class="footer-right">
-  <p>Developed by <a href="http://www.christophsax.com/">Christoph Sax</a>, Patrick Schratz.</p>
+  <p>Developed by .</p>
 </div>
 
       </footer>
