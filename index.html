@@ -99,6 +99,12 @@
 <p>This allows access for any domain. To restrict access, replace <code>*</code> by <code>https://cynkra.com</code>. However note that this only applies to this exact domain and does not include subdomains like <code>xyz.cynkra.com</code>.</p>
 <p>Also ensure that the ACL settings are set to “public read” so the files can actually be accessed in the first place.</p>
 </div>
+<div class="section level2">
+<h2 id="local-preview">Local preview<a class="anchor" aria-label="anchor" href="#local-preview"></a>
+</h2>
+<p>To see the Frutiger fonts within local previews, you need to allow CORS for localhost files. This setting is usually off in most browsers and will hence block resources from a different origin. As the fonts are served via AWS S3, the origin differs from localhost.</p>
+<p>For Chromium-based browsers, the “CORS Unblock” extension does the job.</p>
+</div>
 </div>
   </div>
 
