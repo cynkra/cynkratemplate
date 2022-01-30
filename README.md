@@ -29,3 +29,11 @@ To restrict access, replace `*` by `https://cynkra.com`.
 However note that this only applies to this exact domain and does not include subdomains like `xyz.cynkra.com`.
 
 Also ensure that the ACL settings are set to "public read" so the files can actually be accessed in the first place.
+
+## Local preview
+
+To see the Frutiger fonts within local previews, you need to allow CORS for localhost files.
+This setting is usually off in most browsers and will hence block resources from a different origin.
+As the fonts are served via AWS S3, the origin differs from localhost.
+
+For Chromium-based browsers, the "CORS Unblock" extension does the job.
