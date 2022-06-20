@@ -2,28 +2,19 @@ url: https://github.com/cynkra/cynkratemplate
 
 template:
   package: cynkratemplate
-  default_assets: false
 
 destination: docs
 
 navbar:
   structure:
     left: [news]
-    right: [reference, articles, projects, consulting, github]
+    right: [reference, articles, consulting, github]
   components:
     home: ~
     reference:
       text: Reference
       href: reference/index.html
-    projects:
-      text: Projects
-      href: https://www.cynkra.com/projects.html
     consulting:
-      text: Consulting
+      text: cynkra Consulting
       href: https://www.cynkra.com/consulting.html
 
-authors:
-  Christoph Sax:
-    href: http://www.christophsax.com/
-  Kirill Müller:
-    href: http://krlmlr.info
