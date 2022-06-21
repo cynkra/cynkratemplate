@@ -7,7 +7,7 @@
 cynkratemplate()
 }
 \description{
-To keep `R CMD check` quiet.
+To keep \verb{R CMD check} quiet.
 }
 \examples{
 cynkratemplate()

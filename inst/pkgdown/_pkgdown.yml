@@ -1,0 +1,47 @@
+template:
+  includes:
+    before_title: '<a href="https://cynkra.com"><img src="https://cynkra.com/assets/images/favicon-16x16.png" id="cynkra-icon" alt="cynkra"></a>'
+  bootstrap: 5
+  bslib:
+    bg: "white"
+    fg: "black"
+    primary: "#6366f1"
+    link-color: "#184FA9"
+    base_font: "frutiger-light,sans-serif"
+    code_font: {google: "Fira Mono"}
+
+footer:
+  structure:
+    left: developed_by
+    right: cynkra
+  components:
+    cynkra: <p>Sponsored by <a class="cynkra-logo-font-footer" href="https://www.cynkra.com">cynkra</a><a class="cynkra-logo-footer" href="https://www.cynkra.com">&#9632;</a>. Visit us at <a href="https://www.cynkra.com/">www.cynkra.com</a>.</p>
+
+authors:
+  cynkra:
+    href: https://www.cynkra.com
+    html: <img src='https://cynkra.com/assets/images/apple-touch-icon-76x76.png' alt='cynkra' width='72' />
+  Adriana Clavijo:
+    href: https://cynkra.com/about/
+  Angelica Becerra:
+    href: https://cynkra.com/about/
+  Antoine Fabri:
+    href: https://cynkra.com/about/
+  Ben Ubah:
+    href: https://cynkra.com/about/
+  Christoph Sax:
+    href: https://cynkra.com/about/
+  Kirill Müller:
+    href: https://cynkra.com/about/
+  Matthias Bannert:
+    href: https://cynkra.com/about/
+  Maëlle Salmon:
+    href: https://cynkra.com/about/
+  Nicolas Bennett:
+    href: https://cynkra.com/about/
+  Patrick Schratz:
+    href: https://cynkra.com/about/
+  Tobias Schieferdecker:
+    href: https://cynkra.com/about/
+  Wael Sadek:
+    href: https://cynkra.com/about/
