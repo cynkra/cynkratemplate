@@ -1,6 +1,6 @@
 template:
   includes:
-    before_title: '<a href="https://cynkra.com"><img src="https://cynkra.com/assets/images/favicon-16x16.png" id="cynkra-icon" alt="cynkra"></a>'
+    before_title: '<a href="https://cynkra.com"><img src="https://cynkra.com/assets/images/apple-touch-icon-180x180.png" id="cynkra-icon" alt="cynkra"></a>'
   bootstrap: 5
   bslib:
     bg: "white"
@@ -9,6 +9,7 @@ template:
     link-color: "#184FA9"
     base_font: "frutiger-light,sans-serif"
     code_font: {google: "Fira Mono"}
+    font-size-lg: 1.5rem
 
 footer:
   structure:
