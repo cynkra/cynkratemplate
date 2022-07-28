@@ -35,34 +35,30 @@
 /* cynkra logo classes  ----------------------------------------------------- */
 
 .cynkra-logo {
-  font-size: 65% !important;
-  color: #1f65b7 !important;
-  padding-left: 2.5px !important;
-  padding-top: 16px;
-  padding-right: 15px;
-  float: left;
-  line-height: 20px;
-}
-
-.cynkra-logo-font {
-  font-size: 16px;
-  font-weight: bold;
-  /* color: rgb(108, 111, 115);   text color */
-  color: rgb(45, 50, 56);
-  padding-top: 14px;
-  float: left;
-  line-height: 20px;
-}
-
-.cynkra-logo-footer {
   font-size: 85% !important;
   color: #1f65b7 !important;
   padding-left: 1.5px !important;
   line-height: 20px;
 }
-.cynkra-logo-font-footer {
-  font-size: 14px;
+
+a.cynkra-logo, a.cynkra-logo-font {
+  text-decoration: none;
+}
+
+.cynkra-logo-font {
   font-weight: bold;
-  /* color: rgb(108, 111, 115);   text color */
   color: rgb(45, 50, 56);
 }
+
+footer .cynkra-logo-font {
+  font-size: .9em;
+}
+
+nav .cynkra-logo-font {
+  font-size: .1.3em;
+}
+
+nav .cynkra-logo {
+  padding-right: 5px;
+}
+

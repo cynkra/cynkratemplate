@@ -1,6 +1,6 @@
 template:
   includes:
-    before_title: '<a href="https://cynkra.com"><img src="https://cynkra.com/assets/images/favicon-16x16.png" id="cynkra-icon" alt="cynkra"></a>'
+    before_title: '<a class="cynkra-logo-font" href="https://www.cynkra.com">cynkra</a><a class="cynkra-logo" href="https://www.cynkra.com">&#9632;</a>'
   bootstrap: 5
   bslib:
     bg: "white"
@@ -15,7 +15,7 @@ footer:
     left: developed_by
     right: cynkra
   components:
-    cynkra: <p>Sponsored by <a class="cynkra-logo-font-footer" href="https://www.cynkra.com">cynkra</a><a class="cynkra-logo-footer" href="https://www.cynkra.com">&#9632;</a>. Visit us at <a href="https://www.cynkra.com/">www.cynkra.com</a>.</p>
+    cynkra: <p>Sponsored by <a class="cynkra-logo-font" href="https://www.cynkra.com">cynkra</a><a class="cynkra-logo" href="https://www.cynkra.com">&#9632;</a>. Visit us at <a href="https://www.cynkra.com/">www.cynkra.com</a>.</p>
 
 authors:
   cynkra:
