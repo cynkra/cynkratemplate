@@ -1,8 +1,8 @@
 pandoc: 2.14.2
-pkgdown: 2.0.4.9000
-pkgdown_sha: 5203a63f002405e99b8510debe809ff3d9f18b02
+pkgdown: 2.0.6.9000
+pkgdown_sha: 956f076f661eb2de9413f64ea24a580cf444466d
 articles: {}
-last_built: 2022-06-21T06:12Z
+last_built: 2022-07-28T12:40Z
 urls:
   reference: https://github.com/cynkra/cynkratemplate/reference
   article: https://github.com/cynkra/cynkratemplate/articles
