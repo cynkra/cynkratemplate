@@ -32,37 +32,20 @@
   background-color: #f2f2f2;
 }
 
+/* copy-paste button ---------------------------------------------------------*/
+.btn.btn-primary.btn-copy-ex {
+	color: white;
+}
+
 /* cynkra logo classes  ----------------------------------------------------- */
 
-.cynkra-logo {
-  font-size: 65% !important;
-  color: #1f65b7 !important;
-  padding-left: 2.5px !important;
-  padding-top: 16px;
-  padding-right: 15px;
-  float: left;
-  line-height: 20px;
+#cynkra-logo-footer {
+  height: 20px;
+  padding-bottom: 2px;
 }
 
-.cynkra-logo-font {
-  font-size: 16px;
-  font-weight: bold;
-  /* color: rgb(108, 111, 115);   text color */
-  color: rgb(45, 50, 56);
-  padding-top: 14px;
-  float: left;
-  line-height: 20px;
-}
-
-.cynkra-logo-footer {
-  font-size: 85% !important;
-  color: #1f65b7 !important;
-  padding-left: 1.5px !important;
-  line-height: 20px;
-}
-.cynkra-logo-font-footer {
-  font-size: 14px;
-  font-weight: bold;
-  /* color: rgb(108, 111, 115);   text color */
-  color: rgb(45, 50, 56);
+#cynkra-logo-nav {
+  height: 25px;
+  padding-right: 5px;
+  padding-bottom: 2px;
 }

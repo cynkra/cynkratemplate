@@ -8,13 +8,10 @@ destination: docs
 navbar:
   structure:
     left: [news]
-    right: [reference, articles, consulting, github]
+    right: [reference, articles, github]
   components:
     home: ~
     reference:
       text: Reference
       href: reference/index.html
-    consulting:
-      text: cynkra Consulting
-      href: https://www.cynkra.com/consulting.html
 
