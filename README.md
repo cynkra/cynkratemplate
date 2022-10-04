@@ -17,7 +17,7 @@ template:
       <script defer data-domain="{YOUR DOMAIN}.cynkra.com" src="https://plausible.io/js/plausible.js"></script>
 ```
 
-Please ask Matt for a plausible subdomain via email.
+Please ask the person in charge (see website page of the general manual in clickup) for a plausible subdomain via email or another mean of communication of their choice.
 
 ## Fonts
 
