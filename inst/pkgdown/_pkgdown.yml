@@ -1,6 +1,6 @@
 template:
   includes:
-    before_title: '<a href="https://cynkra.com"><img src="https://raw.githubusercontent.com/cynkra/cynkratemplate/docs-logo-nav/inst/logo_small.svg" id="cynkra-logo-nav" alt="cynkra"></a>'
+    before_title: '<a href="https://cynkra.com"><img src="https://cynkra.com/assets/logo_small.svg" id="cynkra-logo-nav" alt="cynkra"></a>'
   bootstrap: 5
   bslib:
     bg: "white"
