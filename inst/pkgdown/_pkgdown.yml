@@ -16,7 +16,7 @@ footer:
     right: cynkra
   components:
     cynkra: |
-      <p>Sponsored by <a href="https://cynkra.com"><img src="https://raw.githubusercontent.com/cynkra/cynkratemplate/docs-logo-nav/inst/logo_small.svg" id="cynkra-logo-footer" alt="cynkra"></a></p>
+      <p>Sponsored by <a href="https://cynkra.com"><img src="https://cynkra.com/assets/img/logo_small.svg" id="cynkra-logo-footer" alt="cynkra"></a></p>
 
 authors:
   cynkra:
