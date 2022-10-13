@@ -5,6 +5,20 @@
 This is a private template for use by cynkra packages.
 Please don't use it for your own package.
 
+## Usage
+
+In the pkgdown configuration file (see `usethis::edit_pkgdown_config()`),
+
+```yml
+template:
+  package: cynkratemplate
+  includes:
+    in_header: |
+      <script defer data-domain="{YOUR DOMAIN}.cynkra.com" src="https://plausible.io/js/plausible.js"></script>
+```
+
+Please ask the person in charge (see website page of the general manual in clickup) for a plausible subdomain via email or another mean of communication of their choice.
+
 ## Fonts
 
 Our private "Frutiger" fonts are hosted on AWS in the "cynkraweb" S3 bucket.
