@@ -71,6 +71,17 @@
 
 <p>This is a private template for use by cynkra packages. Please don’t use it for your own package.</p>
 <div class="section level2">
+<h2 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
+</h2>
+<p>In the pkgdown configuration file (see <code><a href="https://usethis.r-lib.org/reference/edit.html" class="external-link">usethis::edit_pkgdown_config()</a></code>),</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode yml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">template</span><span class="kw">:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">package</span><span class="kw">:</span><span class="at"> cynkratemplate</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">includes</span><span class="kw">:</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">    in_header</span><span class="kw">: </span><span class="ch">|</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>      &lt;script defer data-domain="{YOUR DOMAIN}.cynkra.com" src="https://plausible.io/js/plausible.js"&gt;&lt;/script&gt;</span></code></pre></div>
+<p>Please ask the person in charge (see website page of the general manual in clickup) for a plausible subdomain via email or another mean of communication of their choice.</p>
+</div>
+<div class="section level2">
 <h2 id="fonts">Fonts<a class="anchor" aria-label="anchor" href="#fonts"></a>
 </h2>
 <p>Our private “Frutiger” fonts are hosted on AWS in the “cynkraweb” S3 bucket. Some browsers (e.g. Firefox) block the font access if the “CORS” headers are not set correctly.</p>
