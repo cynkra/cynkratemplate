@@ -1,3 +1,15 @@
+#' Set up cynkratemplate usage
+#'
+#' This function
+#' * copies the favicon folder to the package;
+#' * registers cynkratemplate usage in the pkgdown config;
+#' * explains what the next steps are.
+#'
+#' @param pkg Path to package
+#'
+#' @return None
+#' @export
+#'
 use_cynkra_pkgdown <- function(pkg = getwd()) {
   cat(paste(cli::symbol$info, sprintf("Working in %s\n", pkg)))
 
