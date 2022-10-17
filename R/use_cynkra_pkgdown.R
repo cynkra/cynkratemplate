@@ -14,7 +14,7 @@ use_cynkra_pkgdown <- function(pkg = getwd()) {
   cat(paste(cli::symbol$info, sprintf("Working in %s\n", pkg)))
 
   if (!dir.exists(file.path(pkg, "pkgdown", "favicon"))) {
-    dir.create(file.path(pkg, "pkgdown", "favicon"))
+    dir.create(file.path(pkg, "pkgdown", "favicon"), recursive = TRUE)
     copied <- file.copy(
       system.file("favicon", package = "cynkratemplate"),
       file.path(pkg, "pkgdown", "favicon"),
