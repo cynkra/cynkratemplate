@@ -46,7 +46,7 @@ use_cynkra_pkgdown <- function(pkg = getwd()) {
     config$template$package <- "cynkratemplate"
     config$template$params$bootswatch <- NULL
     config$template$includes$before_title <- NULL
-    if (!is.null(confing$template$bootstrap)) {
+    if (!is.null(config$template$bootstrap)) {
       config$template$bootstrap <- 5
     }
     yaml::write_yaml(config, file.path(pkg, config_path))
