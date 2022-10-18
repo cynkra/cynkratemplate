@@ -46,6 +46,9 @@ use_cynkra_pkgdown <- function(pkg = getwd()) {
     config$template$package <- "cynkratemplate"
     config$template$params$bootswatch <- NULL
     config$template$includes$before_title <- NULL
+    if (!is.null(confing$template$bootstrap)) {
+      config$template$bootstrap <- 5
+    }
     yaml::write_yaml(config, file.path(pkg, config_path))
   }
   cat(paste(cli::symbol$tick, "Registered cynkratemplate in pkgdown config.\n"))
