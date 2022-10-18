@@ -9,6 +9,7 @@ template:
     link-color: "#184FA9"
     base_font: "frutiger-light,sans-serif"
     code_font: {google: "Fira Mono"}
+    dropdown-link-hover-bg: "#e0e0fc"
 
 footer:
   structure:
