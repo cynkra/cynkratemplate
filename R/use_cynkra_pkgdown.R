@@ -26,6 +26,15 @@ use_cynkra_pkgdown <- function(pkg = getwd()) {
     cat(paste(cli::symbol$tick, "Copied favicon files to local package.\n"))
   }
 
+  current_needs <- desc::desc_get("Config/Needs/website")
+  needs <- if (!is.na(current_needs)) {
+    toString(c(as.character(current_needs), "cynkra/cynkratemplate"))
+  } else {
+    "cynkra/cynkratemplate"
+  }
+  desc::desc_set("Config/Needs/website" = needs)
+  cat(paste(cli::symbol$tick, "Registered GHA dependency on cynkratemplate.\n"))
+
   config_path <- find_pkgdown_config(pkg)
   if (is.null(config_path)) {
     meta <- list(
@@ -36,6 +45,7 @@ use_cynkra_pkgdown <- function(pkg = getwd()) {
     config <- yaml::read_yaml(config_path)
     config$template$package <- "cynkratemplate"
     config$template$params$bootswatch <- NULL
+    config$template$includes$before_title <- NULL
     yaml::write_yaml(config, file.path(pkg, config_path))
   }
   cat(paste(cli::symbol$tick, "Registered cynkratemplate in pkgdown config.\n"))
