@@ -4,7 +4,7 @@ pkgdown_sha: 7fe9e802df2964d483d0267f1d5a59aa7b3c685d
 articles:
   test1: test1.html
   test2: test2.html
-last_built: 2022-10-18T10:41Z
+last_built: 2022-10-18T10:51Z
 urls:
   reference: https://github.com/cynkra/cynkratemplate/reference
   article: https://github.com/cynkra/cynkratemplate/articles
