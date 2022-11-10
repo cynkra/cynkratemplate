@@ -42,10 +42,16 @@
 #cynkra-logo-footer {
   height: 20px;
   padding-bottom: 2px;
+  padding-left: 2px;
 }
 
 #cynkra-logo-nav {
   height: 25px;
-  padding-right: 5px;
+  padding-right: 20px;
   padding-bottom: 2px;
+}
+
+/* Navbar */
+li.active a.nav-link {
+  color: #005f7e !important;
 }
