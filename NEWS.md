@@ -1,5 +1,10 @@
 <!-- NEWS.md is maintained by https://cynkra.github.io/fledge, do not edit -->
 
+# cynkratemplate 0.0.1.9002
+
+- Internal changes only.
+
+
 # cynkratemplate 0.0.1.9001
 
 ## Features
