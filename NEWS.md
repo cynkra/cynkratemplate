@@ -1,4 +1,9 @@
-<!-- NEWS.md is maintained by https://cynkra.github.io/fledge, do not edit -->
+<!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
+
+# cynkratemplate 0.0.1.9003
+
+- Internal changes only.
+
 
 # cynkratemplate 0.0.1.9002
 
