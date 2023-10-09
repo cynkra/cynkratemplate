@@ -1,5 +1,10 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.1.9006
+
+- Internal changes only.
+
+
 # cynkratemplate 0.0.1.9005
 
 - Merge pull request #42 from cynkra/maelle-patch-2.
