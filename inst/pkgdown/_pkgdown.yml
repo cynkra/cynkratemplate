@@ -13,6 +13,7 @@ template:
     code_font: {google: "Fira Mono"}
     dropdown-link-hover-bg: "#e0e0fc"
     dropdown-link-active-bg: "#e0e0fc"
+    danger: "#A6081A"
 
 footer:
   structure:
