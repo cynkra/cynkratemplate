@@ -9,7 +9,7 @@ template:
     link-color: "#184FA9"
     input-focus-border-color: "#005f7e"
     input-btn-focus-box-shadow: "#005f7e"
-    base_font: "frutiger-light,sans-serif"
+    base_font: "frutiger,sans-serif"
     code_font: {google: "Fira Mono"}
     dropdown-link-hover-bg: "#e0e0fc"
     dropdown-link-active-bg: "#e0e0fc"
