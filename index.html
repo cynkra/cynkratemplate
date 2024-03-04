@@ -95,12 +95,18 @@
 </h2>
 <p>Our private “Frutiger” fonts are hosted on AWS in the “cynkraweb” S3 bucket. Some browsers (e.g. Firefox) block the font access if the “CORS” headers are not set correctly.</p>
 <p>To allow access, the domain needs to be whitelisted within the CORS configuration block of the S3 bucket. In addition, he ACL settings of the bucket must be set to “public read” so the files can actually be accessed in the first place.</p>
+<div class="section level3">
+<h3 id="cynkra-blog-dm-and-similar-repositories">cynkra blog, dm and similar repositories<a class="anchor" aria-label="anchor" href="#cynkra-blog-dm-and-similar-repositories"></a>
+</h3>
+<p>The <em>cynkra blog</em>, <em>cynkratemplate</em>, <em>dm</em> and similar repositories use the same fonts from <a href="https://github.com/cynkra/cynkraweb/blob/main/www/user/_fonts.scss" class="external-link">cynkra/cynkraweb on GitHub</a>, specifically <code>font-family: "frutiger", sans-serif;</code> with font weights of <code>300</code> (light), <code>400</code> (normal), and <code>700</code> (bold). Please ensure not to use <strong>500</strong>, <strong>600</strong>, <strong>bolder</strong>, or other weights, as the browser would render them using faux styles.</p>
+<p>Keep in mind that since the Cynkra blog loads fonts from absolute URLs (e.g. <code>src: url("https://cynkra.com/assets/css/fonts/6135829/b05d44ef-6a78-4aa4-9388-3f0e05252a48.woff2") format("woff2");</code>), if there is a font update at the <a href="https://github.com/cynkra/cynkraweb/" class="external-link">cynkra/cynkraweb GitHub repository</a>, the URLs might change, requiring updates on our end as well.</p>
 </div>
-<div class="section level2">
-<h2 id="local-preview">Local preview<a class="anchor" aria-label="anchor" href="#local-preview"></a>
-</h2>
+<div class="section level3">
+<h3 id="local-preview">Local preview<a class="anchor" aria-label="anchor" href="#local-preview"></a>
+</h3>
 <p>To see the Frutiger fonts within local previews, you need to allow CORS for localhost files. This setting is usually off in most browsers and will hence block resources from a different origin. As the fonts are served via AWS S3, the origin differs from localhost.</p>
 <p>For Chromium-based browsers, the “CORS Unblock” extension does the job. There should be similar extensions for Firefox and other browsers. Safari is less strict with CORS and should serve the Frutiger font by default.</p>
+</div>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
