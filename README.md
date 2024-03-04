@@ -29,7 +29,13 @@ Some browsers (e.g. Firefox) block the font access if the "CORS" headers are not
 To allow access, the domain needs to be whitelisted within the CORS configuration block of the S3 bucket.
 In addition, he ACL settings of the bucket must be set to "public read" so the files can actually be accessed in the first place.
 
-## Local preview
+### cynkra blog, dm and similar repositories
+
+The *cynkra blog*, *cynkratemplate*, *dm* and similar repositories use the same fonts from [cynkra/cynkraweb on GitHub](https://github.com/cynkra/cynkraweb/blob/main/www/user/_fonts.scss), specifically `font-family: "frutiger", sans-serif;` with font weights of `300` (light), `400` (normal), and `700` (bold). Please ensure not to use **500**, **600**, **bolder**, or other weights, as the browser would render them using faux styles.
+
+Keep in mind that since the Cynkra blog loads fonts from absolute URLs (e.g. `src: url("https://cynkra.com/assets/css/fonts/6135829/b05d44ef-6a78-4aa4-9388-3f0e05252a48.woff2") format("woff2");`), if there is a font update at the [cynkra/cynkraweb GitHub repository](https://github.com/cynkra/cynkraweb/), the URLs might change, requiring updates on our end as well.
+
+### Local preview
 
 To see the Frutiger fonts within local previews, you need to allow CORS for localhost files.
 This setting is usually off in most browsers and will hence block resources from a different origin.
