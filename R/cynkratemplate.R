@@ -1,9 +1,9 @@
-#' A dummy function
+#' An example function
 #'
 #' To keep `R CMD check` quiet.
 #'
 #' @export
 #' @examples
-#' cynkratemplate()
-cynkratemplate <- function() {
+#' cynkratemplate_example()
+cynkratemplate_example <- function() {
 }
