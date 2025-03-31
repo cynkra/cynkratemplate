@@ -6,7 +6,9 @@ Authors@R: c(
            comment = c(ORCID = "0000-0002-7192-7044")),
     person("Patrick", "Schratz", , "patrick@cynkra.com", role = "aut"),
     person("Maëlle", "Salmon", , "maelle@cynkra.com", role = "ctb",
-           comment = c(ORCID = "0000-0002-2815-0399"))
+           comment = c(ORCID = "0000-0002-2815-0399")),
+    person("cynkra GmbH", , , "mail@cynkra.com", role = "fnd",
+           comment = c(ROR = "0335t7e62"))
   )
 Description: This is a private template for use by cynkra
     packages. Please don't use it for your own package.
@@ -20,7 +22,7 @@ VignetteBuilder:
     knitr
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2.9000
 Roxygen: list(markdown = TRUE)
 Imports: 
     cli,
