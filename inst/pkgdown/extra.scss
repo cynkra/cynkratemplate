@@ -1,3 +1,4 @@
+// TODO: update the font paths after going live with the new website
 // NOTE: 'new' frutiger normal=400
 @font-face {
     font-family: "frutiger";
@@ -22,10 +23,35 @@
   font-style: normal;
 }
 
-/* navbar */
+body {
+  // NOTE: offset the navbar height
+  padding-top: 140px;
+
+  @media (min-width: 768px) {
+    padding-top: 180px;
+  }
+}
+
 .navbar {
+  --bs-navbar-padding-y: 20px;
+
   box-shadow: rgba(19, 16, 34, 0.06) 0px 4.4px 12px -1px, rgba(19, 16, 34, 0.03) 0px 2px 6.4px -1px;
   background-color: white !important;
+
+  .container {
+    align-items: flex-end;
+  }
+}
+
+.navbar-nav .nav-item > .nav-link {
+  border-radius: 0;
+}
+
+.navbar-nav .nav-item > .nav-link,
+.h5 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 2.8px;
 }
 
 .navbar-light .navbar-nav .active > .nav-link {
@@ -33,12 +59,23 @@
   background-color: #f2f2f2;
 }
 
+.navbar-brand {
+  --bs-navbar-brand-padding-y: 8px;
+
+  + small {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+}
+
+.dropdown-menu {
+  --bs-dropdown-border-radius: 0;
+}
+
 /* copy-paste button ---------------------------------------------------------*/
 .btn.btn-primary.btn-copy-ex {
 	color: white;
 }
-
-/* cynkra logo classes  ----------------------------------------------------- */
 
 #cynkra-logo-footer {
   height: 20px;
@@ -46,13 +83,21 @@
   padding-left: 2px;
 }
 
-#cynkra-logo-nav {
-  height: 25px;
-  padding-right: 20px;
-  padding-bottom: 2px;
+.logo-cynkra {
+  margin-right: 20px;
 }
 
-/* Navbar */
+.logo-cynkra,
+.logo-cynkra svg {
+  width: 100px;
+  height: 100px;
+
+  @media (min-width: 768px) {
+    width: 140px;
+    height: 140px;
+  }
+}
+
 li.active a.nav-link {
   color: #005f7e !important;
 }
