@@ -1,16 +1,47 @@
+:root {
+  --color-cynkra-blue: #2162b7;
+  --color-cynkra-blue-2: #2981e5;
+  --color-cynkra-blue-3: #6ba0e6;
+  --color-cynkra-blue-4: #a8c6e5;
+  --color-cynkra-blue-5: #c9ddf2;
+
+  --color-cynkra-orange: #d14c4c;
+  --color-cynkra-orange-2: #eb6f5a;
+  --color-cynkra-orange-3: #f29b38;
+  --color-cynkra-orange-4: #da903c; /* old #f2cc59; */
+  --color-cynkra-orange-5: #f5efdc;
+
+  --color-cynkra-green: #23ad82;
+  --color-cynkra-green-2: #6fb6a0;
+  --color-cynkra-green-3: #5fd3af;
+  --color-cynkra-green-4: #99d9c5;
+  --color-cynkra-green-5: #c4f2e4;
+
+  --color-cynkra-gray: #242425;
+  --color-cynkra-gray-2: #2e2e33;
+  --color-cynkra-gray-3: #5c5c61;
+  --color-cynkra-gray-4: #909095;
+  --color-cynkra-gray-5: #b9babf;
+  --color-cynkra-gray-6: #ceced0;
+  --color-cynkra-gray-7: #e9e9e9;
+  --color-cynkra-gray-8: #f5f5f5;
+}
+
 // TODO: update the font paths after going live with the new website
 // NOTE: 'new' frutiger normal=400
 @font-face {
-    font-family: "frutiger";
-    src: url("https://cynkra.com/assets/css/fonts/6135829/b05d44ef-6a78-4aa4-9388-3f0e05252a48.woff2") format("woff2");
-    font-weight: normal;
-    font-style: normal;
+  font-family: "frutiger";
+  src: url("https://cynkra.com/assets/css/fonts/6135829/b05d44ef-6a78-4aa4-9388-3f0e05252a48.woff2")
+    format("woff2");
+  font-weight: normal;
+  font-style: normal;
 }
 
 // NOTE: 'new' frutiger light=300
 @font-face {
   font-family: "frutiger";
-  src: url("https://cynkra.com/assets/css/fonts/1449009/b3ca2df2-7bee-4fc0-84cb-b029b99c3b61.woff2") format("woff2");
+  src: url("https://cynkra.com/assets/css/fonts/1449009/b3ca2df2-7bee-4fc0-84cb-b029b99c3b61.woff2")
+    format("woff2");
   font-weight: 300;
   font-style: normal;
 }
@@ -18,7 +49,8 @@
 // NOTE: 'new' frutiger bold=700
 @font-face {
   font-family: "frutiger";
-  src: url("https://cynkra.com/assets/css/fonts/1449025/c31af250-c28e-40ef-bed6-866e7ed6fedf.woff2") format("woff2");
+  src: url("https://cynkra.com/assets/css/fonts/1449025/c31af250-c28e-40ef-bed6-866e7ed6fedf.woff2")
+    format("woff2");
   font-weight: bold; // same as 700
   font-style: normal;
 }
@@ -27,23 +59,31 @@ body {
   // NOTE: offset the navbar height
   padding-top: 140px;
 
-  @media (min-width: 768px) {
-    padding-top: 180px;
-  }
+  // @media (min-width: 768px) {
+  //   padding-top: 180px;
+  // }
 }
 
 .navbar {
   --bs-navbar-padding-y: 20px;
 
-  box-shadow: rgba(19, 16, 34, 0.06) 0px 4.4px 12px -1px, rgba(19, 16, 34, 0.03) 0px 2px 6.4px -1px;
+  box-shadow: rgba(19, 16, 34, 0.06) 0px 4.4px 12px -1px,
+    rgba(19, 16, 34, 0.03) 0px 2px 6.4px -1px;
   background-color: white !important;
 
   .container {
     align-items: flex-end;
+    position: relative;
   }
 }
 
 .navbar-nav .nav-item > .nav-link {
+  padding: 8px;
+}
+
+.navbar-nav .nav-item > .nav-link,
+#toc > .nav a.nav-link,
+.row > aside {
   border-radius: 0;
 }
 
@@ -54,9 +94,10 @@ body {
   letter-spacing: 2.8px;
 }
 
+.nav-item.active .nav-link,
 .navbar-light .navbar-nav .active > .nav-link {
-  color: #3134ED;
-  background-color: #f2f2f2;
+  color: black !important;
+  background-color: var(--color-cynkra-gray-7) !important;
 }
 
 .navbar-brand {
@@ -74,7 +115,7 @@ body {
 
 /* copy-paste button ---------------------------------------------------------*/
 .btn.btn-primary.btn-copy-ex {
-	color: white;
+  color: white;
 }
 
 #cynkra-logo-footer {
@@ -92,12 +133,43 @@ body {
   width: 100px;
   height: 100px;
 
-  @media (min-width: 768px) {
-    width: 140px;
-    height: 140px;
-  }
+  // @media (min-width: 768px) {
+  //   width: 140px;
+  //   height: 140px;
+  // }
 }
 
 li.active a.nav-link {
   color: #005f7e !important;
+}
+
+.cynkra-square {
+  background-color: var(--color-cynkra-blue);
+  width: 12px;
+  height: 12px;
+  display: inline-block;
+  margin-bottom: -2px;
+}
+
+.navbar-toggler,
+.navbar-toggler:focus {
+  border: none;
+  box-shadow: none;
+
+  position: absolute;
+  top: -4px;
+  right: 8px;
+
+  @media (min-width: 576px) {
+    right: -8px;
+  }
+}
+
+.navbar-collapse {
+  margin-left: 0 !important;
+  margin-top: 20px;
+
+  @media (min-width: 992px) {
+    margin-left: 20px !important;
+  }
 }

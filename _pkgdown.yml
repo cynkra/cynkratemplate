@@ -1,12 +1,13 @@
 url: https://cynkratemplate.cynkra.com/
 template:
   package: cynkratemplate
-  bootstrap: 5
+  bootstrap: 5.0
 destination: docs
 navbar:
   structure:
-    left: news
+    left:
     right:
+    - news
     - reference
     - articles
     - github
