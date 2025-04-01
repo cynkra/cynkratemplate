@@ -18,6 +18,19 @@ template:
     code_font: {google: "Overpass Mono"}
     dropdown-link-hover-bg: "#f5f5f5"
     dropdown-link-active-bg: "#e9e9e9"
+    border-radius: "0"
+    border-radius-sm: "0"
+    border-radius-lg: "0"
+    btn-border-radius: "0"
+    btn-border-radius-sm: "0"
+    btn-border-radius-lg: "0"
+    input-border-radius: "0"
+    input-border-radius-sm: "0"
+    input-border-radius-lg: "0"
+    nav-tabs-border-radius: "0"
+    dropdown-border-radius: "0"
+    dropdown-inner-border-radius: "0"
+    badge-border-radius: "0"
 
 footer:
   structure:
@@ -30,7 +43,7 @@ footer:
 authors:
   cynkra:
     href: https://www.cynkra.com
-    html: <img src='https://cynkra.com/assets/images/apple-touch-icon-76x76.png' alt='cynkra' width='72' />
+    html: <img src='https://cynkra.com/assets/img/logo-cynkra-square.svg' alt='cynkra' width='72' height='72' />
   Adriana Clavijo:
     href: https://cynkra.com/about/
   Angelica Becerra:

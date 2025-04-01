@@ -31,7 +31,7 @@
 // NOTE: 'new' frutiger normal=400
 @font-face {
   font-family: "frutiger";
-  src: url("https://cynkra.com/assets/css/fonts/6135829/b05d44ef-6a78-4aa4-9388-3f0e05252a48.woff2")
+  src: url("https://cynkra.com/assets/fonts/frutiger-400.woff2")
     format("woff2");
   font-weight: normal;
   font-style: normal;
@@ -40,7 +40,7 @@
 // NOTE: 'new' frutiger light=300
 @font-face {
   font-family: "frutiger";
-  src: url("https://cynkra.com/assets/css/fonts/1449009/b3ca2df2-7bee-4fc0-84cb-b029b99c3b61.woff2")
+  src: url("https://cynkra.com/assets/fonts/frutiger-300.woff2")
     format("woff2");
   font-weight: 300;
   font-style: normal;
@@ -49,7 +49,7 @@
 // NOTE: 'new' frutiger bold=700
 @font-face {
   font-family: "frutiger";
-  src: url("https://cynkra.com/assets/css/fonts/1449025/c31af250-c28e-40ef-bed6-866e7ed6fedf.woff2")
+  src: url("https://cynkra.com/assets/fonts/frutiger-700.woff2")
     format("woff2");
   font-weight: bold; // same as 700
   font-style: normal;
@@ -59,6 +59,7 @@ body {
   // NOTE: offset the navbar height
   padding-top: 140px;
 
+  // NOTE: on cynkraweb we have a bigger logo above md:768px
   // @media (min-width: 768px) {
   //   padding-top: 180px;
   // }
@@ -79,12 +80,6 @@ body {
 
 .navbar-nav .nav-item > .nav-link {
   padding: 8px;
-}
-
-.navbar-nav .nav-item > .nav-link,
-#toc > .nav a.nav-link,
-.row > aside {
-  border-radius: 0;
 }
 
 .navbar-nav .nav-item > .nav-link,
@@ -109,10 +104,6 @@ body {
   }
 }
 
-.dropdown-menu {
-  --bs-dropdown-border-radius: 0;
-}
-
 /* copy-paste button ---------------------------------------------------------*/
 .btn.btn-primary.btn-copy-ex {
   color: white;
@@ -133,6 +124,7 @@ body {
   width: 100px;
   height: 100px;
 
+  // NOTE: on cynkraweb we have a bigger logo above md:768px
   // @media (min-width: 768px) {
   //   width: 140px;
   //   height: 140px;
