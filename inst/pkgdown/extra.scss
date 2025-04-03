@@ -150,11 +150,7 @@ li.active a.nav-link {
 
   position: absolute;
   top: 30px;
-  right: 0;
-
-  @media (min-width: 576px) {
-    right: -4px;
-  }
+  right: 8px;
 }
 
 .navbar-collapse {
