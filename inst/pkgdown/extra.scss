@@ -72,8 +72,14 @@ body {
   background-color: white !important;
 
   .container {
+    max-width: none;
     align-items: flex-end;
     position: relative;
+    padding: 0 20px;
+  }
+
+  .navbar-nav {
+    align-items: center;
   }
 }
 
