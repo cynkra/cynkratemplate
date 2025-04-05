@@ -1,39 +1,16 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/404.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/LICENSE-text.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/LICENSE.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/articles/index.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/articles/test1.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/articles/test2.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/authors.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/index.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/news/index.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/reference/cynkratemplate.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/reference/index.html</loc>
-  </url>
-  <url>
-    <loc>https://cynkratemplate.cynkra.com/reference/use_cynkra_pkgdown.html</loc>
-  </url>
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>https://cynkratemplate.cynkra.com/404.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/LICENSE-text.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/LICENSE.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/articles/index.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/articles/test1.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/articles/test2.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/authors.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/index.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/news/index.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/reference/cynkratemplate-package.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/reference/cynkratemplate_example.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/reference/index.html</loc></url>
+<url><loc>https://cynkratemplate.cynkra.com/reference/use_cynkra_pkgdown.html</loc></url>
 </urlset>
+
