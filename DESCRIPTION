@@ -18,7 +18,7 @@ BugReports: https://github.com/cynkra/cynkratemplate/issues
 Suggests:
     knitr,
     rmarkdown
-VignetteBuilder:
+VignetteBuilderNote:
     knitr
 Encoding: UTF-8
 LazyData: true
