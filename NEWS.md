@@ -1,5 +1,50 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.1.9007
+
+## Bug fixes
+
+- List renovate.json in .Rbuildignore.
+
+## Chore
+
+- Fix RCC.
+
+- Auto-update from GitHub Actions.
+
+  Run: https://github.com/cynkra/cynkratemplate/actions/runs/14280339496
+
+### deps
+
+- Update nick-fields/retry action to v3 (#50).
+
+### deps
+
+- Update peter-evans/create-pull-request action to v6 (#51).
+
+### deps
+
+- Update dessant/lock-threads action to v5 (#47).
+
+### deps
+
+- Update actions/cache action to v4 (#48).
+
+## Continuous integration
+
+- Sync (#59).
+
+- cynkratemplate to be continuously deployed.
+
+## Documentation
+
+- Add cynkra's ROR (#56).
+
+- Set BS version explicitly for now.
+
+  https://github.com/cynkra/cynkratemplate/issues/53
+
+
 # cynkratemplate 0.0.1.9006
 
 - Internal changes only.
