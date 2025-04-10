@@ -32,19 +32,9 @@ footer:
     left: developed_by
     right:
     - cynkra
-    - ascii
   components:
     cynkra: |
       <p>Sponsored by <a href="https://cynkra.com">cynkra</a> <span class="cynkra-square"></span></p>
-    ascii: |
-      <pre class="ascii" aria-hidden="true">////////////////////////////////////
-            ////////////////////               //
-           /////////////////////               //
-          //////////////////////               //
-         ///////////////////////               //
-        ////////////////////////  C Y N K R A  //
-       /////////////////////////               //
-      ///////////////////////////////////////////</pre>
 
 authors:
   cynkra:
