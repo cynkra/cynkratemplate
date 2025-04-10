@@ -101,11 +101,11 @@ body {
 }
 
 .navbar-brand {
-  --bs-navbar-brand-padding-y: 8px;
+  --bs-navbar-brand-padding-y: 4px;
 
   + small {
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding-top: var(--bs-navbar-brand-padding-y);
+    padding-bottom: var(--bs-navbar-brand-padding-y);
   }
 }
 
