@@ -30,8 +30,7 @@
 // NOTE: 'new' frutiger normal=400
 @font-face {
   font-family: "frutiger";
-  src: url("https://cynkra.com/assets/fonts/frutiger-400.woff2")
-    format("woff2");
+  src: url("https://cynkra.com/assets/fonts/frutiger-400.woff2") format("woff2");
   font-weight: normal;
   font-style: normal;
 }
@@ -39,8 +38,7 @@
 // NOTE: 'new' frutiger light=300
 @font-face {
   font-family: "frutiger";
-  src: url("https://cynkra.com/assets/fonts/frutiger-300.woff2")
-    format("woff2");
+  src: url("https://cynkra.com/assets/fonts/frutiger-300.woff2") format("woff2");
   font-weight: 300;
   font-style: normal;
 }
@@ -48,8 +46,7 @@
 // NOTE: 'new' frutiger bold=700
 @font-face {
   font-family: "frutiger";
-  src: url("https://cynkra.com/assets/fonts/frutiger-700.woff2")
-    format("woff2");
+  src: url("https://cynkra.com/assets/fonts/frutiger-700.woff2") format("woff2");
   font-weight: bold; // same as 700
   font-style: normal;
 }
@@ -116,6 +113,15 @@ body {
 
 .logo-cynkra {
   margin-right: 20px;
+
+  &:active svg,
+  &:active img,
+  &:hover svg,
+  &:hover img {
+    @media (min-width: 768px) {
+      transform: scale(1.4);
+    }
+  }
 }
 
 .logo-cynkra,
@@ -123,6 +129,8 @@ body {
 .logo-cynkra img {
   width: 100px;
   height: 100px;
+  transform-origin: top left;
+  transition: transform 0.3s ease-in-out;
 
   // NOTE: on cynkraweb we have a bigger logo above md:768px
   // @media (min-width: 768px) {
