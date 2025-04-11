@@ -1,11 +1,11 @@
 url: https://cynkratemplate.cynkra.com/
 template:
   package: cynkratemplate
-  bootstrap: 5
 destination: docs
 navbar:
   structure:
-    left: news
+    left:
+    - news
     right:
     - reference
     - articles
@@ -15,3 +15,6 @@ navbar:
     reference:
       text: Reference
       href: reference/index.html
+
+development:
+  mode: auto
