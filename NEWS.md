@@ -1,5 +1,14 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.1.9008
+
+## Chore
+
+- Auto-update from GitHub Actions.
+
+  Run: https://github.com/cynkra/cynkratemplate/actions/runs/14607314672
+
+
 # cynkratemplate 0.0.1.9007
 
 ## Bug fixes
