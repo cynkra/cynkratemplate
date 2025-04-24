@@ -26,10 +26,10 @@
 
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
-    <a href="https://cynkra.com" class="external-link"><img src="https://cynkra.com/assets/img/logo_small.svg" id="cynkra-logo-nav" alt="cynkra"></a>
+    <a href="https://cynkra.com" class="external-link logo-cynkra"><img src="https://cynkra.com/assets/img/logo-cynkra-square.svg" alt="cynkra" width="100" height="100"><div class="sr-only">cynkra</div></a>
     <a class="navbar-brand me-2" href="index.html">cynkratemplate</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.1.9008</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">0.0.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,11 +37,11 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
-      </ul>
+        <!-- empty ul needed otherwise everything on the left -->
+        <ul class="navbar-nav me-auto"></ul>
 <ul class="navbar-nav">
-<li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
+            <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-articles">
@@ -50,7 +50,7 @@
   </ul>
 </li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/cynkra/cynkratemplate/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
-      </ul>
+        </ul>
 </div>
 
 
@@ -81,8 +81,8 @@
 <div class="section level3">
 <h3 id="cynkra-blog-dm-and-similar-repositories">cynkra blog, dm and similar repositories<a class="anchor" aria-label="anchor" href="#cynkra-blog-dm-and-similar-repositories"></a>
 </h3>
-<p>The <em>cynkra blog</em>, <em>cynkratemplate</em>, <em>dm</em> and similar repositories use the same fonts from <a href="https://github.com/cynkra/cynkraweb/blob/main/www/user/_fonts.scss" class="external-link">cynkra/cynkraweb on GitHub</a>, specifically <code>font-family: "frutiger", sans-serif;</code> with font weights of <code>300</code> (light), <code>400</code> (normal), and <code>700</code> (bold). Please ensure not to use <strong>500</strong>, <strong>600</strong>, <strong>bolder</strong>, or other weights, as the browser would render them using faux styles.</p>
-<p>Keep in mind that since the Cynkra blog loads fonts from absolute URLs (e.g. <code>src: url("https://cynkra.com/assets/css/fonts/6135829/b05d44ef-6a78-4aa4-9388-3f0e05252a48.woff2") format("woff2");</code>), if there is a font update at the <a href="https://github.com/cynkra/cynkraweb/" class="external-link">cynkra/cynkraweb GitHub repository</a>, the URLs might change, requiring updates on our end as well.</p>
+<p>The <em>cynkra blog</em>, <em>cynkratemplate</em>, <em>dm</em> and similar repositories use the same fonts from <a href="https://github.com/cynkra/cynkraweb/blob/main/www/assets/css/base/fonts.css" class="external-link">cynkra/cynkraweb on GitHub</a>, specifically <code>font-family: "frutiger", sans-serif;</code> with font weights of <code>300</code> (light), <code>400</code> (normal), and <code>700</code> (bold). Please ensure not to use <strong>500</strong>, <strong>600</strong>, <strong>bolder</strong>, or other weights, as the browser would render them using faux styles.</p>
+<p>Keep in mind that since the Cynkra blog loads fonts from absolute URLs (e.g. <code>src: url("https://cynkra.com/assets/fonts/frutiger-400.woff2") format("woff2");</code>), if there is a font update at the <a href="https://github.com/cynkra/cynkraweb/" class="external-link">cynkra/cynkraweb GitHub repository</a>, the URLs might change, requiring updates on our end as well.</p>
 </div>
 <div class="section level3">
 <h3 id="local-preview">Local preview<a class="anchor" aria-label="anchor" href="#local-preview"></a>
@@ -121,8 +121,7 @@
 <ul class="list-unstyled">
 <li>
 <a href="https://cynkra.com/about/" class="external-link">Christoph Sax</a> <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-7192-7044" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
-<li>
-<a href="https://cynkra.com/about/" class="external-link">Patrick Schratz</a> <br><small class="roles"> Author </small>   </li>
+<li>Patrick Schratz <br><small class="roles"> Author </small>   </li>
 <li>cynkra GmbH <br><small class="roles"> Funder </small>  <a href="https://ror.org/0335t7e62" class="external-link"><img src="https://raw.githubusercontent.com/ror-community/ror-logos/main/ror-icon-rgb.svg" class="ror" alt="ROR"></a> </li>
 <li><a href="authors.html">More about authors...</a></li>
 </ul>
@@ -135,12 +134,12 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by <a href="https://cynkra.com/about/" class="external-link">Christoph Sax</a>, <a href="https://cynkra.com/about/" class="external-link">Patrick Schratz</a>, cynkra GmbH.</p>
+  <p>Developed by <a href="https://cynkra.com/about/" class="external-link">Christoph Sax</a>, Patrick Schratz, cynkra GmbH.</p>
 </div>
 
 <div class="pkgdown-footer-right">
   <p>
-Sponsored by <a href="https://cynkra.com" class="external-link"><img src="https://cynkra.com/assets/img/logo_small.svg" id="cynkra-logo-footer" alt="cynkra"></a>
+Sponsored by <a href="https://cynkra.com" class="external-link">cynkra</a> <span class="cynkra-square"></span>
 </p>
 </div>
 
