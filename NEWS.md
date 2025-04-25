@@ -1,5 +1,28 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9000
+
+## Features
+
+- Update the top navbar according to the new design (#55, #63).
+
+## Continuous integration
+
+- Explain (#68).
+
+- Add xml2 for covr, print testthat results (#67).
+
+- Change workflow as this is not meant for CRAN @krlmlr.
+
+- Fix (#66).
+
+- Sync (#65).
+
+## Documentation
+
+- Increment version number.
+
+
 # cynkratemplate 0.0.1.9008
 
 ## Chore
