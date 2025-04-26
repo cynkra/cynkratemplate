@@ -1,5 +1,12 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9001
+
+## Continuous integration
+
+- Correct installation of xml2 (#69).
+
+
 # cynkratemplate 0.0.2.9000
 
 ## Features
