@@ -1,5 +1,14 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9002
+
+## Continuous integration
+
+- Only fail covr builds if token is given (#72).
+
+- Always use `_R_CHECK_FORCE_SUGGESTS_=false` (#71).
+
+
 # cynkratemplate 0.0.2.9001
 
 ## Continuous integration
