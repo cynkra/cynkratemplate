@@ -1,5 +1,12 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9003
+
+## Continuous integration
+
+- Permissions, better tests for missing suggests, lints (#73).
+
+
 # cynkratemplate 0.0.2.9002
 
 ## Continuous integration
