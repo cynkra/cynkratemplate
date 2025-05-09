@@ -37,28 +37,43 @@ footer:
       <p>Sponsored by <a href="https://cynkra.com">cynkra</a> <span class="cynkra-square"></span></p>
 
 authors:
+  cynkra GmbH:
+    href: https://cynkra.com/
+    html: <img src='https://cynkra.com/assets/images/apple-touch-icon-76x76.png' alt='cynkra' width='72' />
   cynkra:
     href: https://www.cynkra.com
     html: <img src='https://cynkra.com/assets/img/logo-cynkra-square.svg' alt='cynkra' width='72' height='72' />
   Adriana Clavijo:
-    href: https://cynkra.com/about/
+    href: https://cynkra.com/about/#adriana
+  Andrea Ranzato:
+    href: https://cynkra.com/about/#andrea
   Angelica Becerra:
-    href: https://cynkra.com/about/
+    href: https://cynkra.com/about/#angelica
   Antoine Fabri:
-    href: https://cynkra.com/about/
+    href: https://cynkra.com/about/#antoine
   Christoph Sax:
-    href: https://cynkra.com/about/
+    href: https://cynkra.com/about/#christoph
+  David Granjon:
+    href: https://cynkra.com/about/#david
   David Schoch:
-    href: https://cynkra.com/about/
-  Jannes Muenchow:
-    href: https://cynkra.com/about/
+    href: https://cynkra.com/about/#david.schoch
+  Jannes Muenchow: 
+    href: https://cynkra.com/about/#jannes
   Kirill Müller:
-    href: https://cynkra.com/about/
+    href: https://cynkra.com/about/#kirill
+  Layal Lettry:
+    href: https://cynkra.com/about/#layal
   Maëlle Salmon:
-    href: https://cynkra.com/about/
+    href: https://cynkra.com/about/#maelle
+  Mike Page:
+    href: https://cynkra.com/about/#mike
+  Nelson Stevens:
+    href: https://cynkra.com/about/#nelson
   Nicolas Bennett:
-    href: https://cynkra.com/about/
+    href: https://cynkra.com/about/#nicolas
+  Olajoke Oladipo:
+    href: https://cynkra.com/about/#olajoke
   Tobias Schieferdecker:
-    href: https://cynkra.com/about/
+    href: https://cynkra.com/about/#tobias
   Wael Sadek:
-    href: https://cynkra.com/about/
+    href: https://cynkra.com/about/#wael
