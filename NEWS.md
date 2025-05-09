@@ -1,5 +1,67 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9004
+
+## Continuous integration
+
+- Enhance permissions for workflow (#74).
+
+
+# cynkratemplate 0.0.2.9003
+
+## Continuous integration
+
+- Permissions, better tests for missing suggests, lints (#73).
+
+
+# cynkratemplate 0.0.2.9002
+
+## Continuous integration
+
+- Only fail covr builds if token is given (#72).
+
+- Always use `_R_CHECK_FORCE_SUGGESTS_=false` (#71).
+
+
+# cynkratemplate 0.0.2.9001
+
+## Continuous integration
+
+- Correct installation of xml2 (#69).
+
+
+# cynkratemplate 0.0.2.9000
+
+## Features
+
+- Update the top navbar according to the new design (#55, #63).
+
+## Continuous integration
+
+- Explain (#68).
+
+- Add xml2 for covr, print testthat results (#67).
+
+- Change workflow as this is not meant for CRAN @krlmlr.
+
+- Fix (#66).
+
+- Sync (#65).
+
+## Documentation
+
+- Increment version number.
+
+
+# cynkratemplate 0.0.1.9008
+
+## Chore
+
+- Auto-update from GitHub Actions.
+
+  Run: https://github.com/cynkra/cynkratemplate/actions/runs/14607314672
+
+
 # cynkratemplate 0.0.1.9007
 
 ## Bug fixes
