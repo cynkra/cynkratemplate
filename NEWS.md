@@ -1,5 +1,26 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9005
+
+## Chore
+
+- Auto-update from GitHub Actions.
+
+  Run: https://github.com/cynkra/cynkratemplate/actions/runs/17450844942
+
+## Continuous integration
+
+- Use workflows for fledge (#79).
+
+- Sync (#78).
+
+- Use reviewdog for external PRs (#77).
+
+- Cleanup and fix macOS (#76).
+
+- Format with air, check detritus, better handling of `extra-packages` (#75).
+
+
 # cynkratemplate 0.0.2.9004
 
 ## Continuous integration
