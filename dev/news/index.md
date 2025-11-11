@@ -1,5 +1,30 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9005
+
+### Chore
+
+- Auto-update from GitHub Actions.
+
+  Run:
+  <https://github.com/cynkra/cynkratemplate/actions/runs/17450844942>
+
+### Continuous integration
+
+- Use workflows for fledge
+  ([\#79](https://github.com/cynkra/cynkratemplate/issues/79)).
+
+- Sync ([\#78](https://github.com/cynkra/cynkratemplate/issues/78)).
+
+- Use reviewdog for external PRs
+  ([\#77](https://github.com/cynkra/cynkratemplate/issues/77)).
+
+- Cleanup and fix macOS
+  ([\#76](https://github.com/cynkra/cynkratemplate/issues/76)).
+
+- Format with air, check detritus, better handling of `extra-packages`
+  ([\#75](https://github.com/cynkra/cynkratemplate/issues/75)).
+
 ## cynkratemplate 0.0.2.9004
 
 ### Continuous integration
