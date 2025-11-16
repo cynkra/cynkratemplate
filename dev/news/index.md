@@ -1,5 +1,12 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9006
+
+### Continuous integration
+
+- Fix reviewdog and add commenting workflow
+  ([\#80](https://github.com/cynkra/cynkratemplate/issues/80)).
+
 ## cynkratemplate 0.0.2.9005
 
 ### Chore
