@@ -1,5 +1,12 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9007
+
+## Continuous integration
+
+- Install binaries from r-universe for dev workflow (#81).
+
+
 # cynkratemplate 0.0.2.9006
 
 ## Continuous integration
