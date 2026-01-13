@@ -1,5 +1,12 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9007
+
+### Continuous integration
+
+- Install binaries from r-universe for dev workflow
+  ([\#81](https://github.com/cynkra/cynkratemplate/issues/81)).
+
 ## cynkratemplate 0.0.2.9006
 
 ### Continuous integration
