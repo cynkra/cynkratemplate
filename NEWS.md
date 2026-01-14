@@ -1,5 +1,16 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9008
+
+## Continuous integration
+
+- Fix comment (#84).
+
+- Tweaks (#83).
+
+- Test all R versions on branches that start with cran- (#82).
+
+
 # cynkratemplate 0.0.2.9007
 
 ## Continuous integration
