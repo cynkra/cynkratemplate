@@ -22,6 +22,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Christoph Sax \email{christoph.sax@gmail.com} (\href{https://orcid.org/0000-0002-7192-7044}{ORCID})
   \item Patrick Schratz \email{patrick@cynkra.com}
 }
 
