@@ -23,7 +23,7 @@ jobs:
     outputs:
       should_run: ${{ steps.check.outputs.should_run }}
     steps:
-      - uses: actions/checkout@v4
+      # Fetch NEWS.md via API instead of full checkout for speed
       - name: Check if not forked and NEWS.md mentions fledge
         id: check
         env:
@@ -35,9 +35,10 @@ jobs:
           is_forked=$(gh api repos/${{ github.repository }} | jq .fork)
 
           if [ "$is_forked" == "false" ]; then
-            # Check if NEWS.md exists and mentions fledge in first line
-            if [ -f "NEWS.md" ]; then
-              first_line=$(head -n 1 NEWS.md)
+            # Fetch NEWS.md content via API without full checkout
+            news_content=$(gh api repos/${{ github.repository }}/contents/NEWS.md --jq .content 2>/dev/null | base64 -d 2>/dev/null)
+            if [ -n "$news_content" ]; then
+              first_line=$(echo "$news_content" | head -n 1)
               if [[ "$first_line" == *"fledge"* ]]; then
                 should_run="true"
               fi
