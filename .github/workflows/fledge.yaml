@@ -24,16 +24,26 @@ jobs:
       should_run: ${{ steps.check.outputs.should_run }}
     steps:
       - uses: actions/checkout@v4
-      - name: Check NEWS.md for fledge mention
+      - name: Check if not forked and NEWS.md mentions fledge
         id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           should_run="false"
-          if [ -f "NEWS.md" ]; then
-            first_line=$(head -n 1 NEWS.md)
-            if [[ "$first_line" == *"fledge"* ]]; then
-              should_run="true"
+
+          # Check if repo is not forked
+          is_forked=$(gh api repos/${{ github.repository }} | jq .fork)
+
+          if [ "$is_forked" == "false" ]; then
+            # Check if NEWS.md exists and mentions fledge in first line
+            if [ -f "NEWS.md" ]; then
+              first_line=$(head -n 1 NEWS.md)
+              if [[ "$first_line" == *"fledge"* ]]; then
+                should_run="true"
+              fi
             fi
           fi
+
           echo "should_run=${should_run}" >> $GITHUB_OUTPUT
         shell: bash
 
