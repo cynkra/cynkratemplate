@@ -18,24 +18,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check_fork:
+  check_news:
     runs-on: ubuntu-24.04
     outputs:
-      is_forked: ${{ steps.check.outputs.is_forked }}
+      should_run: ${{ steps.check.outputs.should_run }}
     steps:
-      - name: Check if the repo is forked
+      - uses: actions/checkout@v4
+      - name: Check NEWS.md for fledge mention
         id: check
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          is_forked=$(gh api repos/${{ github.repository }} | jq .fork)
-          echo "is_forked=${is_forked}" >> $GITHUB_OUTPUT
+          should_run="false"
+          if [ -f "NEWS.md" ]; then
+            first_line=$(head -n 1 NEWS.md)
+            if [[ "$first_line" == *"fledge"* ]]; then
+              should_run="true"
+            fi
+          fi
+          echo "should_run=${should_run}" >> $GITHUB_OUTPUT
         shell: bash
 
   fledge:
     runs-on: ubuntu-24.04
-    needs: check_fork
-    if: needs.check_fork.outputs.is_forked == 'false'
+    needs: check_news
+    if: needs.check_news.outputs.should_run == 'true'
     permissions:
       contents: write
       pull-requests: write
