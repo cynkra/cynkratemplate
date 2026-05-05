@@ -11,12 +11,14 @@ don’t use it for your own package.
 Install cynkratemplate.
 
 ``` r
+
 devtools::install_github("cynkra/cynkratemplate")
 ```
 
 Run
 
 ``` r
+
 cynkratemplate::use_cynkra_pkgdown()
 ```
 

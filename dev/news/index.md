@@ -1,5 +1,35 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9010
+
+### Chore
+
+- Auto-update from GitHub Actions.
+
+  Run:
+  <https://github.com/cynkra/cynkratemplate/actions/runs/25267060822>
+
+## cynkratemplate 0.0.2.9009
+
+### Chore
+
+- Auto-update from GitHub Actions.
+
+  Run:
+  <https://github.com/cynkra/cynkratemplate/actions/runs/22789328875>
+
+## cynkratemplate 0.0.2.9008
+
+### Continuous integration
+
+- Fix comment
+  ([\#84](https://github.com/cynkra/cynkratemplate/issues/84)).
+
+- Tweaks ([\#83](https://github.com/cynkra/cynkratemplate/issues/83)).
+
+- Test all R versions on branches that start with cran-
+  ([\#82](https://github.com/cynkra/cynkratemplate/issues/82)).
+
 ## cynkratemplate 0.0.2.9007
 
 ### Continuous integration

@@ -20,6 +20,9 @@ Useful links:
 
 Authors:
 
+- Christoph Sax <christoph.sax@gmail.com>
+  ([ORCID](https://orcid.org/0000-0002-7192-7044))
+
 - Patrick Schratz <patrick@cynkra.com>
 
 Other contributors:
