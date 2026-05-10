@@ -5,4 +5,5 @@
 ^pkgdown$
 ^LICENSE\.md$
 ^vignettes/articles$
-renovate.json
+^renovate\.json$
+^\.ccache$
