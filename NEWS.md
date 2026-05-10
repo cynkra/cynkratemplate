@@ -1,5 +1,18 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9014
+
+## Chore
+
+- Update `.Rbuildignore`.
+
+## Continuous integration
+
+- Only run fledge on pushes to main.
+
+- Tweak fledge workflow and ccache action.
+
+
 # cynkratemplate 0.0.2.9013
 
 ## Continuous integration
