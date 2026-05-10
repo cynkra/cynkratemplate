@@ -1,5 +1,33 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9013
+
+### Continuous integration
+
+- Prettier.
+
+## cynkratemplate 0.0.2.9012
+
+### Continuous integration
+
+- Tweak fledge and ccache workflows.
+
+## cynkratemplate 0.0.2.9011
+
+### Continuous integration
+
+- Cosmetics.
+
+- Bump action versions.
+
+- Bump version.
+
+- Align with igraph and duckdb.
+
+- Use clang-format-21.
+
+- Harmonize.
+
 ## cynkratemplate 0.0.2.9010
 
 ### Chore
