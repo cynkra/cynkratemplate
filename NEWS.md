@@ -1,5 +1,12 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9012
+
+## Continuous integration
+
+- Tweak fledge and ccache workflows.
+
+
 # cynkratemplate 0.0.2.9011
 
 ## Continuous integration
