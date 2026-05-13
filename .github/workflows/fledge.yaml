@@ -98,8 +98,9 @@ jobs:
 
       - uses: ./.github/workflows/install
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           pak-version: devel
-          packages: cynkra/fledge
+          packages: ${{ github.repository == 'cynkra/fledge' && 'local::.' || 'cynkra/fledge' }}
           cache-version: fledge-1
 
       - name: Count rulesets
