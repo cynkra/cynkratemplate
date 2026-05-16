@@ -1,5 +1,12 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9016
+
+## Continuous integration
+
+- Unify fledge.yaml across cynkratemplate and fledge (#86).
+
+
 # cynkratemplate 0.0.2.9015
 
 ## Chore
