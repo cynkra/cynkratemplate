@@ -1,5 +1,12 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9016
+
+### Continuous integration
+
+- Unify fledge.yaml across cynkratemplate and fledge
+  ([\#86](https://github.com/cynkra/cynkratemplate/issues/86)).
+
 ## cynkratemplate 0.0.2.9015
 
 ### Chore
