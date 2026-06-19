@@ -1,5 +1,13 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9017
+
+### Continuous integration
+
+- Update ccache-action reference.
+
+- Bump action version.
+
 ## cynkratemplate 0.0.2.9016
 
 ### Continuous integration
