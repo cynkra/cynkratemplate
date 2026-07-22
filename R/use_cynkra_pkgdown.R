@@ -35,6 +35,12 @@ use_cynkra_pkgdown <- function(pkg = getwd()) {
   desc::desc_set("Config/Needs/website" = needs)
   cat(paste(cli::symbol$tick, "Registered GHA dependency on cynkratemplate.\n"))
 
+  # yaml is only needed to (re)write the pkgdown config and lives in Suggests,
+  # so guard its use conditionally.
+  if (!requireNamespace("yaml", quietly = TRUE)) {
+    stop("The 'yaml' package is required to update the pkgdown config; please install it.")
+  }
+
   config_path <- find_pkgdown_config(pkg)
   if (is.null(config_path)) {
     meta <- list(
