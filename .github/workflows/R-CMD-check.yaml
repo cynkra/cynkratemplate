@@ -55,10 +55,10 @@ jobs:
     # Deliberately amd64. The smoke test is the gate that also styles,
     # roxygenizes, updates snapshots, commits back and deploys pkgdown, so it
     # must run on the most stable and available runner. The ubuntu-26.04-arm
-    # image is still in public preview (possible instability and queueing), so
-    # arm64 is exercised in the full version matrix (rcc-full) instead, where
-    # fail-fast: false isolates failures and jobs don't mutate the repo. Revisit
-    # once the arm image is generally available.
+    # image is still in public preview (actions/runner-images#14226 -- possible
+    # instability and queueing), so arm64 is exercised in the full version matrix
+    # (rcc-full) instead, where fail-fast: false isolates failures and jobs don't
+    # mutate the repo. Revisit once the arm image is generally available.
     runs-on: ubuntu-26.04
 
     outputs:

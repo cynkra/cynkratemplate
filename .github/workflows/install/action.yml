@@ -119,7 +119,9 @@ runs:
       # zero-length 'path' argument. Whitelisting the R_* vars via env_keep
       # preserves them across sudo's env_reset even though blanket `-E` is
       # denied, without granting the setenv privilege.
-      # Transient workaround; drop once r-lib/actions handles this upstream.
+      # Root cause is the ubuntu-26.04 image, still in public preview
+      # (actions/runner-images#14226). No upstream r-lib/actions issue tracks the
+      # `sudo -E` breakage yet -- one should be filed; drop this once fixed.
       if: runner.os == 'Linux'
       run: |
         sudo tee /etc/sudoers.d/r-lib-pak >/dev/null <<'EOF'

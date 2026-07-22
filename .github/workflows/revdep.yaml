@@ -111,9 +111,11 @@ jobs:
 
       - name: Install system dependencies
         if: runner.os == 'Linux'
-        # The runner is ubuntu-26.04, but the r-hub system-requirements API only
-        # maps distros up to ubuntu-24.04. The apt package names are stable across
-        # LTS releases, so 24.04 mappings install correctly on 26.04.
+        # The runner is ubuntu-26.04, but remotes::system_requirements() hardcodes
+        # its supported list up to ubuntu-24.04 (r-lib/remotes, R/system_requirements.R;
+        # no tracking issue yet -- one should be filed). The rstudio/r-system-requirements
+        # catalog itself already covers 26.04, and apt package names are stable across
+        # LTS releases, so the 24.04 mappings install correctly on 26.04.
         run: |
           sudo apt-get update -y
           Rscript -e 'writeLines(remotes::system_requirements("ubuntu", "24.04")); package <- "${{ matrix.package }}"; deps <- tools::package_dependencies(package, which = "Suggests")[[1]]; lapply(c(package, deps), function(x) { writeLines(remotes::system_requirements("ubuntu", "24.04", package = x)) })' | sort | uniq > .github/deps.sh
