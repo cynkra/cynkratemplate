@@ -1,5 +1,13 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9018
+
+### Continuous integration
+
+- Centralize R-CMD-check / install / roxygenize improvements from
+  consumers
+  ([\#87](https://github.com/cynkra/cynkratemplate/issues/87)).
+
 ## cynkratemplate 0.0.2.9017
 
 ### Continuous integration
