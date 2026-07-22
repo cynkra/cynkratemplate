@@ -10,21 +10,22 @@ Authors@R: c(
     person("cynkra GmbH", , , "mail@cynkra.com", role = "fnd",
            comment = c(ROR = "0335t7e62"))
   )
-Description: This is a private template for use by cynkra
-    packages. Please don't use it for your own package.
+Description: This is a private template for use by cynkra packages. Please
+    don't use it for your own package.
 License: MIT + file LICENSE
-URL: https://cynkratemplate.cynkra.com/, https://github.com/cynkra/cynkratemplate
+URL: https://cynkratemplate.cynkra.com/,
+    https://github.com/cynkra/cynkratemplate
 BugReports: https://github.com/cynkra/cynkratemplate/issues
+Imports: 
+    cli,
+    desc
 Suggests:
+    DBI,
     knitr,
-    rmarkdown
-VignetteBuilderNote:
-    knitr
+    rmarkdown,
+    yaml
+Config/roxygen2/version: 8.0.0.9000
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-Imports: 
-    cli,
-    desc,
-    yaml
-Config/roxygen2/version: 8.0.0.9000
+VignetteBuilderNote: knitr
