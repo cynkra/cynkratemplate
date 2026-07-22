@@ -22,11 +22,26 @@ r_versions <- c("devel", as.character(r_release))
 
 macos <- data.frame(os = "macos-latest", r = r_versions[2:3])
 windows <- data.frame(os = "windows-latest", r = r_versions[1:3])
-linux_devel <- data.frame(os = "ubuntu-24.04", r = r_versions[1], `http-user-agent` = "release", check.names = FALSE)
-linux <- data.frame(os = "ubuntu-24.04", r = r_versions[-1])
-covr <- data.frame(os = "ubuntu-24.04", r = r_versions[2], covr = "true", desc = "with covr")
 
-include_list <- list(macos, windows, linux_devel, linux, covr)
+# Linux amd64 (ubuntu-26.04) carries the full historical sweep: R-devel plus
+# every supported release down to the oldest. amd64 has the most mature
+# toolchain and the broadest CRAN binary coverage on Posit Package Manager, so
+# it is where the deep back-compatibility testing lives.
+linux_devel <- data.frame(os = "ubuntu-26.04", r = r_versions[1], `http-user-agent` = "release", check.names = FALSE)
+linux <- data.frame(os = "ubuntu-26.04", r = r_versions[-1])
+covr <- data.frame(os = "ubuntu-26.04", r = r_versions[2], covr = "true", desc = "with covr")
+
+# Linux arm64 (ubuntu-26.04-arm) is intentionally ragged: only the two newest R
+# versions, R-devel and R-release. These are the versions actually deployed to
+# arm64 today (Apple Silicon, AWS Graviton, ...) and the ones with dependable
+# arm64 R builds; re-running the full historical range on a second architecture
+# would add cost without adding meaningful coverage. R-release (and R-devel)
+# overlap with amd64, so at least one R version is exercised on both arches.
+# Note: on aarch64 Linux, setup-r does not use Posit Package Manager, so package
+# dependencies are built from source here.
+linux_arm64 <- data.frame(os = "ubuntu-26.04-arm", r = r_versions[1:2])
+
+include_list <- list(macos, windows, linux_devel, linux, covr, linux_arm64)
 
 if (file.exists(".github/versions-matrix.R")) {
   custom <- source(".github/versions-matrix.R")$value
