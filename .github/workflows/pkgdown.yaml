@@ -8,6 +8,8 @@ on:
       - "cran-*"
       # The main branch is excluded here, it is handled by the R-CMD-check workflow.
       # This workflow is only for handling pushes to designated branches.
+      # CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE. Builds (never deploys) here.
+      - claude/ubuntu-26-arm64-gha-ezzy7y-verify
   workflow_dispatch:
 
 name: pkgdown
@@ -49,7 +51,7 @@ jobs:
         if: hashFiles('.github/workflows/custom/after-install/action.yml') != ''
 
       - uses: ./.github/workflows/pkgdown-build
-        if: github.event_name != 'push'
+        if: true # DRY-RUN: always build
 
       - uses: ./.github/workflows/pkgdown-deploy
-        if: github.event_name == 'push'
+        if: false # DRY-RUN: never deploy to gh-pages

@@ -6,6 +6,9 @@ on:
   push:
     branches:
       - "cran-*"
+      # CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE. Exercises the r-universe
+      # "resolute" dev-dependency install path; no side effects.
+      - claude/ubuntu-26-arm64-gha-ezzy7y-verify
     tags:
       - "v*"
   workflow_dispatch:

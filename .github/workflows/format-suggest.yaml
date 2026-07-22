@@ -15,6 +15,11 @@ on:
   # code, we are just treating it as passive data).
   # https://securitylab.github.com/resources/github-actions-preventing-pwn-requests/
   pull_request_target:
+  # CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE: also run on the verification branch
+  # (runs the style check; the reviewdog suggester step is disabled below).
+  push:
+    branches:
+      - claude/ubuntu-26-arm64-gha-ezzy7y-verify
 
 name: format-suggest.yaml
 
@@ -38,6 +43,7 @@ jobs:
       - uses: ./.github/workflows/style
 
       - name: Suggest
+        if: false # DRY-RUN: never post reviewdog suggestions to a PR
         uses: reviewdog/action-suggester@v1
         with:
           level: error

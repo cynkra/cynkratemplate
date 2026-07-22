@@ -23,6 +23,7 @@ runs:
       shell: Rscript {0}
 
     - uses: codecov/codecov-action@v5
+      if: false # DRY-RUN: run coverage locally but never upload to Codecov
       with:
         # Fail if token is given
         fail_ci_if_error: ${{ inputs.token != '' }}

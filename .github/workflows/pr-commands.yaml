@@ -1,10 +1,17 @@
 on:
   issue_comment:
     types: [created]
+  # CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE: trigger on the verification branch.
+  # The /document, /style and /merge jobs gate on a comment body, so on a push
+  # they skip; only the no-op "finish" job runs. No side effects.
+  push:
+    branches:
+      - claude/ubuntu-26-arm64-gha-ezzy7y-verify
 name: Commands
 jobs:
   document:
-    if: startsWith(github.event.comment.body, '/document')
+    # DRY-RUN: also run on the verification-branch push (pr-fetch/pr-push disabled below)
+    if: startsWith(github.event.comment.body, '/document') || github.event_name == 'push'
     name: document
     # macos is actually better here due to native binary packages
     runs-on: macos-latest
@@ -13,6 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/pr-fetch@v2
+        if: github.event_name != 'push' # DRY-RUN: no PR to fetch on a push
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: r-lib/actions/setup-r@v2
@@ -38,10 +46,12 @@ jobs:
             git commit -m 'Document'
           fi
       - uses: r-lib/actions/pr-push@v2
+        if: github.event_name != 'push' # DRY-RUN: never push commits back to a PR
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
   style:
-    if: startsWith(github.event.comment.body, '/style')
+    # DRY-RUN: also run on the verification-branch push (pr-fetch/pr-push disabled below)
+    if: startsWith(github.event.comment.body, '/style') || github.event_name == 'push'
     name: style
     # macos is actually better here due to native binary packages
     runs-on: macos-latest
@@ -50,6 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: r-lib/actions/pr-fetch@v2
+        if: github.event_name != 'push' # DRY-RUN: no PR to fetch on a push
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: r-lib/actions/setup-r@v2
@@ -74,14 +85,17 @@ jobs:
             git commit -m 'Style'
           fi
       - uses: r-lib/actions/pr-push@v2
+        if: github.event_name != 'push' # DRY-RUN: never push commits back to a PR
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
   merge:
-    if: startsWith(github.event.comment.body, '/merge')
+    # DRY-RUN: also run on the verification-branch push (the PR-creating step is disabled below)
+    if: startsWith(github.event.comment.body, '/merge') || github.event_name == 'push'
     name: merge
     runs-on: ubuntu-26.04
     steps:
       - name: Create and merge pull request
+        if: github.event_name != 'push' # DRY-RUN: never create/merge a PR
         run: |
           set -exo pipefail
           PR_DETAILS=$( curl -s --header "authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.issue.number }} )

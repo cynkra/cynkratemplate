@@ -7,12 +7,18 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "37 2 * * *"
+  # CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE: trigger on the verification branch;
+  # the actual lock-threads step is disabled below so no threads are locked.
+  push:
+    branches:
+      - claude/ubuntu-26-arm64-gha-ezzy7y-verify
 
 jobs:
   lock:
     runs-on: ubuntu-26.04
     steps:
       - uses: krlmlr/lock-threads@patch-1
+        if: false # DRY-RUN: never lock issues/PRs/discussions
         with:
           github-token: ${{ github.token }}
           issue-inactive-days: "365"
