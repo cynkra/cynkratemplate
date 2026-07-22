@@ -1,0 +1,5 @@
+# CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE.
+# Present only so the format-suggest workflow's `air` path activates for this
+# test PR; the template itself intentionally ships no air.toml.
+[format]
+line-width = 80
