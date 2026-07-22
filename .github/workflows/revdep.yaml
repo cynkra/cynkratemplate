@@ -3,6 +3,11 @@ on:
   push:
     branches:
       - "revdep*" # never run automatically on main branch
+      # CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE. cynkratemplate has no reverse
+      # dependencies, so the matrix is empty and the heavy check job is skipped;
+      # setup-r is added to the matrix job below so its Rscript step works on the
+      # bare ubuntu-26.04 image (which ships no system R).
+      - claude/ubuntu-26-arm64-gha-ezzy7y-verify
 
 name: revdep
 
@@ -31,6 +36,10 @@ jobs:
 
       - uses: actions/checkout@v6
 
+      # DRY-RUN: the bare ubuntu-26.04 image ships no system R; install one so the
+      # dependency-collection Rscript step below runs.
+      - uses: r-lib/actions/setup-r@v2
+
       # FIXME: Avoid reissuing successful jobs
       # https://docs.github.com/en/free-pro-team@latest/rest/reference/actions#list-jobs-for-a-workflow-run
       # https://docs.github.com/en/free-pro-team@latest/rest/reference/actions#workflow-runs
@@ -38,11 +47,16 @@ jobs:
         run: |
           package <- read.dcf("DESCRIPTION")[, "Package"][[1]]
           deps <- tools:::package_dependencies(package, reverse = TRUE, which = c("Depends", "Imports", "LinkingTo", "Suggests"))[[1]]
-          json <- paste0(
-            '{"package":[',
-            paste0('"', deps, '"', collapse = ","),
-            ']}'
-          )
+          # DRY-RUN: drop empty/NA entries so a package with no reverse deps
+          # (like cynkratemplate) yields an empty matrix. Otherwise paste0 with a
+          # NULL `deps` emits {"package":[""]}, spawning a bogus job with an empty
+          # package that fails at "Use RSPM".
+          deps <- deps[!is.na(deps) & nzchar(deps)]
+          if (length(deps) == 0) {
+            json <- '{"package":[]}'
+          } else {
+            json <- paste0('{"package":[', paste0('"', deps, '"', collapse = ","), ']}')
+          }
           writeLines(json)
           writeLines(paste0("matrix=", json), Sys.getenv("GITHUB_OUTPUT"))
         shell: Rscript {0}

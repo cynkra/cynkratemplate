@@ -4,9 +4,11 @@ name: "Copilot Setup Steps"
 # allow manual testing through the repository's "Actions" tab
 on:
   workflow_dispatch:
+  # CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE: run on every push to the
+  # verification branch. copilot-setup-steps has no side effects.
   push:
-    paths:
-      - .github/workflows/copilot-setup-steps.yaml
+    branches:
+      - claude/ubuntu-26-arm64-gha-ezzy7y-verify
   pull_request:
     paths:
       - .github/workflows/copilot-setup-steps.yaml

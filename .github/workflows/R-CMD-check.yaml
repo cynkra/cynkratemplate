@@ -12,6 +12,10 @@ on:
       - release
       - next
       - cran-*
+      # CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE. Runs the full rcc matrix
+      # (incl. arm64 and the rcc-suggests "without" job) on every push here,
+      # with all side effects disabled.
+      - claude/ubuntu-26-arm64-gha-ezzy7y-verify
   pull_request:
     branches:
       - main
@@ -48,7 +52,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.ref || github.head_ref || github.sha }}-${{ github.base_ref || '' }}
   cancel-in-progress: true
 
-name: rcc
+# DRY-RUN ONLY: renamed from "rcc" so the default-branch workflow_run listeners
+# (rcc-status, commit-suggest, which key on workflows: [rcc]) never fire for
+# this branch and post commit statuses / PR comments.
+name: rcc-dryrun
 
 jobs:
   rcc-smoke:
@@ -83,7 +90,7 @@ jobs:
           ref: ${{ inputs.ref }}
 
       - name: Update status for rcc
-        if: github.actor != 'Copilot' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: false # DRY-RUN: never post commit statuses
         # FIXME: Wrap into action
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -177,6 +184,7 @@ jobs:
 
       - id: commit
         uses: ./.github/workflows/commit
+        if: false # DRY-RUN: never commit/push style, roxygen or snapshot changes
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -185,14 +193,15 @@ jobs:
           results: ${{ runner.os }}-smoke-test
 
       - uses: ./.github/workflows/pkgdown-build
-        if: github.event_name != 'push'
+        # DRY-RUN: always build (never deploy) so pkgdown is validated w/o gh-pages
+        if: true
 
       # Deliberately deploy only on push
       # Deployment on schedule adds too much noise.
       # Deployment on pull_request is not possible because it requires a token with write permissions, which is not available in pull_request workflows for security reasons.
       # Deployment on workflow_dispatch is available via the pkgdown workflow
       - uses: ./.github/workflows/pkgdown-deploy
-        if: github.event_name == 'push'
+        if: false # DRY-RUN: never deploy the site to gh-pages
 
       # Upload sha as artifact
       - run: |
@@ -206,7 +215,7 @@ jobs:
 
       - name: Update status for rcc
         # FIXME: Wrap into action
-        if: always() && (github.actor != 'Copilot') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: false # DRY-RUN: never post commit statuses
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -243,7 +252,7 @@ jobs:
 
       - name: Update status for rcc (Copilot)
         # Update status directly when triggered by Copilot or bots, since they can't dispatch workflows
-        if: always() && (github.actor == 'Copilot')
+        if: false # DRY-RUN: never post commit statuses
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -373,7 +382,9 @@ jobs:
 
     runs-on: ubuntu-26.04
 
-    if: ${{ needs.rcc-smoke.outputs.dep-suggests-matrix != '' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run-rcc-suggests)) }}
+    # DRY-RUN: also run the "without" job on the verification branch so it is
+    # exercised (it only checks -- no side effects).
+    if: ${{ needs.rcc-smoke.outputs.dep-suggests-matrix != '' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run-rcc-suggests) || github.ref == 'refs/heads/claude/ubuntu-26-arm64-gha-ezzy7y-verify') }}
 
     name: Without ${{ matrix.package }}
 

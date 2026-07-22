@@ -75,7 +75,7 @@ runs:
 
     - name: Create pull request
       # Fall through if PR, will use reviewdog/action-suggester in the commit action
-      if: ${{ steps.check-changed.outputs.changed }}
+      if: false # DRY-RUN: never open a snapshot-update PR
       id: cpr
       uses: peter-evans/create-pull-request@v8
       with:

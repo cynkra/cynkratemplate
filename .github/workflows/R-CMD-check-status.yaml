@@ -7,6 +7,13 @@ on:
     types:
       - requested
       - completed
+  # CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE: trigger on the verification branch.
+  # Its only step is gated on a workflow_run event, so on a push it skips -- no
+  # commit status is posted. (The verification rcc workflow is renamed
+  # "rcc-dryrun", so this never fires via workflow_run for the verify branch.)
+  push:
+    branches:
+      - claude/ubuntu-26-arm64-gha-ezzy7y-verify
 
 name: rcc-status
 

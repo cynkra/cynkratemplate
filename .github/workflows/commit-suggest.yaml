@@ -5,6 +5,12 @@ on:
     workflows: ["rcc"]
     types:
       - completed
+  # CI-VERIFY / DRY-RUN ONLY -- DO NOT MERGE: trigger on the verification branch
+  # so the workflow is exercised. Its job is gated on a pull_request workflow_run,
+  # so on a plain push it skips -- no PR comment is posted.
+  push:
+    branches:
+      - claude/ubuntu-26-arm64-gha-ezzy7y-verify
 
 permissions:
   contents: write
@@ -13,7 +19,10 @@ permissions:
 jobs:
   commit-suggest:
     runs-on: ubuntu-26.04
-    if: github.event.workflow_run.event == 'pull_request'
+    # DRY-RUN: also run on the verification-branch push. There is no changes-patch
+    # artifact on a push, so has_diff is false and the comment steps skip -- the
+    # job runs end-to-end with no PR comment posted.
+    if: github.event.workflow_run.event == 'pull_request' || github.event_name == 'push'
 
     steps:
       - name: Show event payload
