@@ -1,5 +1,12 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9019
+
+### Continuous integration
+
+- Move GHA runners to Ubuntu 26.04 and add ragged Linux arm64 matrix
+  ([\#88](https://github.com/cynkra/cynkratemplate/issues/88)).
+
 ## cynkratemplate 0.0.2.9018
 
 ### Continuous integration
