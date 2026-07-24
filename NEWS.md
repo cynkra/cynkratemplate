@@ -1,5 +1,18 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9020
+
+## Bug fixes
+
+### ci
+
+- Emit empty package matrix when there are no (rev)deps.
+
+## Continuous integration
+
+- Harden `format-suggest` against `pull_request_target` pwn requests (#93).
+
+
 # cynkratemplate 0.0.2.9019
 
 ## Continuous integration
