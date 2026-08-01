@@ -1,0 +1,428 @@
+# Sharded reverse-dependency check: plan -> build -> test (matrix) -> collect.
+#
+# The plan job enumerates the CRAN reverse dependencies of this package, weighs
+# each one by the time CRAN's own Linux check machine spends on it, decides
+# which CRAN-baseline results from an earlier run are still valid, and deals
+# the packages into cost-balanced shards -- the heaviest round-robin first,
+# everything else placed where it shares the most dependencies (see
+# revdep2/README.md for the algorithm and its trade-offs).
+#
+# The build job compiles the dev version once into a binary artifact every
+# shard installs, and preflights the whole dependency universe -- install and
+# load every package any revdep needs -- so broken dependencies surface before
+# the first check minute is spent, and the pak cache the shards restore is
+# warm.
+#
+# Each test shard installs its dependency union, checks every one of its
+# packages against the CRAN version (or reuses a baseline), swaps in the dev
+# binary, checks again, and compares -- revdepcheck-style, one manifest line
+# and a pair of rcmdcheck results per package. A broken package is a result,
+# never a job failure; the shard defers what its deadline cannot fit and says
+# so.
+#
+# The collect job folds every shard artifact (and, on a retry, the untouched
+# results of the run being retried) into revdepcheck-style reports (README.md,
+# problems.md, failures.md, cran.md), a machine-readable manifest, and the
+# baseline artifact future runs reuse to skip unchanged CRAN checks.
+#
+# Results land in artifacts:
+#   revdep2-report    the merged report -- fetch with
+#                     `gh run download <run-id> --name revdep2-report`
+#                     or ./.github/workflows/revdep2/fetch.sh <run-id>
+#   revdep2-baseline  old-version results, reused by later runs when the
+#                     revdep's version, our CRAN version, the R series and the
+#                     resolved dependency versions all still match (and the
+#                     result is younger than baseline-max-age-days)
+#
+# To re-check only what a run could not declare ok, dispatch again with
+# `retry-run: <run-id>`; the new report carries the old run's good results
+# over, so it is complete again.
+
+on:
+  push:
+    branches:
+      - "revdep2*" # never run automatically on main branch
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: "Packages to check (comma/space separated; default: all reverse dependencies)"
+        type: string
+        default: ""
+      which:
+        description: "Which reverse dependencies to enumerate"
+        type: choice
+        options:
+          - strong
+          - most
+        default: strong
+      retry-run:
+        description: "Run id of an earlier revdep2 run; re-check only its not-ok packages"
+        type: string
+        default: ""
+      shard-budget-minutes:
+        description: "Check-time target per shard; smaller buys wall clock with more shards"
+        type: string
+        default: ""
+      max-parallel:
+        description: "Shards to run concurrently"
+        type: string
+        default: ""
+      refresh-baseline:
+        description: "Re-check the CRAN version even where a baseline is reusable"
+        type: boolean
+        default: false
+      baseline-max-age-days:
+        description: "Oldest baseline result worth reusing"
+        type: string
+        default: ""
+      fail-on:
+        description: "When the collect job turns the run red"
+        type: choice
+        options:
+          - newly-broken
+          - any
+          - none
+        default: newly-broken
+
+name: revdep2
+
+# One planning pass per branch at a time; a queued run waits rather than
+# killing shards mid-check, because a killed shard's unfinished packages would
+# have to be re-planned and re-checked.
+concurrency:
+  group: revdep2-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REVDEP2_PACKAGES: ${{ inputs.packages || '' }}
+  REVDEP2_WHICH: ${{ inputs.which || 'strong' }}
+  REVDEP2_RETRY_RUN: ${{ inputs.retry-run || '' }}
+  REVDEP2_SHARD_BUDGET_MINUTES: ${{ inputs.shard-budget-minutes || vars.REVDEP2_SHARD_BUDGET_MINUTES || '45' }}
+  REVDEP2_MAX_PARALLEL: ${{ inputs.max-parallel || vars.REVDEP2_MAX_PARALLEL || '20' }}
+  REVDEP2_REFRESH_BASELINE: ${{ inputs.refresh-baseline && '1' || '' }}
+  REVDEP2_BASELINE_MAX_AGE_DAYS: ${{ inputs.baseline-max-age-days || vars.REVDEP2_BASELINE_MAX_AGE_DAYS || '30' }}
+  REVDEP2_CHECK_TIMEOUT_MINUTES: ${{ vars.REVDEP2_CHECK_TIMEOUT_MINUTES || '30' }}
+  REVDEP2_DEADLINE_MINUTES: ${{ vars.REVDEP2_DEADLINE_MINUTES || '300' }}
+  REVDEP2_FAIL_ON: ${{ inputs.fail-on || 'newly-broken' }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-26.04
+
+    name: "Plan revdep shards"
+
+    outputs:
+      # Fallbacks cover a planning step that did not run at all: `test` is
+      # guarded by `shards != '0'`, but its `strategy` must still parse.
+      matrix: ${{ steps.plan.outputs.matrix || '{"shard":["none"]}' }}
+      shards: ${{ steps.plan.outputs.shards || '0' }}
+      packages: ${{ steps.plan.outputs.packages || '0' }}
+      max_parallel: ${{ steps.plan.outputs.max_parallel || '1' }}
+      baseline_run: ${{ steps.plan.outputs.baseline_run || '0' }}
+      plan_hash: ${{ steps.plan.outputs.plan_hash || 'none' }}
+
+    permissions:
+      contents: read
+      actions: read
+
+    # Begin custom: services
+    # End custom: services
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install jsonlite
+        run: |
+          install.packages("jsonlite")
+        shell: Rscript {0}
+
+      - id: plan
+        name: Plan shards
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUT: ${{ runner.temp }}/plan.json
+        run: |
+          Rscript ./.github/workflows/revdep2/plan.R
+        shell: bash
+
+      - uses: actions/upload-artifact@v5
+        if: steps.plan.outputs.shards != '0'
+        with:
+          name: revdep2-plan
+          path: ${{ runner.temp }}/plan.json
+          retention-days: 30
+          overwrite: true
+
+  build:
+    needs:
+      - plan
+
+    if: needs.plan.outputs.shards != '0'
+
+    runs-on: ubuntu-26.04
+
+    name: "Build binary, preflight dependencies"
+
+    permissions:
+      contents: read
+
+    # Begin custom: services
+    # End custom: services
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # Begin custom: before install
+      # End custom: before install
+
+      - uses: ./.github/workflows/install
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          cache-version: revdep2-1
+          needs: build
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: revdep2-plan
+          path: ${{ runner.temp }}/plan
+
+      # The preflight downloads every dependency binary once; saving the pak
+      # cache under the plan's hash hands the shards a warm start.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/R/pkgcache
+          key: revdep2-pak-${{ needs.plan.outputs.plan_hash }}
+          restore-keys: |
+            revdep2-pak-
+
+      - name: Build binary and preflight dependencies
+        env:
+          PLAN: ${{ runner.temp }}/plan/plan.json
+          OUT_DIR: ${{ runner.temp }}/pkg
+          PKG_SYSREQS: true
+        run: |
+          Rscript ./.github/workflows/revdep2/build.R
+        shell: bash
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: revdep2-pkg
+          path: ${{ runner.temp }}/pkg
+          retention-days: 30
+          overwrite: true
+
+  test:
+    needs:
+      - plan
+      - build
+
+    if: needs.plan.outputs.shards != '0'
+
+    runs-on: ubuntu-26.04
+
+    # Below GitHub's 6 h ceiling, and above the shard's own deadline: the shard
+    # is meant to stop itself and defer what is left, not to be killed
+    # mid-check.
+    timeout-minutes: 350
+
+    name: "shard ${{ matrix.shard }} (${{ matrix.label }})"
+
+    permissions:
+      contents: read
+      actions: read
+
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.max_parallel) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+
+    env:
+      R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
+      # prevent rgl issues because no X11 display is available
+      RGL_USE_NULL: true
+      # CRAN-like check conditions for the revdeps, not the incoming gauntlet
+      _R_CHECK_CRAN_INCOMING_: false
+      _R_CHECK_SYSTEM_CLOCK_: false
+      _R_CHECK_FUTURE_FILE_TIMESTAMPS_: false
+      _R_CHECK_FORCE_SUGGESTS_: false
+      # Begin custom: env vars
+      # End custom: env vars
+
+    # Begin custom: services
+    # End custom: services
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-tinytex@v2
+
+      - name: Install system tools for checking
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y qpdf ghostscript
+        shell: bash
+
+      - name: Install pak
+        run: |
+          install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/stable/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))
+          install.packages(c("jsonlite", "rcmdcheck"))
+        shell: Rscript {0}
+
+      - uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/R/pkgcache
+          key: revdep2-pak-${{ needs.plan.outputs.plan_hash }}
+          restore-keys: |
+            revdep2-pak-
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: revdep2-plan
+          path: ${{ runner.temp }}/plan
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: revdep2-pkg
+          path: ${{ runner.temp }}/pkg
+
+      # The baseline lives on an earlier run; absence is not an error, the
+      # shard just checks the CRAN version fresh.
+      - uses: actions/download-artifact@v6
+        if: needs.plan.outputs.baseline_run != '0'
+        continue-on-error: true
+        with:
+          name: revdep2-baseline
+          run-id: ${{ needs.plan.outputs.baseline_run }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/baseline
+
+      # Begin custom: after install
+      # End custom: after install
+
+      - name: Check the shard
+        env:
+          SHARD: ${{ matrix.shard }}
+          PLAN: ${{ runner.temp }}/plan/plan.json
+          PKG_DIR: ${{ runner.temp }}/pkg
+          BASELINE_DIR: ${{ runner.temp }}/baseline
+          OUT_DIR: ${{ runner.temp }}/results
+          CHECK_TIMEOUT_MINUTES: ${{ env.REVDEP2_CHECK_TIMEOUT_MINUTES }}
+          DEADLINE_MINUTES: ${{ env.REVDEP2_DEADLINE_MINUTES }}
+          PKG_SYSREQS: true
+        run: |
+          Rscript ./.github/workflows/revdep2/shard.R
+        shell: bash
+
+      # Named per attempt: a re-run of one shard must not overwrite the results
+      # the other shards uploaded in the first attempt; the collector reads
+      # every attempt and lets the later one win per package.
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: revdep2-results-${{ matrix.shard }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/results
+          if-no-files-found: ignore
+          retention-days: 30
+
+  collect:
+    needs:
+      - plan
+      - build
+      - test
+
+    # `always()` so a run with red shards still reports -- a broken revdep is
+    # the result this workflow exists to surface. Guarded on plan and build
+    # having succeeded, because without a plan or a binary there is nothing to
+    # collect.
+    if: always() && needs.plan.result == 'success' && needs.build.result == 'success' && needs.plan.outputs.shards != '0'
+
+    runs-on: ubuntu-26.04
+
+    name: "Collect results and report"
+
+    permissions:
+      contents: read
+      actions: read
+
+    # Begin custom: services
+    # End custom: services
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install pak and jsonlite
+        run: |
+          install.packages("pak", repos = sprintf("https://r-lib.github.io/p/pak/stable/%s/%s/%s", .Platform$pkgType, R.Version()$os, R.Version()$arch))
+          install.packages("jsonlite")
+        shell: Rscript {0}
+
+      # The reports come out of revdepcheck itself; when this fails the
+      # collector still writes a manifest-derived summary.
+      - name: Install revdepcheck
+        continue-on-error: true
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pak::pkg_install("krlmlr/revdepcheck")
+        shell: Rscript {0}
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: revdep2-plan
+          path: ${{ runner.temp }}/plan
+
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: revdep2-results-*
+          path: ${{ runner.temp }}/results
+
+      - uses: actions/download-artifact@v6
+        if: env.REVDEP2_RETRY_RUN != ''
+        continue-on-error: true
+        with:
+          name: revdep2-report
+          run-id: ${{ env.REVDEP2_RETRY_RUN }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/retry-report
+
+      - name: Collect results
+        env:
+          PLAN: ${{ runner.temp }}/plan/plan.json
+          RESULTS_DIR: ${{ runner.temp }}/results
+          RETRY_DIR: ${{ runner.temp }}/retry-report
+          OUT_DIR: revdep
+          BASELINE_OUT: ${{ runner.temp }}/baseline
+          FAIL_ON: ${{ env.REVDEP2_FAIL_ON }}
+        run: |
+          Rscript ./.github/workflows/revdep2/collect.R
+        shell: bash
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: revdep2-report
+          path: revdep
+          retention-days: 90
+          overwrite: true
+
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: revdep2-baseline
+          path: ${{ runner.temp }}/baseline
+          retention-days: 90
+          overwrite: true
