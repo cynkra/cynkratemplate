@@ -237,26 +237,60 @@ if (has_revdepcheck) {
 # ------------------------------------------------------------------ summary --
 
 tally <- function(what) sum(results_tbl == what)
+not_ok <- sum(results_tbl != "ok")
+
+# The one sentence a reader needs, before any table.
+headline <- if (tally("newly_broken") > 0) {
+  sprintf(
+    "**%d of %d packages newly broken.**",
+    tally("newly_broken"), length(entries)
+  )
+} else if (not_ok > 0) {
+  sprintf(
+    "No new breakage; %d of %d packages could not be fully checked.",
+    not_ok, length(entries)
+  )
+} else {
+  sprintf("All good: no new problems in %d packages.", length(entries))
+}
+
 counts_df <- data.frame(
-  Result = c("ok", "newly_broken", "failed", "depfail", "error", "deferred"),
+  Result = c(
+    "ok", "newly broken", "failed to check",
+    "dependencies not installable", "shard error", "deferred"
+  ),
   Packages = c(
     tally("ok"), tally("newly_broken"), tally("failed"),
     tally("depfail"), tally("error"), tally("deferred")
   )
 )
+counts_df <- counts_df[counts_df$Packages > 0 | counts_df$Result == "ok", ]
+
+# The report itself, nested under this section: headings demoted two levels,
+# and the platform preamble dropped -- the sentence above already says what
+# was compared against what.
+readme <- readLines(file.path(out_dir, "README.md"), warn = FALSE)
+revdeps_at <- grep("^# Revdeps", readme)[1]
+if (!is.na(revdeps_at)) {
+  readme <- readme[seq(revdeps_at, length(readme))]
+}
+readme <- gsub("^(#+)(\\s)", "##\\1\\2", readme)
+
 run_id <- env_chr("GITHUB_RUN_ID")
 append_summary(c(
   "## revdep2 results",
   "",
   sprintf(
-    "`%s` %s (dev) vs %s (CRAN), %d package(s)%s.",
-    plan$package, plan$dev_version, plan$cran_version, length(entries),
+    "`%s` %s (dev) vs %s (CRAN), R %s%s.",
+    plan$package, plan$dev_version, plan$cran_version, plan$r_version,
     if (plan$retry_of > 0) sprintf(", retry of run %d", plan$retry_of) else ""
   ),
   "",
+  headline,
+  "",
   md_table(counts_df),
   "",
-  readLines(file.path(out_dir, "README.md"), warn = FALSE),
+  readme,
   "",
   "### Getting the results",
   "",
@@ -267,7 +301,6 @@ append_summary(c(
   "```"
 ))
 
-not_ok <- sum(results_tbl != "ok")
 inform(
   length(entries), " package(s): ", sum(results_tbl == "ok"), " ok, ",
   not_ok, " with findings -- see the summary and the revdep2-report artifact"
