@@ -25,7 +25,10 @@
 #                            may be missing or empty, then everything is fresh
 #   OUT_DIR                - results directory, uploaded as the shard artifact
 #                            (default: results)
-#   CHECK_TIMEOUT_MINUTES  - hard cap per rcmdcheck call (default: 30)
+#   TIMEOUT_FACTOR         - per-check timeout as a multiple of the package's
+#                            CRAN check time (default: 1.5)
+#   TIMEOUT_MIN_MINUTES    - floor for that timeout; CRAN's machines are not
+#                            these runners (default: 10)
 #   DEADLINE_MINUTES       - stop starting new checks past this (default: 300)
 
 source(file.path(dirname(sub("--file=", "", grep("^--file=", commandArgs(), value = TRUE))), "util.R"))
@@ -36,7 +39,8 @@ plan <- read_json(env_chr("PLAN", "plan.json"))
 pkg_dir <- env_chr("PKG_DIR", "pkg")
 baseline_dir <- env_chr("BASELINE_DIR", "baseline")
 out_dir <- env_chr("OUT_DIR", "results")
-timeout_sec <- env_num("CHECK_TIMEOUT_MINUTES", 30) * 60
+timeout_factor <- env_num("TIMEOUT_FACTOR", 1.5)
+timeout_min_sec <- env_num("TIMEOUT_MIN_MINUTES", 10) * 60
 deadline <- Sys.time() + env_num("DEADLINE_MINUTES", 300) * 60
 
 shard <- Filter(function(s) s$index == shard_index, plan$shards)[[1]]
@@ -63,8 +67,10 @@ for (p in shard$packages) {
     list(
       package = p$name,
       version = p$version,
+      level = p$level %||% 0L,
       shard = shard_index,
       weight_minutes = p$weight_minutes,
+      t_total = p$t_total %||% 0,
       dep_fingerprint = p$dep_fingerprint,
       baseline_planned = isTRUE(p$baseline),
       baseline_reused = FALSE,
@@ -217,6 +223,13 @@ run_check <- function(name, phase) {
   checks_started <<- checks_started + 1L
   check_dir <- file.path(work, "check", name, phase)
   dir.create(check_dir, recursive = TRUE, showWarnings = FALSE)
+  # The timeout scales with what the check costs CRAN, floored because these
+  # runners are slower than CRAN's machines and a tiny package must not be
+  # killed over the difference.
+  timeout_sec <- max(
+    timeout_min_sec,
+    timeout_factor * (get(name, envir = state)$t_total %||% 0)
+  )
   started <- Sys.time()
   result <- tryCatch(
     rcmdcheck::rcmdcheck(
@@ -228,8 +241,29 @@ run_check <- function(name, phase) {
     ),
     error = function(e) e
   )
-  attr(result, "duration") <- round(as.numeric(Sys.time() - started, units = "secs"))
+  duration <- round(as.numeric(Sys.time() - started, units = "secs"))
+  attr(result, "duration") <- duration
+  # A check that hits the timeout is killed, and rcmdcheck surfaces that as an
+  # error rather than a result object; tell it apart from a genuine crash by
+  # the clock.
+  attr(result, "timed_out") <- inherits(result, "error") && duration >= timeout_sec - 1
   result
+}
+
+check_failure <- function(name, phase, result) {
+  if (isTRUE(attr(result, "timed_out"))) {
+    update(
+      name,
+      result = "failed",
+      message = sprintf(
+        "%s check timed out after %ds", phase, attr(result, "duration")
+      )
+    )
+    inform(name, ": ", phase, " check timed out (", attr(result, "duration"), "s)")
+  } else {
+    update(name, result = "error", message = conditionMessage(result))
+    inform(name, ": ", phase, " check errored: ", conditionMessage(result))
+  }
 }
 
 pkg_out <- function(name) {
@@ -272,8 +306,7 @@ for (name in runnable) {
     }
     old <- run_check(name, "old")
     if (inherits(old, "error")) {
-      update(name, result = "error", message = conditionMessage(old))
-      inform(name, ": old check errored: ", conditionMessage(old))
+      check_failure(name, "old", old)
       next
     }
     saveRDS(old, file.path(pkg_out(name), "old.rds"))
@@ -311,8 +344,7 @@ for (name in runnable) {
   }
   new <- run_check(name, "new")
   if (inherits(new, "error")) {
-    update(name, result = "error", message = conditionMessage(new))
-    inform(name, ": new check errored: ", conditionMessage(new))
+    check_failure(name, "new", new)
     next
   }
   saveRDS(new, file.path(pkg_out(name), "new.rds"))

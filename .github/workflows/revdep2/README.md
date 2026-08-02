@@ -14,40 +14,57 @@ and `revdepcheck::revdep_check()` spends one machine for everything.
 ## Topology
 
 ```
-plan     (1 job, ~2 min)
-  ├─ enumerate revdeps, or take the retry/explicit list
-  ├─ weigh each by CRAN's own check time for it
-  ├─ resolve the baseline donor run, decide per package what is reusable
-  └─ partition into shards → plan.json (artifact) + matrix (job output)
+plan      (1 job, ~2 min)              build  (1 job, parallel to plan)
+  ├─ enumerate revdeps to `depth`,       └─ R CMD build
+  │    or take the retry/explicit list        + R CMD INSTALL --build
+  ├─ weigh each by CRAN's check time             → revdep2-pkg artifact
+  ├─ resolve the baseline donor run,
+  │    decide per package what is reusable
+  └─ partition into shards
+       → plan.json (artifact) + matrix (job output)
 
-build    (1 job)
-  ├─ R CMD build + R CMD INSTALL --build   → revdep2-pkg artifact
+preflight (1 job; a dry run stops before it)
   └─ install + load *every* dependency any revdep needs
        → depfail.json, warm pak cache (saved under the plan hash)
 
-test     (one job per shard, max-parallel throttled, fail-fast: false)
+test      (one job per shard, max-parallel throttled, fail-fast: false)
   ├─ install the shard's dependency union (pak, sysreqs on, warm cache)
   ├─ phase old: reuse baselines, check the rest against the CRAN version
   ├─ install the prebuilt dev binary
   ├─ phase new: check everything again, compare per package
   └─ results + manifest.ndjson → revdep2-results-<shard>-<attempt>
 
-collect  (1 job, if: always() past plan/build)
+collect   (1 job, if: always() past plan/build/preflight)
   ├─ merge all shard attempts (+ carried results of a retried run)
   ├─ reports via revdepcheck: README.md, problems.md, failures.md, cran.md
-  ├─ manifest.json, job summary, red/green verdict per fail-on
-  └─ revdep2-report + revdep2-baseline artifacts
+  └─ manifest.json, job summary, revdep2-report + revdep2-baseline artifacts
 ```
 
-A failing check never fails a shard,
-and a failing shard never aborts the run:
+The workflow is dispatch-only — nothing runs on push —
+and `dry-run: true` stops after planning,
+which is how a plan is inspected for free.
+The `ref` input checks any branch, tag or commit SHA:
+the dispatch itself can only target a branch or tag,
+so arbitrary SHAs travel through the input,
+with the one constraint that the tree must contain these scripts.
+
+A failing check never fails anything:
 `fail-fast: false` isolates shard-level accidents,
 the shard driver records per-package failure as data,
-and the collector runs on `always()` past a successful plan and build.
-The one red job a broken revdep can produce is `collect`,
-under the `fail-on` input's rule.
+the collector runs on `always()` past its prerequisites,
+and check results never turn the run red —
+the job summary and the `revdep2-report` artifact are the deliverable.
+A red job means broken infrastructure, not a broken revdep.
 
 ## Weighing and partitioning
+
+Enumeration is breadth-first to `depth`:
+level 1 depends on the package directly,
+level 2 on a level-1 package, and so on,
+up to the fixpoint for `depth: all`.
+Deeper levels break through their intermediaries,
+so their CRAN-vs-dev comparison stays meaningful,
+and their install closures pull the intermediaries in automatically.
 
 CRAN publishes per-package check times for each flavor;
 `tools::CRAN_check_results()` carries them as `T_total`.
@@ -56,6 +73,10 @@ for what a check costs here:
 one check ≈ `T_total`, a package without a reusable baseline pays two,
 plus a small fixed overhead.
 Packages CRAN has no timing for get the cohort median.
+The same number sizes the per-check timeout:
+`max(REVDEP2_TIMEOUT_MIN_MINUTES, REVDEP2_TIMEOUT_FACTOR × T_total)`,
+so a package gets killed relative to what it normally costs,
+with the floor covering the gap between CRAN's machines and these runners.
 
 The shard count is demand-driven:
 the smallest `K` whose average check load fits `shard-budget-minutes`
@@ -147,7 +168,8 @@ Every artifact this workflow writes:
 | Artifact | Content | Lifetime |
 | --- | --- | --- |
 | `revdep2-plan` | `plan.json` | 30 days |
-| `revdep2-pkg` | source tarball, platform binary, `meta.json`, `depfail.json` | 30 days |
+| `revdep2-pkg` | source tarball, platform binary, `meta.json` | 30 days |
+| `revdep2-preflight` | `depfail.json` | 30 days |
 | `revdep2-results-<shard>-<attempt>` | `manifest.ndjson`, `pkgs/<p>/{old,new}.rds`, kept check output | 30 days |
 | `revdep2-report` | `README.md`, `problems.md`, `failures.md`, `cran.md`, `manifest.json`, all `pkgs/` | 90 days |
 | `revdep2-baseline` | `baseline.json`, `old-rds/<p>.rds` | 90 days |
@@ -178,33 +200,36 @@ so its report is complete again, not a fragment.
 
 | Situation | Outcome |
 | --- | --- |
-| A revdep breaks under the dev version | `newly_broken` in manifest and report; run red only per `fail-on` |
+| A revdep breaks under the dev version | `newly_broken` in manifest and report; the run stays green |
 | A revdep fails under both versions | `ok` (no *new* problems), visible in the report's tables |
-| A check times out | rcmdcheck kills it at `REVDEP2_CHECK_TIMEOUT_MINUTES`; compared as `t-`, reported `failed` |
+| A check times out | rcmdcheck kills it at `max(floor, factor × its CRAN time)`; compared as `t-`, reported `failed` |
 | A revdep's strong dependencies cannot install | `depfail`, check not attempted, named in the shard summary |
-| A dependency fails the build-job preflight | reported in the build summary and `depfail.json`; shards still try their own subset |
+| A dependency fails the preflight | reported in the preflight summary and `depfail.json`; shards still try their own subset |
 | A shard hits its deadline | remaining packages `deferred`; finished old-halves still uploaded and baseline-fed |
 | A shard job dies hard | its packages have no manifest entries; the collector reports what exists; `retry-run` re-plans the rest |
 | A shard is re-run | new artifact per attempt; the collector lets the later attempt win per package |
 | The baseline artifact is gone | planner reuses nothing, everything checked fresh |
 | CRAN bumps a dependency mid-run | shards install what resolves at their start; the recorded fingerprint is the plan's — next run re-fingerprints |
 | The package is not on CRAN | plan emits zero shards, run ends green |
-| `collect` finds new problems | uploads everything first, then exits per `fail-on` |
+| `collect` finds new problems | reported in the summary and the report artifact; the run stays green |
 
 ## Knobs
 
 | Knob | Input | Variable | Default |
 | --- | --- | --- | --- |
+| Ref to check (branch, tag, SHA) | `ref` | — | the dispatched ref |
 | Packages to check | `packages` | — | all revdeps |
 | Revdep set | `which` | — | `strong` |
+| Revdep depth (`1`, `2`, …, `all`) | `depth` | — | 1 |
 | Retry a run | `retry-run` | — | — |
+| Plan only | `dry-run` | — | false |
 | Check-time target per shard | `shard-budget-minutes` | `REVDEP2_SHARD_BUDGET_MINUTES` | 45 |
 | Concurrent shards | `max-parallel` | `REVDEP2_MAX_PARALLEL` | 20 |
 | Ignore reusable baselines | `refresh-baseline` | — | false |
 | Oldest reusable baseline | `baseline-max-age-days` | `REVDEP2_BASELINE_MAX_AGE_DAYS` | 30 days |
-| Per-check timeout | — | `REVDEP2_CHECK_TIMEOUT_MINUTES` | 30 |
+| Per-check timeout factor | — | `REVDEP2_TIMEOUT_FACTOR` | 1.5 × CRAN time |
+| Per-check timeout floor | — | `REVDEP2_TIMEOUT_MIN_MINUTES` | 10 |
 | Shard graceful deadline | — | `REVDEP2_DEADLINE_MINUTES` | 300 |
-| Red-run rule | `fail-on` | — | `newly-broken` |
 
 ## Prior art
 
@@ -218,13 +243,13 @@ Surveyed before building this; what each contributed:
 * [r-devel/recheck](https://github.com/r-devel/recheck) —
   CRAN-parity system libraries, binary-first dependency installs,
   and the honest framing that revdep results are diagnostics,
-  too volatile for a pass/fail gate (hence `fail-on`).
+  too volatile for a pass/fail gate (hence check results never fail the run).
 * [yihui/crandalf](https://github.com/yihui/crandalf) —
   batching revdeps across CI jobs,
   and re-checking only previously failed packages (`retry-run` here).
 * [HenrikBengtsson/revdepcheck.extras](https://github.com/HenrikBengtsson/revdepcheck.extras) —
   pre-installing the dependency universe before the checks start
-  (the build job's preflight).
+  (the preflight job).
 * duckdb-r's `each.yaml` —
   the plan/matrix/fan-in shape, cost-balanced shards under a budget,
   graceful deadlines with deferral, per-attempt artifacts,

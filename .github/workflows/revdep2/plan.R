@@ -47,6 +47,15 @@ source(file.path(dirname(sub("--file=", "", grep("^--file=", commandArgs(), valu
 
 out_path <- env_chr("OUT", "plan.json")
 which_input <- match.arg(env_chr("REVDEP2_WHICH", "strong"), c("strong", "most"))
+depth_raw <- tolower(env_chr("REVDEP2_DEPTH", "1"))
+depth <- if (depth_raw %in% c("all", "max", "inf", "infinity")) {
+  Inf
+} else {
+  suppressWarnings(as.numeric(depth_raw))
+}
+if (is.na(depth) || depth < 1) {
+  depth <- 1
+}
 budget <- env_num("REVDEP2_SHARD_BUDGET_MINUTES", 45)
 max_shards <- min(env_num("REVDEP2_MAX_SHARDS", 250), 250)
 max_parallel <- env_num("REVDEP2_MAX_PARALLEL", 20)
@@ -160,13 +169,39 @@ inform("CRAN version: ", cran_version)
 
 # ------------------------------------------------------------- enumeration ---
 
-revdeps <- sort(tools::package_dependencies(
-  package,
-  db = db,
-  which = if (which_input == "most") "most" else "strong",
-  reverse = TRUE
-)[[1]])
-inform(length(revdeps), " reverse dependencies (", which_input, ")")
+# Breadth-first over reverse dependencies: level 1 depends on the package
+# directly, level 2 on a level-1 package, and so on. Deeper levels break
+# through their intermediaries, so checking them still compares CRAN vs dev
+# meaningfully. The walk stops at `depth`, or at the fixpoint for "all".
+level_of <- integer()
+frontier <- package
+level <- 0L
+while (level < depth && length(frontier) > 0) {
+  found <- tools::package_dependencies(
+    frontier,
+    db = db,
+    which = if (which_input == "most") "most" else "strong",
+    reverse = TRUE
+  )
+  fresh <- setdiff(
+    unique(unlist(found, use.names = FALSE)),
+    c(names(level_of), package)
+  )
+  level <- level + 1L
+  level_of[fresh] <- level
+  frontier <- fresh
+}
+revdeps <- sort(names(level_of))
+level_counts <- table(level_of)
+inform(
+  length(revdeps), " reverse dependencies (", which_input, ", depth ", depth_raw,
+  if (length(level_counts) > 1) {
+    paste0("; ", paste0("level ", names(level_counts), ": ", level_counts, collapse = ", "))
+  } else {
+    ""
+  },
+  ")"
+)
 
 selection <- "all"
 retry_manifest <- NULL
@@ -429,6 +464,7 @@ shard_list <- lapply(seq_len(k), function(s) {
       list(
         name = p,
         version = unname(their_version[[p]]),
+        level = if (p %in% names(level_of)) unname(level_of[[p]]) else 0L,
         weight_minutes = round(unname(weight[[p]]), 2),
         t_total = unname(t_total[[p]]),
         timing_source = if (known[[match(p, packages)]]) "cran" else "median",
@@ -439,14 +475,26 @@ shard_list <- lapply(seq_len(k), function(s) {
   )
 })
 
+# The dispatched ref and the checked-out tree differ when the `ref` input
+# names another branch or SHA; the tree is what is being tested.
+head_sha <- tryCatch(
+  system2("git", c("rev-parse", "HEAD"), stdout = TRUE, stderr = NULL)[[1]],
+  error = function(e) ""
+)
+if (!nzchar(head_sha)) {
+  head_sha <- env_chr("GITHUB_SHA")
+}
+
 plan <- list(
   package = package,
   dev_version = dev_version,
   cran_version = cran_version,
   r_version = r_version,
-  sha = env_chr("GITHUB_SHA"),
+  sha = head_sha,
   ref = env_chr("GITHUB_REF_NAME"),
   which = which_input,
+  depth = depth_raw,
+  levels = as.list(level_counts),
   selection = selection,
   generated_at = now_utc(),
   timing_flavor = timing_flavor,
@@ -516,11 +564,24 @@ summary_df <- data.frame(
 append_summary(c(
   "## revdep2 plan",
   "",
+  if (env_flag("REVDEP2_DRY_RUN")) c("**Dry run: planning only, no checks started.**", ""),
   "| | |",
   "| --- | --- |",
   sprintf("| Package | `%s` %s (CRAN: %s) |", package, dev_version, cran_version),
   sprintf("| Selection | %s |", selection),
-  sprintf("| Packages to check | %d (of %d revdeps) |", n, length(revdeps)),
+  sprintf(
+    "| Packages to check | %d (of %d revdeps%s) |",
+    n,
+    length(revdeps),
+    if (length(level_counts) > 1) {
+      paste0(
+        "; ",
+        paste0("level ", names(level_counts), ": ", level_counts, collapse = ", ")
+      )
+    } else {
+      ""
+    }
+  ),
   sprintf(
     "| Baseline | %s |",
     if (length(baseline_manifest) > 0) {

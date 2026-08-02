@@ -23,8 +23,9 @@
 #   RETRY_DIR    - the revdep2-report artifact of the run being retried, if any
 #   OUT_DIR      - report directory (default: revdep)
 #   BASELINE_OUT - baseline directory (default: baseline)
-#   FAIL_ON      - "newly-broken" (default), "any", or "none": when this script
-#                  exits non-zero
+#
+# Always exits zero: check results are the report's business, not the job
+# status's -- only a genuinely broken collector fails this job.
 
 source(file.path(dirname(sub("--file=", "", grep("^--file=", commandArgs(), value = TRUE))), "util.R"))
 
@@ -34,7 +35,6 @@ plan <- read_json(env_chr("PLAN", "plan.json"))
 retry_dir <- env_chr("RETRY_DIR")
 out_dir <- env_chr("OUT_DIR", "revdep")
 baseline_out <- env_chr("BASELINE_OUT", "baseline")
-fail_on <- match.arg(env_chr("FAIL_ON", "newly-broken"), c("newly-broken", "any", "none"))
 
 dir.create(file.path(out_dir, "pkgs"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(baseline_out, "old-rds"), recursive = TRUE, showWarnings = FALSE)
@@ -267,15 +267,8 @@ append_summary(c(
   "```"
 ))
 
-verdict_bad <- switch(
-  fail_on,
-  "none" = character(),
-  "newly-broken" = "newly_broken",
-  "any" = c("newly_broken", "failed", "depfail", "error", "deferred")
+not_ok <- sum(results_tbl != "ok")
+inform(
+  length(entries), " package(s): ", sum(results_tbl == "ok"), " ok, ",
+  not_ok, " with findings -- see the summary and the revdep2-report artifact"
 )
-bad <- sum(results_tbl %in% verdict_bad)
-if (bad > 0) {
-  inform(bad, " package(s) fail the run under fail-on=", fail_on)
-  quit(save = "no", status = 1)
-}
-inform("All well under fail-on=", fail_on)
