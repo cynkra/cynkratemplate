@@ -145,13 +145,21 @@ jobs:
       # did not succeed.
       - id: versions-matrix
         continue-on-error: true
-        # Only run for:
-        # - pull requests if the base repo is different from the head repo
-        # - pull requests if the branch name starts with "cran-"
-        # Do not run for:
-        # - workflow_dispatch if not requested
-        # Always run for other events.
-        if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.head_ref, 'cran-')) && (github.event_name != 'workflow_dispatch' || inputs.versions-matrix)
+        # Not for workflow_dispatch if not requested, always run for other events.
+        #
+        # Pull requests used to be excluded here unless they came from a fork or
+        # from a "cran-" branch, so the full version matrix only ever ran after
+        # merging. That put every cross-platform regression -- and every change
+        # to the matrix itself -- on the wrong side of the merge button: a job
+        # added to .github/workflows/versions-matrix/action.R could not be
+        # exercised by the pull request that added it. The matrix now runs on
+        # pull requests too, matching the dep-suggests-matrix step below.
+        #
+        # The rcc-full jobs it feeds use fail-fast: false and, on pull_request
+        # events, do not push snapshots back (the update-snapshots action only
+        # opens a pull request when github.event_name != 'pull_request'), so the
+        # widened matrix only adds checks -- it does not add writes.
+        if: github.event_name != 'workflow_dispatch' || inputs.versions-matrix
         uses: ./.github/workflows/versions-matrix
 
       - id: dep-suggests-matrix
