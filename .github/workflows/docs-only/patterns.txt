@@ -1,0 +1,39 @@
+# Paths that cannot affect the outcome of `R CMD check`,
+# the package website, or the CI setup itself.
+# If *all* paths changed by a pull request match one of these patterns,
+# the checks are skipped and the `rcc` status is set to success right away.
+#
+# Each line is an extended regular expression
+# matched against the entire path, as if anchored with `^` and `$`.
+# Blank lines and lines starting with `#` are ignored.
+#
+# This list is deliberately an allow list, not a deny list:
+# anything not mentioned here counts as relevant.
+# New file types (`src/`, `configure`, `tools/`, `inst/include/`, ...)
+# are therefore always checked, also for packages with native code.
+#
+# Repositories can add their own patterns
+# in `.github/docs-only-patterns.txt`,
+# which survives updates of this file from cynkratemplate.
+#
+# Not in this list, on purpose:
+#
+# - `man/`: owned by roxygen2, hand edits must be checked (and reverted)
+# - `vignettes/`: built and run by `R CMD check`
+# - `_pkgdown.yml`, `pkgdown/`, `inst/pkgdown/`: can break the website build
+# - `.github/`, except for the template files below: can break CI itself
+# - `LICENSE` and `DESCRIPTION`: part of the checks
+
+README\.md
+NEWS\.md
+LICENSE\.md
+CODE_OF_CONDUCT\.md
+CONTRIBUTING\.md
+SECURITY\.md
+SUPPORT\.md
+\.github/CODEOWNERS
+\.github/FUNDING\.yml
+\.github/DISCUSSION_TEMPLATE/.*
+\.github/ISSUE_TEMPLATE/.*
+\.github/PULL_REQUEST_TEMPLATE/.*
+\.github/pull_request_template\.md

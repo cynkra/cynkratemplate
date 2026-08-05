@@ -21,6 +21,37 @@ cynkratemplate::use_cynkra_pkgdown()
 
 Please ask the person in charge (see website page of the general manual in clickup) for a plausible subdomain via email or another mean of communication of their choice.
 
+## Continuous integration
+
+### Documentation-only pull requests
+
+The `rcc` workflow skips the checks for pull requests
+that only touch documentation,
+and turns the `rcc` status green right away.
+The workflow itself still runs,
+so the status is always reported,
+also for pull requests from forks.
+
+A pull request counts as documentation-only
+if *every* changed path matches a pattern
+in [`.github/workflows/docs-only/patterns.txt`](.github/workflows/docs-only/patterns.txt).
+This is an allow list:
+anything not listed there,
+including `src/`, `configure`, `man/`, `vignettes/`, `_pkgdown.yml`,
+and the workflows themselves,
+triggers the full checks.
+
+Pushes, scheduled runs, and manual runs always check everything.
+The package is verified,
+and the website is deployed,
+for every commit that lands on the main branch.
+
+To make the list stricter or more permissive for a single repository,
+create `.github/docs-only-patterns.txt`
+with one extended regular expression per line,
+matched against the entire path.
+That file is never overwritten by updates from cynkratemplate.
+
 ## Fonts
 
 Our private "Frutiger" fonts are hosted on AWS in the "cynkraweb" S3 bucket.
