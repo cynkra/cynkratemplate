@@ -33,6 +33,21 @@ expect true "NEWS.md"
 expect true "README.md" "NEWS.md" "CONTRIBUTING.md"
 expect true ".github/ISSUE_TEMPLATE/bug.yml"
 
+# Tooling that neither ships nor runs
+expect true ".gitignore"
+expect true ".github/.gitignore"
+expect true "cynkratemplate.Rproj"
+expect true "renovate.json"
+
+# Config that does have an effect, however harmless it looks
+expect false ".gitattributes"
+expect false ".Rprofile"
+expect false "renv.lock"
+expect false "air.toml"
+expect false ".Rbuildignore"
+# Ships unless the repository excludes it, so it is opt-in per repository
+expect false "cran-comments.md"
+
 # R code, tests, metadata
 expect false "R/foo.R"
 expect false "README.md" "R/foo.R"

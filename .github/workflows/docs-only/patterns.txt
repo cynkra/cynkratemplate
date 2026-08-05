@@ -12,6 +12,23 @@
 # New file types (`src/`, `configure`, `tools/`, `inst/include/`, ...)
 # are therefore always checked, also for packages with native code.
 #
+# A deny list -- "run the checks only for paths that look like code" --
+# would be shorter to write, but it defaults to skipping,
+# and it would have to be complete for every repository
+# that uses this template, including the ones that don't exist yet.
+# A path nobody thought of (`.Rprofile`, `renv.lock`, `air.toml`,
+# `data-raw/`, a vendored `python/` directory)
+# would then merge with a green `rcc` status and nothing to show for it.
+# Here, a path nobody thought of costs one superfluous check run,
+# which is visible in the pull request and easy to fix.
+#
+# Every pattern below must be inert by argument, not by looks:
+# it must not end up in the package tarball,
+# and it must not be read by the workflows or by pkgdown.
+# `.gitattributes` is a good counter-example:
+# it looks like git metadata, but `eol` and filter attributes
+# change the files that are checked out, so it is not in this list.
+#
 # Repositories can add their own patterns
 # in `.github/docs-only-patterns.txt`,
 # which survives updates of this file from cynkratemplate.
@@ -37,3 +54,17 @@ SUPPORT\.md
 \.github/ISSUE_TEMPLATE/.*
 \.github/PULL_REQUEST_TEMPLATE/.*
 \.github/pull_request_template\.md
+
+# Tooling that neither ships nor runs.
+# `R CMD build` drops `.gitignore` on its own,
+# `.Rproj`, `.Rproj.user` and `renovate.json` are in `.Rbuildignore`
+# for packages created from this template.
+(.*/)?\.gitignore
+.*\.Rproj
+\.Rproj\.user/.*
+renovate\.json
+
+# Deliberately not here, add them per repository if `.Rbuildignore` covers them:
+# `cran-comments.md`, `revdep/`, `.vscode/`.
+# They ship unless excluded, and a new top-level file that ships
+# is a `R CMD check` NOTE, which this template treats as an error.

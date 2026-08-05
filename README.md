@@ -40,6 +40,9 @@ anything not listed there,
 including `src/`, `configure`, `man/`, `vignettes/`, `_pkgdown.yml`,
 and the workflows themselves,
 triggers the full checks.
+A path nobody thought of therefore costs one superfluous check run,
+which is visible in the pull request,
+rather than a green status for code that was never checked.
 
 Pushes, scheduled runs, and manual runs always check everything.
 The package is verified,
