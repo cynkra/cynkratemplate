@@ -1,5 +1,24 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9023
+
+## Chore
+
+- Auto-update from GitHub Actions.
+
+  Run: https://github.com/cynkra/cynkratemplate/actions/runs/30967492786
+
+## Continuous integration
+
+- Give every workflow and job an explicit `permissions` block (#103).
+
+- Remove unused pr-commands workflow.
+
+- Pass workflow context through the environment, not into script text (#102).
+
+- Add a Windows arm64 (`windows-11-arm`) check on R-release (#99).
+
+
 # cynkratemplate 0.0.2.9022
 
 ## Continuous integration
