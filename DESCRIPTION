@@ -24,7 +24,7 @@ Suggests:
     knitr,
     rmarkdown,
     yaml
-Config/roxygen2/version: 8.0.0.9000
+Config/roxygen2/version: 8.1.0.9000
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
