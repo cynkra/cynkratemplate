@@ -1,5 +1,18 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9022
+
+### Continuous integration
+
+- Run all smoke-test checks even when one fails
+  ([\#97](https://github.com/cynkra/cynkratemplate/issues/97)).
+
+- Apply matrix `env` vars in the workflow, not in custom actions
+  ([\#95](https://github.com/cynkra/cynkratemplate/issues/95)).
+
+- Link the responsible workflow run in snapshot update PRs
+  ([\#96](https://github.com/cynkra/cynkratemplate/issues/96)).
+
 ## cynkratemplate 0.0.2.9021
 
 ### Continuous integration
