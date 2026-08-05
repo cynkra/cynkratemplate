@@ -147,9 +147,6 @@ jobs:
       # manifest, and to read the retried run's report.
       actions: read
 
-    # Begin custom: services
-    # End custom: services
-
     steps:
       - uses: actions/checkout@v6
         with:
@@ -194,16 +191,10 @@ jobs:
     permissions:
       contents: read
 
-    # Begin custom: services
-    # End custom: services
-
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref || github.ref }}
-
-      # Begin custom: before install
-      # End custom: before install
 
       - uses: ./.github/workflows/install
         with:
@@ -239,9 +230,6 @@ jobs:
 
     permissions:
       contents: read
-
-    # Begin custom: services
-    # End custom: services
 
     steps:
       - uses: actions/checkout@v6
@@ -324,11 +312,6 @@ jobs:
       _R_CHECK_SYSTEM_CLOCK_: false
       _R_CHECK_FUTURE_FILE_TIMESTAMPS_: false
       _R_CHECK_FORCE_SUGGESTS_: false
-      # Begin custom: env vars
-      # End custom: env vars
-
-    # Begin custom: services
-    # End custom: services
 
     steps:
       - uses: actions/checkout@v6
@@ -383,9 +366,6 @@ jobs:
           github-token: ${{ github.token }}
           path: ${{ runner.temp }}/baseline
 
-      # Begin custom: after install
-      # End custom: after install
-
       - name: Check the shard
         env:
           SHARD: ${{ matrix.shard }}
@@ -433,9 +413,6 @@ jobs:
       contents: read
       # To download the retried run's report artifact, which lives on that run.
       actions: read
-
-    # Begin custom: services
-    # End custom: services
 
     steps:
       - uses: actions/checkout@v6
