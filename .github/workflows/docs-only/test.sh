@@ -33,11 +33,22 @@ expect true "NEWS.md"
 expect true "README.md" "NEWS.md" "CONTRIBUTING.md"
 expect true ".github/ISSUE_TEMPLATE/bug.yml"
 
+expect true "README.Rmd"
+expect true "index.md"
+expect true "TODO.md"
+expect true "cran-comments.md"
+expect true "CRAN-SUBMISSION"
+
 # Tooling that neither ships nor runs
 expect true ".gitignore"
 expect true ".github/.gitignore"
 expect true "cynkratemplate.Rproj"
 expect true "renovate.json"
+expect true ".vscode/settings.json"
+expect true ".claude/settings.json"
+expect true "CLAUDE.md"
+expect true "AGENTS.md"
+expect true "data-raw/DATASET.R"
 
 # Config that does have an effect, however harmless it looks
 expect false ".gitattributes"
@@ -45,8 +56,26 @@ expect false ".Rprofile"
 expect false "renv.lock"
 expect false "air.toml"
 expect false ".Rbuildignore"
-# Ships unless the repository excludes it, so it is opt-in per repository
-expect false "cran-comments.md"
+expect false "codecov.yml"
+expect false ".covrignore"
+expect false ".clang-format"
+expect false ".lintr"
+expect false ".aspell/en_stats.rds"
+expect false "inst/WORDLIST"
+expect false "Makefile"
+expect false "scripts/release.R"
+expect false "Dockerfile"
+expect false "docker-compose.yml"
+expect false ".devcontainer/devcontainer.json"
+expect false "revdep/problems.md"
+
+# Web packages: JavaScript is compiled into inst/, so it is code
+expect false "srcjs/index.js"
+expect false "package.json"
+expect false "package-lock.json"
+
+# pkgdown-only articles are still built by the website job
+expect false "vignettes/articles/foo.Rmd"
 
 # R code, tests, metadata
 expect false "R/foo.R"

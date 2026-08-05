@@ -44,6 +44,13 @@ A path nobody thought of therefore costs one superfluous check run,
 which is visible in the pull request,
 rather than a green status for code that was never checked.
 
+The defaults come from a survey of the top-level entries
+of 64 packages across cynkra, r-lib, r-dbi, tidyverse, igraph, duckdb,
+poissonconsulting, r-prof, and krlmlr,
+and cover `README.Rmd`, `index.md`, `cran-comments.md`,
+`CLAUDE.md`, `AGENTS.md`, `.claude/`, `.vscode/`, and `data-raw/`
+in addition to the usual prose files.
+
 Pushes, scheduled runs, and manual runs always check everything.
 The package is verified,
 and the website is deployed,
