@@ -96,6 +96,12 @@ on:
 
 name: revdep2
 
+# Read-only by default; every job opts back into what it actually needs.
+# Note that for a pull request from a fork GitHub caps the token at read-only
+# regardless of what is requested here.
+permissions:
+  contents: read
+
 # One planning pass per checked ref at a time; a queued run waits rather than
 # killing shards mid-check, because a killed shard's unfinished packages would
 # have to be re-planned and re-checked.
@@ -137,6 +143,8 @@ jobs:
 
     permissions:
       contents: read
+      # To find the newest earlier run with a baseline artifact and read its
+      # manifest, and to read the retried run's report.
       actions: read
 
     # Begin custom: services
@@ -299,6 +307,7 @@ jobs:
 
     permissions:
       contents: read
+      # To download the baseline artifact, which lives on an earlier run.
       actions: read
 
     strategy:
@@ -422,6 +431,7 @@ jobs:
 
     permissions:
       contents: read
+      # To download the retried run's report artifact, which lives on that run.
       actions: read
 
     # Begin custom: services
