@@ -1,5 +1,16 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9024
+
+## Continuous integration
+
+- Add sharded `revdep2` workflow.
+
+- Harden `workflow_run` workflows against untrusted pull requests (#106).
+
+- Pin third-party actions to commits and let Renovate keep them pinned (#105).
+
+
 # cynkratemplate 0.0.2.9023
 
 ## Chore
