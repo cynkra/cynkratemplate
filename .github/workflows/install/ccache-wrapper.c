@@ -1,5 +1,6 @@
 /*
- * A one-word compiler command that runs "ccache <compiler> <arguments>".
+ * A one-word compiler command that runs "ccache <compiler> <arguments>",
+ * the Windows counterpart of the #!/bin/sh wrapper used on Unix.
  *
  * R-devel's tools:::ccE(), which backs the "checking use of non-API entry
  * points" check, reads R CMD config CC, discards everything after the first
@@ -7,46 +8,44 @@
  * https://github.com/r-devel/r-svn/commit/ca19f35240517186ed447e773ee67b55e207cf27
  * A "CC = ccache gcc" prefix therefore collapses to a bare "ccache" and the
  * check fails. Naming the compiler ccache-gcc instead keeps it a single word,
- * so the truncation is a no-op.
+ * so the truncation is a no-op. Sys.which() will not find a shell script and a
+ * make recipe cannot run one, hence a real executable. Build one per compiler
+ * with the Rtools toolchain:
  *
- * On Unix that wrapper is a #!/bin/sh script. Windows has no such thing:
- * Sys.which() and make recipes both need a real executable, so this file is
- * compiled once per compiler with the Rtools toolchain when the workflow sets
- * ccache up. Build it with:
+ *   gcc -O2 -o ccache-gcc.exe ccache-wrapper.c -DWRAPPED_COMPILER='L"gcc"'
  *
- *   gcc -O2 -o ccache-gcc.exe ccache-wrapper.c \
- *     -DCCACHE_EXE='"C:/path/to/ccache.exe"' -DWRAPPED_COMPILER='"gcc"'
+ * Both ccache and the compiler are found on the PATH, nothing is baked in by
+ * path: this only ever runs from processes that already have ccache and R's
+ * toolchain set up, which is exactly what the Unix wrapper relies on too.
  *
- * The original command line is forwarded verbatim rather than rebuilt from
- * argv[], so the quoting of compiler arguments survives untouched.
+ * The command line is forwarded verbatim instead of being rebuilt from argv[],
+ * which is also why this is not the far shorter _spawnvp() one-liner: the CRT
+ * joins argv with spaces and re-quotes nothing, so a compiler argument
+ * containing a space would arrive at the compiler split in two. (_execvp() is
+ * no good either -- on Windows it does not wait, so make would see the wrapper
+ * exit before the compiler had run.)
  */
 
 #include <windows.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#ifndef CCACHE_EXE
-#error "CCACHE_EXE must be defined: the full path to ccache.exe"
-#endif
 
 #ifndef WRAPPED_COMPILER
-#error "WRAPPED_COMPILER must be defined: the compiler to run under ccache"
+#error "WRAPPED_COMPILER must be defined, e.g. -DWRAPPED_COMPILER='L\"gcc\"'"
 #endif
 
-/* Position just past argv[0] of a Windows command line, quotes honoured. */
-static const char *skip_argv0(const char *p)
+/* Position just past argv[0] of a command line, quotes honoured. */
+static const wchar_t *skip_argv0(const wchar_t *p)
 {
     int quoted = 0;
 
-    while (*p != '\0') {
-        if (*p == '"')
+    while (*p != L'\0') {
+        if (*p == L'"')
             quoted = !quoted;
-        else if (!quoted && (*p == ' ' || *p == '\t'))
+        else if (!quoted && (*p == L' ' || *p == L'\t'))
             break;
         p++;
     }
-    while (*p == ' ' || *p == '\t')
+    while (*p == L' ' || *p == L'\t')
         p++;
 
     return p;
@@ -54,31 +53,26 @@ static const char *skip_argv0(const char *p)
 
 int main(void)
 {
-    const char *args = skip_argv0(GetCommandLineA());
-    size_t size = strlen(CCACHE_EXE) + strlen(WRAPPED_COMPILER) + strlen(args) + 5;
-    char *cmd = malloc(size);
-    STARTUPINFOA si;
+    /* A Windows command line is limited to 32767 characters. */
+    static wchar_t cmd[32767];
+    STARTUPINFOW si;
     PROCESS_INFORMATION pi;
     DWORD status = 1;
 
-    if (cmd == NULL) {
-        fprintf(stderr, "ccache wrapper: out of memory\n");
+    if (_snwprintf(cmd, ARRAYSIZE(cmd), L"ccache %ls %ls",
+                   WRAPPED_COMPILER, skip_argv0(GetCommandLineW())) < 0) {
+        fwprintf(stderr, L"ccache wrapper: command line too long\n");
         return 127;
     }
-    /* argv[0] must still be named ccache: that is how ccache tells its own
-     * invocation apart from being masqueraded as the compiler itself. */
-    snprintf(cmd, size, "\"%s\" %s %s", CCACHE_EXE, WRAPPED_COMPILER, args);
+    cmd[ARRAYSIZE(cmd) - 1] = L'\0';
 
     ZeroMemory(&si, sizeof si);
     si.cb = sizeof si;
     ZeroMemory(&pi, sizeof pi);
 
-    /* Naming the image explicitly keeps CreateProcess from searching for it,
-     * so a forward-slash path from cygpath -m is resolved as a plain file. */
-    if (!CreateProcessA(CCACHE_EXE, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) {
-        fprintf(stderr, "ccache wrapper: cannot run %s (error %lu)\n",
-                cmd, (unsigned long) GetLastError());
-        free(cmd);
+    if (!CreateProcessW(NULL, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) {
+        fwprintf(stderr, L"ccache wrapper: cannot run %ls (error %lu)\n",
+                 cmd, (unsigned long) GetLastError());
         return 127;
     }
 
@@ -86,7 +80,6 @@ int main(void)
     GetExitCodeProcess(pi.hProcess, &status);
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
-    free(cmd);
 
     return (int) status;
 }
