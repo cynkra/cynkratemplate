@@ -1,5 +1,12 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9025
+
+## Continuous integration
+
+- Name every step and restore the log entry `setup-pandoc` swallows.
+
+
 # cynkratemplate 0.0.2.9024
 
 ## Continuous integration
