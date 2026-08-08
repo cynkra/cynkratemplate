@@ -328,6 +328,7 @@ jobs:
 
       - name: Close the log group that setup-pandoc leaves open
         # See `.github/workflows/install/action.yml` for why this is needed.
+        # Fixed upstream by https://github.com/r-lib/actions/pull/1103.
         if: runner.os == 'Linux'
         run: |
           echo "::endgroup::"
