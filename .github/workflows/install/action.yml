@@ -193,8 +193,9 @@ runs:
         # "ccache", and the check died with "ccache: invalid option -- 'E'".
         # https://github.com/r-devel/r-svn/commit/ca19f35240517186ed447e773ee67b55e207cf27
         # Upstream has since dropped the truncation again, so the prefix works
-        # once more. The wrapper stays because it costs nothing and is correct
-        # under either behaviour.
+        # once more -- but it takes a while for that to reach the R-devel builds
+        # CI installs, so the wrapper is still doing real work here. It stays
+        # after that too: it costs nothing and is correct either way.
         #
         # Windows deliberately keeps the plain prefix, as a control group: it is
         # where a repeat of that upstream change would show up, while the Unix
