@@ -124,8 +124,8 @@ runs:
         http-user-agent: ${{ matrix.config.http-user-agent }}
         use-public-rspm: true
 
-    - id: get-extra
-      name: Read `Config/gha/extra-packages` from DESCRIPTION
+    - name: Read `Config/gha/extra-packages` from DESCRIPTION
+      id: get-extra
       run: |
         set -x
         packages=$( ( grep Config/gha/extra-packages DESCRIPTION || true ) | cut -d " " -f 2-)

@@ -161,8 +161,8 @@ jobs:
           install.packages("jsonlite")
         shell: Rscript {0}
 
-      - id: plan
-        name: Plan shards
+      - name: Plan shards
+        id: plan
         env:
           GH_TOKEN: ${{ github.token }}
           OUT: ${{ runner.temp }}/plan.json

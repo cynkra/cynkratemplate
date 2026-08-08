@@ -162,8 +162,8 @@ jobs:
       # failing check doesn't hide the results of all the checks that follow.
       # The "Summarize checks" step at the end fails the job if any of them
       # did not succeed.
-      - id: versions-matrix
-        name: Collect the R versions into a matrix
+      - name: Collect the R versions into a matrix
+        id: versions-matrix
         continue-on-error: true
         # Only run for:
         # - pull requests if the base repo is different from the head repo
@@ -174,35 +174,35 @@ jobs:
         if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.head_ref, 'cran-')) && (github.event_name != 'workflow_dispatch' || inputs.versions-matrix)
         uses: ./.github/workflows/versions-matrix
 
-      - id: dep-suggests-matrix
-        name: Collect the suggested dependencies into a matrix
+      - name: Collect the suggested dependencies into a matrix
+        id: dep-suggests-matrix
         continue-on-error: true
         # Not for workflow_dispatch if not requested, always run for other events
         if: github.event_name != 'workflow_dispatch' || inputs.dep-suggests-matrix
         uses: ./.github/workflows/dep-suggests-matrix
 
-      - id: repo-state
-        name: Determine repository state
+      - name: Determine repository state
+        id: repo-state
         uses: ./.github/workflows/repo-state
 
       # Styling on foreign PRs works through the format-suggest workflow
-      - id: style
-        name: Style the R sources
+      - name: Style the R sources
+        id: style
         continue-on-error: true
         uses: ./.github/workflows/style
         if: steps.repo-state.outputs.foreign != 'true' || steps.repo-state.outputs.is_pr != 'true'
 
       # Snapshot tests can't work in a way similar to format-suggests
       # because it requires running code which is a security risk on pull_request_target workflows
-      - id: snapshots
-        name: Update the testthat snapshots
+      - name: Update the testthat snapshots
+        id: snapshots
         continue-on-error: true
         uses: ./.github/workflows/update-snapshots
         with:
           base: ${{ inputs.ref || github.head_ref }}
 
-      - id: roxygenize
-        name: Roxygenize the documentation
+      - name: Roxygenize the documentation
+        id: roxygenize
         continue-on-error: true
         uses: ./.github/workflows/roxygenize
 
@@ -211,22 +211,22 @@ jobs:
           rm -f .github/dep-suggests-matrix.json .github/versions-matrix.json
         shell: bash
 
-      - id: commit
-        name: Commit and push the generated changes
+      - name: Commit and push the generated changes
+        id: commit
         continue-on-error: true
         uses: ./.github/workflows/commit
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - id: check
-        name: Run R CMD check
+      - name: Run R CMD check
+        id: check
         continue-on-error: true
         uses: ./.github/workflows/check
         with:
           results: ${{ runner.os }}-smoke-test
 
-      - id: pkgdown-build
-        name: Build the pkgdown website
+      - name: Build the pkgdown website
+        id: pkgdown-build
         continue-on-error: true
         uses: ./.github/workflows/pkgdown-build
         if: github.event_name != 'push'
@@ -237,8 +237,8 @@ jobs:
       # Deployment on workflow_dispatch is available via the pkgdown workflow
       # Deploying a broken package's website is worse than not deploying at all,
       # hence this is the one step that is still gated on a check.
-      - id: pkgdown-deploy
-        name: Build and deploy the pkgdown website
+      - name: Build and deploy the pkgdown website
+        id: pkgdown-deploy
         continue-on-error: true
         uses: ./.github/workflows/pkgdown-deploy
         if: github.event_name == 'push' && steps.check.outcome == 'success'
