@@ -159,8 +159,6 @@ runs:
       shell: bash
 
     - name: Install ccache
-      # Windows is deliberately excluded, see the next step for the reason.
-      if: runner.os != 'Windows'
       # https://github.com/hendrikmuhs/ccache-action/issues/437
       uses: hendrikmuhs/ccache-action@33522472633dbd32578e909b315f5ee43ba878ce # v1.2.22
       with:
@@ -198,41 +196,114 @@ runs:
         # survives the truncation intact, keeps ccache in the loop for the actual
         # compilation, and stays correct once R stops truncating.
         #
-        # Windows is excluded: R does read ~/.R/Makevars there, so it hits the
-        # same wall, but a #!-script is not an executable Windows can find via
-        # Sys.which() or run from a make recipe, so the wrapper trick does not
-        # translate. Dropping ccache is the cheap fix — x86_64 Windows installs
-        # dependency binaries from PPM and compiles little.
+        # On Unix the wrapper is a #!/bin/sh script. Windows needs a real
+        # executable -- Sys.which() will not find a shell script and a make
+        # recipe cannot run one -- so there the wrapper is a small
+        # CreateProcess() launcher, ccache-wrapper.c next to this file,
+        # compiled on the spot with a compiler the runner image already has.
         ccache_bin="$(command -v ccache || true)"
-        if [ "$RUNNER_OS" = "Windows" ] || [ -z "$ccache_bin" ]; then
-          echo "Not attaching ccache to the R compilers (RUNNER_OS=$RUNNER_OS, ccache=${ccache_bin:-not found})."
+        if [ -z "$ccache_bin" ]; then
+          echo "::warning::ccache is not on the PATH, compiling without it."
         else
           wrapper_dir="$HOME/.R/ccache-wrappers"
           mkdir -p "$wrapper_dir"
+
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # The wrapper is a native binary and $GITHUB_PATH is read by the
+            # runner, not by bash, so both need native paths. cygpath -m keeps
+            # forward slashes, which embed into a C string without escaping.
+            ccache_exe="$(cygpath -m "$ccache_bin")"
+            wrapper_ext=".exe"
+            path_entry="$(cygpath -w "$wrapper_dir")"
+            # Something has to compile the wrapper, but it is a dozen lines of
+            # Win32 that do not care which toolchain builds them, so take the
+            # first compiler the runner image already ships. R's own Rtools
+            # compiler is the fallback: it is never on the PATH here (setup-r
+            # adds only Rtools' usr/bin, and R's Makeconf leaves BINPREF empty),
+            # so it has to be asked for by way of R.
+            for candidate in gcc clang cc; do
+              if command -v "$candidate" > /dev/null 2>&1; then
+                build_cc="$candidate"
+                break
+              fi
+            done
+            if [ -z "${build_cc:-}" ]; then
+              build_cc="$(R -s -e 'cat(Sys.which("gcc"))' 2>/dev/null || true)"
+            fi
+            echo "Building the ccache wrappers with ${build_cc:-<no compiler found>}."
+          else
+            ccache_exe="$ccache_bin"
+            wrapper_ext=""
+            path_entry="$wrapper_dir"
+          fi
+
+          # $1 = wrapper to create, $2 = compiler it wraps. The compiler is
+          # baked in by name, not by path: the wrapper only ever runs from
+          # processes that already have R's toolchain on their PATH, and the
+          # compiler that builds the wrapper need not be the one it wraps.
+          # Both settings go into a generated source file rather than -D flags,
+          # so nothing quoting-sensitive ends up on a command line.
+          build_wrapper() {
+            if [ -z "${build_cc:-}" ]; then
+              return 1
+            fi
+            gen_src="$(mktemp -d)/wrapper.c"
+            {
+              printf '#define CCACHE_EXE "%s"\n' "$ccache_exe"
+              printf '#define WRAPPED_COMPILER "%s"\n' "$2"
+              printf '#include "%s"\n' "$(cygpath -m "$GITHUB_ACTION_PATH/ccache-wrapper.c")"
+            } > "$gen_src"
+            cat "$gen_src"
+            "$build_cc" -O2 -o "$(cygpath -m "$1")" "$(cygpath -m "$gen_src")"
+          }
+
+          # Run a wrapper the way R will run it, toolchain on the PATH included.
+          run_wrapper() {
+            if [ "$RUNNER_OS" = "Windows" ]; then
+              R CMD "$(cygpath -w "$1")" --version > /dev/null
+            else
+              "$1" --version > /dev/null
+            fi
+          }
+
           empty_makevars="$(mktemp)"
           for var in CC CXX CXX11 CXX14 CXX17 CXX20 CXX23; do
             val="$(R_MAKEVARS_USER="$empty_makevars" R CMD config "$var" 2>/dev/null || true)"
-            if [ -n "$val" ]; then
-              # Split "gcc -std=gnu2x" into the compiler and its flags: only the
-              # compiler is wrapped, the flags are passed through unchanged.
-              prog="${val%%[[:space:]]*}"
-              flags="${val#"$prog"}"
-              wrapper="ccache-$(basename "$prog")"
-              if [ ! -x "$wrapper_dir/$wrapper" ]; then
-                printf '#!/bin/sh\nexec %s %s "$@"\n' "$ccache_bin" "$prog" > "$wrapper_dir/$wrapper"
+            if [ -z "$val" ]; then
+              continue
+            fi
+            # Split "gcc -std=gnu2x" into the compiler and its flags: only the
+            # compiler is wrapped, the flags are passed through unchanged.
+            prog="${val%%[[:space:]]*}"
+            flags="${val#"$prog"}"
+            wrapper="ccache-$(basename "$prog")$wrapper_ext"
+
+            if [ ! -f "$wrapper_dir/$wrapper" ]; then
+              if [ "$RUNNER_OS" = "Windows" ]; then
+                build_wrapper "$wrapper_dir/$wrapper" "$prog" || true
+              else
+                printf '#!/bin/sh\nexec %s %s "$@"\n' "$ccache_exe" "$prog" > "$wrapper_dir/$wrapper"
                 chmod +x "$wrapper_dir/$wrapper"
               fi
+              # Never hand R a wrapper that has not been shown to work.
+              if [ -f "$wrapper_dir/$wrapper" ] && ! run_wrapper "$wrapper_dir/$wrapper"; then
+                rm -f "$wrapper_dir/$wrapper"
+              fi
+              if [ ! -f "$wrapper_dir/$wrapper" ]; then
+                echo "::warning::No usable $wrapper, compiling $var without ccache."
+              fi
+            fi
+
+            if [ -f "$wrapper_dir/$wrapper" ]; then
               echo "$var = $wrapper$flags" >> ~/.R/Makevars
             fi
           done
           rm -f "$empty_makevars"
-          echo "$wrapper_dir" >> "$GITHUB_PATH"
-          echo "===== generated ccache wrappers in $wrapper_dir ====="
-          for wrapper in "$wrapper_dir"/*; do
-            echo "--- $wrapper"
-            cat "$wrapper"
-          done
-          echo "===================================================="
+
+          echo "$path_entry" >> "$GITHUB_PATH"
+          echo "===== ccache wrappers in $wrapper_dir ====="
+          ls -l "$wrapper_dir"
+          echo "==========================================="
         fi
         echo 'MAKEFLAGS = -j2' >> ~/.R/Makevars
         echo "===== generated ~/.R/Makevars ====="
