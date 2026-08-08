@@ -183,77 +183,56 @@ runs:
         # at compile time, so wrapping only CXXnn with ccache is correct and we
         # must NOT pin -std here ourselves.
         #
-        # ccache is attached through a generated one-word wrapper command
-        # (ccache-gcc, ccache-g++, ...) instead of the more obvious
-        # "CC = ccache gcc" prefix, because R-devel cannot cope with a compiler
-        # command that consists of more than one word. tools:::ccE(), which backs
-        # the "checking use of non-API entry points" check and therefore runs for
-        # every package with compiled code, reads R CMD config CC, throws away
-        # everything after the first word, and runs the remainder:
+        # On Unix, ccache is attached through a generated one-word wrapper
+        # command (ccache-gcc, ccache-g++, ...) rather than the more obvious
+        # "CC = ccache gcc" prefix. R-devel briefly could not cope with a
+        # compiler command of more than one word: tools:::ccE(), which backs the
+        # "checking use of non-API entry points" check and therefore runs for
+        # every package with compiled code, read R CMD config CC, kept only the
+        # first word, and ran that. With "CC = ccache gcc" that left a bare
+        # "ccache", and the check died with "ccache: invalid option -- 'E'".
         # https://github.com/r-devel/r-svn/commit/ca19f35240517186ed447e773ee67b55e207cf27
-        # With "CC = ccache gcc" that leaves a bare "ccache", and the check dies
-        # with "ccache: invalid option -- 'E'". A one-word compiler command
-        # survives the truncation intact, keeps ccache in the loop for the actual
-        # compilation, and stays correct once R stops truncating.
+        # Upstream has since dropped the truncation again, so the prefix works
+        # once more. The wrapper stays because it costs nothing and is correct
+        # under either behaviour.
         #
-        # On Unix the wrapper is a #!/bin/sh script. Windows needs a real
-        # executable -- Sys.which() will not find a shell script and a make
-        # recipe cannot run one -- so there the wrapper is a small
-        # CreateProcess() launcher, ccache-wrapper.c next to this file,
-        # compiled on the spot with R's own compiler.
+        # Windows deliberately keeps the plain prefix, as a control group: it is
+        # where a repeat of that upstream change would show up, while the Unix
+        # jobs carry on regardless.
         ccache_bin="$(command -v ccache || true)"
         if [ -z "$ccache_bin" ]; then
           echo "::warning::ccache is not on the PATH, compiling without it."
         else
           wrapper_dir="$HOME/.R/ccache-wrappers"
-          mkdir -p "$wrapper_dir"
-
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            wrapper_ext=".exe"
-            # $GITHUB_PATH is read by the runner, not by bash, so it needs a
-            # native path.
-            path_entry="$(cygpath -w "$wrapper_dir")"
-          else
-            wrapper_ext=""
-            path_entry="$wrapper_dir"
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            mkdir -p "$wrapper_dir"
           fi
 
           empty_makevars="$(mktemp)"
-          # R's own C compiler builds the Windows wrapper. setup-r puts Rtools'
-          # compiler directory first on the PATH, ahead of the runner image's
-          # own gcc, precisely so that R picks Rtools up -- which means the
-          # compiler is simply on the PATH here. Nothing is baked into a wrapper
-          # by path, neither ccache nor the compiler it wraps: both are found on
-          # the PATH at run time, the same way the shell wrapper finds them.
-          cc_prog="$(R_MAKEVARS_USER="$empty_makevars" R CMD config CC 2>/dev/null || true)"
-          cc_prog="${cc_prog%%[[:space:]]*}"
-
           for var in CC CXX CXX11 CXX14 CXX17 CXX20 CXX23; do
             val="$(R_MAKEVARS_USER="$empty_makevars" R CMD config "$var" 2>/dev/null || true)"
             if [ -z "$val" ]; then
               continue
             fi
+            if [ "$RUNNER_OS" = "Windows" ]; then
+              echo "$var = ccache $val" >> ~/.R/Makevars
+              continue
+            fi
+
             # Split "gcc -std=gnu2x" into the compiler and its flags: only the
             # compiler is wrapped, the flags are passed through unchanged.
+            # ccache and the compiler are both found on the PATH at run time,
+            # nothing is baked into the wrapper by path.
             prog="${val%%[[:space:]]*}"
             flags="${val#"$prog"}"
-            wrapper="ccache-$(basename "$prog")$wrapper_ext"
+            wrapper="ccache-$(basename "$prog")"
 
             if [ ! -f "$wrapper_dir/$wrapper" ]; then
-              if [ "$RUNNER_OS" = "Windows" ]; then
-                # A native binary, so it wants native paths for its arguments.
-                "$cc_prog" -O2 -o "$(cygpath -m "$wrapper_dir/$wrapper")" \
-                  "$(cygpath -m "$GITHUB_ACTION_PATH/ccache-wrapper.c")" \
-                  -DWRAPPED_COMPILER="L\"$prog\"" || true
-              else
-                printf '#!/bin/sh\nexec ccache %s "$@"\n' "$prog" > "$wrapper_dir/$wrapper"
-                chmod +x "$wrapper_dir/$wrapper"
-              fi
+              printf '#!/bin/sh\nexec ccache %s "$@"\n' "$prog" > "$wrapper_dir/$wrapper"
+              chmod +x "$wrapper_dir/$wrapper"
               # Never hand R a wrapper that has not been shown to work.
-              if [ -f "$wrapper_dir/$wrapper" ] && ! "$wrapper_dir/$wrapper" --version > /dev/null; then
+              if ! "$wrapper_dir/$wrapper" --version > /dev/null; then
                 rm -f "$wrapper_dir/$wrapper"
-              fi
-              if [ ! -f "$wrapper_dir/$wrapper" ]; then
                 echo "::warning::No usable $wrapper, compiling $var without ccache."
               fi
             fi
@@ -264,10 +243,12 @@ runs:
           done
           rm -f "$empty_makevars"
 
-          echo "$path_entry" >> "$GITHUB_PATH"
-          echo "===== ccache wrappers in $wrapper_dir ====="
-          ls -l "$wrapper_dir"
-          echo "==========================================="
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            echo "$wrapper_dir" >> "$GITHUB_PATH"
+            echo "===== ccache wrappers in $wrapper_dir ====="
+            ls -l "$wrapper_dir"
+            echo "==========================================="
+          fi
         fi
         echo 'MAKEFLAGS = -j2' >> ~/.R/Makevars
         echo "===== generated ~/.R/Makevars ====="
