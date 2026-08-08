@@ -192,6 +192,7 @@ runs:
         # first word, and ran that. With "CC = ccache gcc" that left a bare
         # "ccache", and the check died with "ccache: invalid option -- 'E'".
         # https://github.com/r-devel/r-svn/commit/ca19f35240517186ed447e773ee67b55e207cf27
+        # https://bugs.r-project.org/show_bug.cgi?id=19130
         # Upstream has since dropped the truncation again, so the prefix works
         # once more -- but it takes a while for that to reach the R-devel builds
         # CI installs, so the wrapper is still doing real work here. It stays
