@@ -14,6 +14,7 @@ runs:
       shell: bash
 
     - id: set-matrix
+      name: Collect the R versions to check
       run: |
         Rscript ./.github/workflows/versions-matrix/action.R
       shell: bash
