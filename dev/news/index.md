@@ -1,5 +1,11 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9025
+
+### Continuous integration
+
+- Name every step and restore the log entry `setup-pandoc` swallows.
+
 ## cynkratemplate 0.0.2.9024
 
 ### Continuous integration
