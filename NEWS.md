@@ -1,5 +1,14 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9026
+
+## Continuous integration
+
+- Wrap the commit status update into an action.
+
+- Route ccache through one-word compiler wrappers on Unix.
+
+
 # cynkratemplate 0.0.2.9025
 
 ## Continuous integration
