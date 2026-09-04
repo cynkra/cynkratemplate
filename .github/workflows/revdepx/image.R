@@ -98,7 +98,8 @@ dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 # DESCRIPTION rather than a hardcoded name, so the kit is correct in every
 # repository it is broadcast to; the repository name is not a safe source,
 # since igraph/rigraph ships the `igraph` package.
-package <- plan$package %||% unname(read.dcf("DESCRIPTION", fields = "Package")[1, 1])
+package <- plan$package %||%
+  unname(read.dcf("DESCRIPTION", fields = "Package")[1, 1])
 
 # The install set is the whole universe: everything any shard's checks need
 # installed anywhere. plan$universe is the sorted union plan.R writes; a
