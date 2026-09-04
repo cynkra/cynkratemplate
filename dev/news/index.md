@@ -1,5 +1,13 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9026
+
+### Continuous integration
+
+- Wrap the commit status update into an action.
+
+- Route ccache through one-word compiler wrappers on Unix.
+
 ## cynkratemplate 0.0.2.9025
 
 ### Continuous integration
