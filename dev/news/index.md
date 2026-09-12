@@ -1,5 +1,20 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9027
+
+### Bug fixes
+
+#### ci
+
+- Backport kit fixes from `rigraph`, `duckdb-r` and `dm`.
+
+### Features
+
+#### ci
+
+- Align the `revdep2`, `revdep4` and `revdepx` subsystems with
+  `rigraph`.
+
 ## cynkratemplate 0.0.2.9026
 
 ### Continuous integration
