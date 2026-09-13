@@ -1,91 +1,51 @@
-#' Render `README.md` and the pkgdown `index.md` from `README.Rmd`
+#' Render a package README
 #'
-#' Renders `README.Rmd` once and derives both outputs from that single pandoc
-#' pass, so the two cannot drift apart in formatting.
-#' The package README and the pkgdown front page differ in exactly two ways,
-#' and both are applied here rather than left to each package:
-#'
-#' * **Colour.** pkgdown renders ANSI SGR escapes as HTML; GitHub cannot, and
-#'   shows the raw bytes. So `index.md` keeps the escapes and `README.md` has
-#'   them stripped.
-#' * **The tail.** Everything from the first horizontal rule onwards -- the
-#'   code of conduct, licence and funding boilerplate -- belongs on GitHub but
-#'   not on the front page, where pkgdown puts that material in the sidebar.
-#'
-#' `index.md` is written only when it would differ from `README.md`.
-#' When a README has no horizontal rule and produces no colour the two are
-#' identical, so the file is dropped and pkgdown falls through to `README.md`
-#' by its own lookup order.
+#' A convenience wrapper around [rmarkdown::render()] for a package's
+#' `README.Rmd`. It is only a shorthand: the README declares
+#' [readme_document()] as its output format, so plain
+#' `rmarkdown::render("README.Rmd")`, [devtools::build_readme()] and the Knit
+#' button all produce exactly the same two files.
 #'
 #' @param path Package root.
 #' @param quiet Passed to [rmarkdown::render()].
-#' @return The paths written, invisibly.
+#' @return The path to `README.md`, invisibly.
 #' @export
 render_readme <- function(path = ".", quiet = TRUE) {
-  # Resolve once, up front, and use absolute paths from here on: some of these
-  # READMEs change the working directory from a chunk, so a relative path would
-  # not mean the same thing before and after the render.
+  # Resolve once, up front: some of these READMEs change the working directory
+  # from a chunk, so a relative path would not mean the same thing before and
+  # after the render.
   path <- normalizePath(path, mustWork = TRUE)
   rmd <- file.path(path, "README.Rmd")
   if (!file.exists(rmd)) {
     cli::cli_abort("No {.file README.Rmd} in {.path {path}}.")
   }
 
-  # One render, one pandoc pass. The YAML in README.Rmd supplies
-  # `md_extensions: "-smart"` and `--wrap=preserve`, which keep the pass close
-  # to an identity transform: no smart quotes, no reflowing. That is what makes
-  # the output diff sentence-level instead of paragraph-level.
   # `envir` is pinned to a scratch environment. `rmarkdown::render()` defaults
-  # to `envir = parent.frame()`, which here is this function's own frame -- so
-  # knitr would evaluate every README chunk among these locals. The rprojroot
-  # README assigns `path` in a chunk, which silently rebinds the argument
-  # mid-function and sends every later write into a temporary directory, while
-  # the render still reports success.
+  # to `envir = parent.frame()`, which here would be this function's own frame,
+  # so knitr would evaluate every README chunk among these locals. The
+  # rprojroot README assigns `path` in a chunk, which would silently rebind the
+  # argument mid-function.
   #
   # A child of the global environment, rather than the global environment
-  # itself, so chunks can still read what a normal knit would see -- `library()`
+  # itself, so chunks still read what a normal knit would see -- `library()`
   # and `pkgload::load_all()` behave as usual -- without their assignments
   # landing in the caller's workspace.
   owd <- getwd()
   on.exit(setwd(owd), add = TRUE)
-  rendered <- rmarkdown::render(
+  invisible(rmarkdown::render(
     rmd,
     output_file = "README.md",
     output_dir = path,
     envir = new.env(parent = globalenv()),
     quiet = quiet
-  )
-  full <- readLines(rendered, warn = FALSE)
-
-  readme <- strip_sgr(full)
-  index <- readme_head(full)
-  # Box-drawing characters render as boxes on the front page but line up badly
-  # in several pkgdown themes; the README keeps them.
-  index <- gsub("─", "-", index)
-
-  writeLines(readme, file.path(path, "README.md"))
-
-  index_path <- file.path(path, "index.md")
-  if (identical(index, readme)) {
-    # Nothing to distinguish the two: let pkgdown read README.md instead.
-    if (file.exists(index_path)) {
-      file.remove(index_path)
-      cli::cli_alert_info("Removed {.file index.md}: identical to {.file README.md}.")
-    }
-    unignore_index(path)
-    return(invisible(file.path(path, "README.md")))
-  }
-
-  writeLines(index, index_path)
-  ignore_index(path)
-  invisible(c(file.path(path, "README.md"), index_path))
+  ))
 }
 
 # Everything above the first horizontal rule.
 #
 # pandoc writes a source `---` rule as a run of dashes on its own line, not as
 # `---`, so the marker to match is the rendered form. A README with no rule
-# yields the whole document, which then collapses into README.md above.
+# yields the whole document, which then collapses into README.md.
 readme_head <- function(lines) {
   at <- grep("^-{3,}\\s*$", lines)
   if (length(at) == 0) {
@@ -106,12 +66,20 @@ strip_sgr <- function(x) {
   gsub("\033\\[[0-9;]*m", "", x)
 }
 
-ignore_index <- function(path) {
-  edit_buildignore(path, add = TRUE)
-}
-
-unignore_index <- function(path) {
-  edit_buildignore(path, add = FALSE)
+# Apply a package-supplied one-sided transform, if the README defined one.
+apply_side <- function(env, name, lines) {
+  if (is.null(env) || !exists(name, envir = env, inherits = FALSE)) {
+    return(lines)
+  }
+  fn <- get(name, envir = env, inherits = FALSE)
+  if (!is.function(fn)) {
+    cli::cli_abort("{.code {name}} in {.file README.Rmd} must be a function.")
+  }
+  out <- fn(lines)
+  if (!is.character(out)) {
+    cli::cli_abort("{.code {name}()} must return a character vector.")
+  }
+  out
 }
 
 # `index.md` is not part of the package, so `R CMD check --as-cran` reports it
@@ -126,10 +94,8 @@ edit_buildignore <- function(path, add) {
 
   if (add && !has) {
     writeLines(c(lines, entry), file)
-    cli::cli_alert_info("Added {.code {entry}} to {.file .Rbuildignore}.")
   } else if (!add && has) {
     writeLines(lines[lines != entry], file)
-    cli::cli_alert_info("Removed {.code {entry}} from {.file .Rbuildignore}.")
   }
   invisible(NULL)
 }
