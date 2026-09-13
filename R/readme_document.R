@@ -10,7 +10,7 @@
 #'
 #' Rendering then works the ordinary way -- `rmarkdown::render("README.Rmd")`,
 #' `devtools::build_readme()`, or the Knit button -- with no wrapper to
-#' remember. [render_readme()] is a convenience for the same thing.
+#' remember.
 #'
 #' # Why two files
 #'

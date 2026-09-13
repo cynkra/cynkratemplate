@@ -2,5 +2,4 @@
 
 export(cynkratemplate_example)
 export(readme_document)
-export(render_readme)
 export(use_cynkra_pkgdown)

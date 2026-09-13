@@ -23,7 +23,7 @@ Use it from \code{README.Rmd}:
 
 Rendering then works the ordinary way -- \code{rmarkdown::render("README.Rmd")},
 \code{devtools::build_readme()}, or the Knit button -- with no wrapper to
-remember. \code{\link[=render_readme]{render_readme()}} is a convenience for the same thing.
+remember.
 }
 \section{Why two files}{
 The README and the front page differ in exactly two ways:
