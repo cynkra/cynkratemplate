@@ -54,8 +54,13 @@ render_readme <- function(path = ".", quiet = TRUE) {
 # pandoc writes a source `---` rule as a run of dashes on its own line, not as
 # `---`, so the marker to match is the rendered form. A README with no rule
 # yields the whole document, which then collapses into README.md.
+#
+# Only a rule in prose counts. A run of dashes inside a fenced code block is
+# verbatim text, not a horizontal rule -- a README that shows the YAML front
+# matter this format is configured from contains three of them, and matching
+# those truncates the front page in the middle of the snippet.
 readme_head <- function(lines) {
-  at <- grep("^-{3,}\\s*$", lines)
+  at <- which(grepl("^-{3,}\\s*$", lines) & is.na(fence_lang(lines)))
   if (length(at) == 0) {
     return(lines)
   }
@@ -66,6 +71,54 @@ readme_head <- function(lines) {
     head <- head[-length(head)]
   }
   head
+}
+
+# Which fenced code block each line of pandoc's markdown output belongs to.
+#
+# Returns the block's info string -- `""` when the opening fence carries none
+# -- for every line of a fenced block, the delimiters included, and `NA` for
+# every line outside one. Callers use the `NA` to tell prose from verbatim
+# text, and the info string to tell a language-tagged block (source the README
+# is showing) from an untagged one.
+#
+# A fence opens with at least three backticks or tildes at the start of a line
+# and closes with at least as many of the same character and nothing else on
+# the line. That is what CommonMark says and what pandoc writes; an unclosed
+# fence runs to the end of the document, also as CommonMark says.
+fence_lang <- function(lines) {
+  out <- rep(NA_character_, length(lines))
+  char <- ""
+  width <- 0L
+  lang <- NA_character_
+
+  for (i in seq_along(lines)) {
+    fence <- regmatches(
+      lines[[i]],
+      regexec("^(`{3,}|~{3,})[ \t]*(.*?)[ \t]*$", lines[[i]])
+    )[[1]]
+
+    if (width == 0L) {
+      if (length(fence) > 0) {
+        char <- substr(fence[[2]], 1L, 1L)
+        width <- nchar(fence[[2]])
+        lang <- fence[[3]]
+        out[[i]] <- lang
+      }
+      next
+    }
+
+    out[[i]] <- lang
+    closes <- length(fence) > 0 &&
+      substr(fence[[2]], 1L, 1L) == char &&
+      nchar(fence[[2]]) >= width &&
+      !nzchar(fence[[3]])
+    if (closes) {
+      width <- 0L
+      lang <- NA_character_
+    }
+  }
+
+  out
 }
 
 # `fansi::strip_sgr()` without the dependency: the CSI sequences R's own

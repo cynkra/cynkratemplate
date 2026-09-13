@@ -23,8 +23,11 @@ Suggests:
     DBI,
     knitr,
     rmarkdown,
+    testthat (>= 3.0.0),
+    withr,
     yaml
 Config/roxygen2/version: 8.1.0.9000
+Config/testthat/edition: 3
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
