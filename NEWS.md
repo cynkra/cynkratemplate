@@ -1,5 +1,24 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9028
+
+## Bug fixes
+
+### ci
+
+- Survive an archived CRAN package, and install it from where it still lives (#112).
+
+## Continuous integration
+
+- Fail the roxygenize step on roxygen2 warnings (#111).
+
+## Performance
+
+### revdepx
+
+- Compile the revdeps' checks through ccache (#113).
+
+
 # cynkratemplate 0.0.2.9027
 
 ## Bug fixes
