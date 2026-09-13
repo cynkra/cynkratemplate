@@ -60,6 +60,29 @@ readme_document <- function(...) {
     if (is.function(inner_pre)) inner_pre(input, ...)
   }
 
+  # The environment the chunks were evaluated in, captured while knitr is still
+  # running. It cannot be recovered later: `knitr::knit_global()` reverts to the
+  # global environment once the knit finishes, so reading it from the
+  # post-processor silently yields an environment where `readme_only()` and
+  # `index_only()` do not exist, and the transform is skipped without a word.
+  #
+  # Captured through an option hook rather than a `document` or `chunk` hook.
+  # Those are single-slot: several READMEs in this fleet set a `document` hook
+  # of their own from the setup chunk, which would replace ours. An option hook
+  # keyed on an option nothing else uses cannot collide, and unlike a chunk hook
+  # it has no say in how output is rendered.
+  knit_env <- NULL
+  capture <- list(function(options) {
+    knit_env <<- knitr::knit_global()
+    options
+  })
+  names(capture) <- CAPTURE_OPTION
+  defaults <- list(TRUE)
+  names(defaults) <- CAPTURE_OPTION
+
+  base$knitr$opts_chunk <- c(base$knitr$opts_chunk, defaults)
+  base$knitr$opts_hooks <- c(base$knitr$opts_hooks, capture)
+
   # A post-processor runs *after* pandoc, which is the only correct place for
   # this. The knitr `document` hook these packages used instead runs before
   # pandoc, so its `index.md` was the pre-pandoc text while `README.md` was the
@@ -70,7 +93,7 @@ readme_document <- function(...) {
     if (is.function(inner_post)) {
       output_file <- inner_post(metadata, input_file, output_file, clean, verbose)
     }
-    split_readme(root %||% dirname(normalizePath(input_file)), output_file)
+    split_readme(root %||% dirname(normalizePath(input_file)), output_file, knit_env)
     output_file
   }
 
@@ -79,8 +102,12 @@ readme_document <- function(...) {
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+# The chunk option whose only purpose is to give the option hook above
+# something to fire on. Named for this package so nothing else can set it.
+CAPTURE_OPTION <- "cynkratemplate.capture"
+
 # Write `index.md` beside the README and strip colour from `README.md`.
-split_readme <- function(root, output_file) {
+split_readme <- function(root, output_file, knit_env = NULL) {
   full <- readLines(output_file, warn = FALSE)
 
   readme <- strip_sgr(full)
@@ -89,9 +116,9 @@ split_readme <- function(root, output_file) {
   # keeps them.
   index <- gsub("─", "-", index)
 
-  # Chunks are evaluated in knitr's environment, so a `readme_only()` or
-  # `index_only()` defined by the README is visible here.
-  env <- knitr::knit_global()
+  # The environment the chunks ran in, handed over from the capture hook. A
+  # README that defines `readme_only()` or `index_only()` is visible there.
+  env <- knit_env
   readme <- apply_side(env, "readme_only", readme)
   index <- apply_side(env, "index_only", index)
 
