@@ -66,19 +66,12 @@ jobs:
     runs-on: ubuntu-26.04
     needs: matrix
     steps:
-      - name: Install json2yaml
-        run: |
-          sudo npm install -g json2yaml
+      - uses: actions/checkout@v6
 
       - name: Check matrix definition
-        # Passed through the environment rather than spliced into the script:
-        # the matrix is generated from DESCRIPTION in the checkout.
-        env:
-          MATRIX: ${{ needs.matrix.outputs.matrix }}
-        run: |
-          printf '%s\n' "${MATRIX}"
-          printf '%s' "${MATRIX}" | jq .
-          printf '%s' "${MATRIX}" | json2yaml
+        uses: ./.github/workflows/matrix-check
+        with:
+          matrix: ${{ needs.matrix.outputs.matrix }}
 
   R-CMD-check:
     needs: matrix
@@ -150,12 +143,7 @@ jobs:
         shell: Rscript {0}
 
       - name: Session info old
-        run: |
-          options(width = 100)
-          if (!requireNamespace("sessioninfo", quietly = TRUE)) install.packages("sessioninfo")
-          pkgs <- installed.packages()[, "Package"]
-          sessioninfo::session_info(pkgs, include_base = TRUE)
-        shell: Rscript {0}
+        uses: ./.github/workflows/session-info
 
       - name: Check old
         env:
@@ -182,11 +170,7 @@ jobs:
         shell: Rscript {0}
 
       - name: Session info new
-        run: |
-          options(width = 100)
-          pkgs <- installed.packages()[, "Package"]
-          sessioninfo::session_info(pkgs, include_base = TRUE)
-        shell: Rscript {0}
+        uses: ./.github/workflows/session-info
 
       - name: Check new
         env:

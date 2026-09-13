@@ -20,6 +20,9 @@ runs:
         MATRIX: ${{ inputs.matrix }}
       run: |
         if [ -n "${MATRIX}" ]; then
+          # Raw first: `jq` says nothing useful about a matrix that is not
+          # valid JSON, and that is exactly when this job is being read.
+          printf '%s\n' "${MATRIX}"
           printf '%s' "${MATRIX}" | jq .
           printf '%s' "${MATRIX}" | json2yaml
         else
