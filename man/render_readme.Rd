@@ -2,7 +2,7 @@
 % Please edit documentation in R/render_readme.R
 \name{render_readme}
 \alias{render_readme}
-\title{Render \code{README.md} and the pkgdown \code{index.md} from \code{README.Rmd}}
+\title{Render a package README}
 \usage{
 render_readme(path = ".", quiet = TRUE)
 }
@@ -12,26 +12,12 @@ render_readme(path = ".", quiet = TRUE)
 \item{quiet}{Passed to \code{\link[rmarkdown:render]{rmarkdown::render()}}.}
 }
 \value{
-The paths written, invisibly.
+The path to \code{README.md}, invisibly.
 }
 \description{
-Renders \code{README.Rmd} once and derives both outputs from that single pandoc
-pass, so the two cannot drift apart in formatting.
-The package README and the pkgdown front page differ in exactly two ways,
-and both are applied here rather than left to each package:
-}
-\details{
-\itemize{
-\item \strong{Colour.} pkgdown renders ANSI SGR escapes as HTML; GitHub cannot, and
-shows the raw bytes. So \code{index.md} keeps the escapes and \code{README.md} has
-them stripped.
-\item \strong{The tail.} Everything from the first horizontal rule onwards -- the
-code of conduct, licence and funding boilerplate -- belongs on GitHub but
-not on the front page, where pkgdown puts that material in the sidebar.
-}
-
-\code{index.md} is written only when it would differ from \code{README.md}.
-When a README has no horizontal rule and produces no colour the two are
-identical, so the file is dropped and pkgdown falls through to \code{README.md}
-by its own lookup order.
+A convenience wrapper around \code{\link[rmarkdown:render]{rmarkdown::render()}} for a package's
+\code{README.Rmd}. It is only a shorthand: the README declares
+\code{\link[=readme_document]{readme_document()}} as its output format, so plain
+\code{rmarkdown::render("README.Rmd")}, \code{\link[devtools:build_readme]{devtools::build_readme()}} and the Knit
+button all produce exactly the same two files.
 }
