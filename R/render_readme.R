@@ -22,11 +22,9 @@
 #' @return The paths written, invisibly.
 #' @export
 render_readme <- function(path = ".", quiet = TRUE) {
-  # Resolve once, up front, and use absolute paths from here on. Several of
-  # these READMEs call `setwd()` from a chunk to demonstrate project-root
-  # behaviour, and knitr restores the working directory on its own schedule --
-  # so anything written through a relative path can land in a temporary
-  # directory instead of the package, silently.
+  # Resolve once, up front, and use absolute paths from here on: some of these
+  # READMEs change the working directory from a chunk, so a relative path would
+  # not mean the same thing before and after the render.
   path <- normalizePath(path, mustWork = TRUE)
   rmd <- file.path(path, "README.Rmd")
   if (!file.exists(rmd)) {
@@ -37,18 +35,24 @@ render_readme <- function(path = ".", quiet = TRUE) {
   # `md_extensions: "-smart"` and `--wrap=preserve`, which keep the pass close
   # to an identity transform: no smart quotes, no reflowing. That is what makes
   # the output diff sentence-level instead of paragraph-level.
-  # `output_dir` is pinned explicitly. Without it rmarkdown resolves the output
-  # against the working directory as it stands when the render returns, and a
-  # README that calls `setwd()` from a chunk -- rprojroot and here both do, to
-  # demonstrate project-root detection -- leaves that pointing into a knitr
-  # temporary directory. The render then succeeds while writing everything
-  # somewhere that is silently discarded.
+  # `envir` is pinned to a scratch environment. `rmarkdown::render()` defaults
+  # to `envir = parent.frame()`, which here is this function's own frame -- so
+  # knitr would evaluate every README chunk among these locals. The rprojroot
+  # README assigns `path` in a chunk, which silently rebinds the argument
+  # mid-function and sends every later write into a temporary directory, while
+  # the render still reports success.
+  #
+  # A child of the global environment, rather than the global environment
+  # itself, so chunks can still read what a normal knit would see -- `library()`
+  # and `pkgload::load_all()` behave as usual -- without their assignments
+  # landing in the caller's workspace.
   owd <- getwd()
   on.exit(setwd(owd), add = TRUE)
   rendered <- rmarkdown::render(
     rmd,
     output_file = "README.md",
     output_dir = path,
+    envir = new.env(parent = globalenv()),
     quiet = quiet
   )
   full <- readLines(rendered, warn = FALSE)
