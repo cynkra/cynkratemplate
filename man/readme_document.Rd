@@ -40,6 +40,11 @@ while pkgdown puts that material in its sidebar.
 with no horizontal rule that emits no colour produces two identical files,
 so the file is dropped and pkgdown falls through to \code{README.md} on its own
 lookup order. \code{.Rbuildignore} is kept in step either way.
+
+Only a generated \code{index.md} is dropped. Every one this format writes opens
+with a marker comment, the way roxygen2 stamps the files it generates, and
+a file without that marker is left where it is with a warning.
+A hand-written front page is not this format's to remove.
 }
 
 \section{Package-specific touch-ups}{
