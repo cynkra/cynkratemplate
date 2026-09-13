@@ -50,3 +50,10 @@ is rewriting \code{vignette("x")} into an absolute article link, which GitHub
 needs and pkgdown must not have, since downlit already auto-links it there.
 }
 
+\section{Encoding}{
+Rendering requires a UTF-8 locale. The pandoc output this format reads back
+is UTF-8 whatever the session is, so a non-UTF-8 locale would have it
+re-encoded on the way in and quietly corrupt every non-ASCII character.
+Rather than guess, the format checks \code{l10n_info()} before knitting and stops.
+}
+

@@ -36,6 +36,13 @@
 #' is rewriting `vignette("x")` into an absolute article link, which GitHub
 #' needs and pkgdown must not have, since downlit already auto-links it there.
 #'
+#' # Encoding
+#'
+#' Rendering requires a UTF-8 locale. The pandoc output this format reads back
+#' is UTF-8 whatever the session is, so a non-UTF-8 locale would have it
+#' re-encoded on the way in and quietly corrupt every non-ASCII character.
+#' Rather than guess, the format checks `l10n_info()` before knitting and stops.
+#'
 #' @param ... Passed to [rmarkdown::github_document()].
 #' @return An [rmarkdown::output_format()].
 #' @export
@@ -76,6 +83,7 @@ readme_document <- function(...) {
   old_max_print <- NULL
   inner_pre <- base$pre_knit
   base$pre_knit <- function(input, ...) {
+    check_utf8()
     root <<- dirname(normalizePath(input, mustWork = TRUE))
     old_max_print <<- options(max.print = 100)
     if (is.function(inner_pre)) inner_pre(input, ...)
@@ -110,12 +118,30 @@ readme_document <- function(...) {
   # post-pandoc one -- and the two then differed by reflowing and smart quotes
   # on top of anything real.
   inner_post <- base$post_processor
-  base$post_processor <- function(metadata, input_file, output_file, clean, verbose) {
+  base$post_processor <- function(
+    metadata,
+    input_file,
+    output_file,
+    clean,
+    verbose
+  ) {
     if (is.function(inner_post)) {
-      output_file <- inner_post(metadata, input_file, output_file, clean, verbose)
+      output_file <- inner_post(
+        metadata,
+        input_file,
+        output_file,
+        clean,
+        verbose
+      )
     }
-    if (!is.null(old_max_print)) options(old_max_print)
-    split_readme(root %||% dirname(normalizePath(input_file)), output_file, knit_env)
+    if (!is.null(old_max_print)) {
+      options(old_max_print)
+    }
+    split_readme(
+      root %||% dirname(normalizePath(input_file)),
+      output_file,
+      knit_env
+    )
     output_file
   }
 
@@ -123,6 +149,31 @@ readme_document <- function(...) {
 }
 
 `%||%` <- function(x, y) if (is.null(x)) y else x
+
+# Fail before the knit rather than after pandoc.
+#
+# `split_readme()` reads pandoc's output back with `readLines()`, which decodes
+# in the session's encoding. Pandoc always writes UTF-8, so in a non-UTF-8
+# locale the first non-ASCII byte makes the subsequent `gsub()` calls abort with
+# "input string N is invalid" -- and by then `README.md` has already been
+# written with the SGR escapes still in it. Requiring UTF-8 up front is the
+# cheap way out: every machine that renders these READMEs has it, and pretending
+# to support anything else would mean re-encoding on every read and write.
+check_utf8 <- function() {
+  if (isTRUE(l10n_info()[["UTF-8"]])) {
+    return(invisible(TRUE))
+  }
+
+  stop(
+    "`readme_document()` requires a UTF-8 locale, but this session reports ",
+    "codeset ",
+    encodeString(l10n_info()[["codeset"]], quote = '"'),
+    ".\n",
+    "Set one before rendering, for example LANG=C.UTF-8 on Linux, ",
+    "or Sys.setlocale(\"LC_CTYPE\", \"en_US.UTF-8\") in the session.",
+    call. = FALSE
+  )
+}
 
 # The chunk option whose only purpose is to give the option hook above
 # something to fire on. Named for this package so nothing else can set it.
