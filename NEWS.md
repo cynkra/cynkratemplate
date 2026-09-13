@@ -1,5 +1,18 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9030
+
+## Bug fixes
+
+### ci
+
+- Inline the two scripts that an action can no longer reach (#134).
+
+## Chore
+
+- Remove Copilot setup steps.
+
+
 # cynkratemplate 0.0.2.9029
 
 ## Bug fixes
