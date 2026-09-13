@@ -20,23 +20,31 @@ render_readme <- function(path = ".", quiet = TRUE) {
     cli::cli_abort("No {.file README.Rmd} in {.path {path}}.")
   }
 
-  # `envir` is pinned to a scratch environment. `rmarkdown::render()` defaults
-  # to `envir = parent.frame()`, which here would be this function's own frame,
-  # so knitr would evaluate every README chunk among these locals. The
-  # rprojroot README assigns `path` in a chunk, which would silently rebind the
-  # argument mid-function.
+  # `envir` is pinned to the global environment, which is where chunks run
+  # under a plain `rmarkdown::render("README.Rmd")` from the console, and the
+  # only place they can run correctly.
   #
-  # A child of the global environment, rather than the global environment
-  # itself, so chunks still read what a normal knit would see -- `library()`
-  # and `pkgload::load_all()` behave as usual -- without their assignments
-  # landing in the caller's workspace.
+  # It has to be pinned to something: `rmarkdown::render()` defaults to
+  # `envir = parent.frame()`, which here would be this function's own frame, so
+  # knitr would evaluate every README chunk among these locals -- the rprojroot
+  # README assigns `path` in a chunk, which would silently rebind the argument
+  # mid-function.
+  #
+  # It must not be pinned to a *child* of the global environment, which is the
+  # obvious way to keep a README's assignments out of the caller's workspace.
+  # S3 methods defined in a chunk would then not be found. A generic called
+  # from inside a package -- `pillar()` calling `pillar_shaft()`, `print.tbl()`
+  # calling `tbl_sum()` -- dispatches by searching the namespace's parent
+  # chain, which reaches the global environment but not an environment hanging
+  # off it. The README would render without error and quietly demonstrate the
+  # package's own extension point failing to work.
   owd <- getwd()
   on.exit(setwd(owd), add = TRUE)
   invisible(rmarkdown::render(
     rmd,
     output_file = "README.md",
     output_dir = path,
-    envir = new.env(parent = globalenv()),
+    envir = globalenv(),
     quiet = quiet
   ))
 }
