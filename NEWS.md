@@ -1,5 +1,40 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9029
+
+## Bug fixes
+
+### ci
+
+- Keep the raw name expression out of the running job's step list (#119).
+
+### fledge
+
+- Push the bump to the default branch wherever that is allowed (#117).
+
+### ci
+
+- Make a failing `rcc` run say what failed, and link to it (#115).
+
+### ci
+
+- Exempt deprecation warnings from the roxygenize warning gate (#114).
+
+## Features
+
+- Add `readme_document()` to build `README.md` and `index.md` together (#116).
+
+## Refactoring
+
+### ci
+
+- Serve the actions from this repository instead of copying them (#121).
+
+### ci
+
+- Move every script out of the workflows and into a named action (#120).
+
+
 # cynkratemplate 0.0.2.9028
 
 ## Bug fixes
