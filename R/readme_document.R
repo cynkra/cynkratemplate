@@ -44,11 +44,20 @@ readme_document <- function(...) {
   # transform: no smart quotes, no reflowing to 72 columns. That keeps the
   # rendered file close to its source and makes diffs sentence-level, which is
   # what the house line-break convention is for.
-  base <- rmarkdown::github_document(
+  # Merged rather than passed alongside `...`. `devtools::build_readme()` sets
+  # `html_preview = FALSE` itself and rmarkdown folds that into the format
+  # call, so naming it here as well made every argument it supplies collide:
+  # "formal argument "html_preview" matched by multiple actual arguments".
+  # These are defaults a caller may override, which is what they always read
+  # as anyway.
+  defaults <- list(
     html_preview = FALSE,
     md_extensions = "-smart",
-    pandoc_args = "--wrap=preserve",
-    ...
+    pandoc_args = "--wrap=preserve"
+  )
+  base <- do.call(
+    rmarkdown::github_document,
+    utils::modifyList(defaults, list(...))
   )
 
   # The package root, captured while we can still see the original input.
