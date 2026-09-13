@@ -63,7 +63,65 @@ permissions:
   contents: read
 
 jobs:
+  # Pull requests that only touch documentation don't need the checks, but they
+  # still need the "rcc" status to turn green. The workflow therefore always
+  # runs -- skipping it via `paths-ignore` would leave the status pending
+  # forever -- and only the jobs that do the work are skipped.
+  rcc-changes:
+    runs-on: ubuntu-26.04
+
+    name: "Detect documentation-only changes"
+
+    permissions:
+      contents: read
+      statuses: write
+
+    outputs:
+      docs-only: ${{ steps.docs-only.outputs.docs-only }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - id: docs-only
+        uses: ./.github/workflows/docs-only
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # R-CMD-check-status.yaml also turns the status green once the run
+      # completes, this step only makes it green right away, and on the head
+      # commit of the pull request.
+      - name: Update status for rcc
+        # FIXME: Wrap into action
+        if: steps.docs-only.outputs.docs-only == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sha=${{ github.event.pull_request.head.sha || github.sha }}
+
+          html_url=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            repos/${{ github.repository }}/actions/runs/${{ github.run_id }} | jq -r .html_url)
+
+          description="${{ github.workflow }} / documentation only"
+
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            repos/${{ github.repository }}/statuses/${sha} \
+            -f "state=success" -f "target_url=${html_url}" -f "description=${description}" -f "context=rcc"
+        shell: bash
+
   rcc-smoke:
+    needs:
+      - rcc-changes
+
+    # Skipping the smoke test also skips everything downstream of it
+    if: needs.rcc-changes.outputs.docs-only != 'true'
+
     # Deliberately amd64. The smoke test is the gate that also styles,
     # roxygenizes, updates snapshots, commits back and deploys pkgdown, so it
     # must run on the most stable and available runner. The ubuntu-26.04-arm
