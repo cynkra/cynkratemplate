@@ -1,3 +1,6 @@
+---
+output: cynkratemplate::readme_document
+---
 
 <!-- README.md and index.md are generated from README.Rmd.
      Edit that file and render it the usual way: rmarkdown::render(), devtools::build_readme(), or the Knit button.
@@ -14,13 +17,13 @@ Please don't use it for your own package.
 
 Install cynkratemplate.
 
-``` r
+```r
 devtools::install_github("cynkra/cynkratemplate")
 ```
 
-Run
+Run 
 
-``` r
+```r
 cynkratemplate::use_cynkra_pkgdown()
 ```
 
