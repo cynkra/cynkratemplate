@@ -100,9 +100,19 @@ readme_document <- function(...) {
   # of their own from the setup chunk, which would replace ours. An option hook
   # keyed on an option nothing else uses cannot collide, and unlike a chunk hook
   # it has no say in how output is rendered.
+  #
+  # The same hook records the comment prefix of every chunk whose output is
+  # collapsed into its source block. That prefix is the only thing that tells
+  # knitr's output from the README's own code once the two share one fenced
+  # block, and it is a chunk option, so it cannot be read back after the knit
+  # either.
   knit_env <- NULL
+  comments <- character()
   capture <- list(function(options) {
     knit_env <<- knitr::knit_global()
+    if (isTRUE(options$collapse)) {
+      comments <<- union(comments, options$comment)
+    }
     options
   })
   names(capture) <- CAPTURE_OPTION
@@ -140,7 +150,8 @@ readme_document <- function(...) {
     split_readme(
       root %||% dirname(normalizePath(input_file)),
       output_file,
-      knit_env
+      knit_env,
+      comments
     )
     output_file
   }
@@ -180,14 +191,15 @@ check_utf8 <- function() {
 CAPTURE_OPTION <- "cynkratemplate.capture"
 
 # Write `index.md` beside the README and strip colour from `README.md`.
-split_readme <- function(root, output_file, knit_env = NULL) {
+split_readme <- function(root, output_file, knit_env = NULL,
+                         comments = character()) {
   full <- readLines(output_file, warn = FALSE)
 
   readme <- strip_sgr(full)
   index <- readme_head(full)
   # Box-drawing characters line up badly in several pkgdown themes; the README
   # keeps them.
-  index <- gsub("─", "-", index)
+  index <- dash_output(index, comments)
 
   # The environment the chunks ran in, handed over from the capture hook. A
   # README that defines `readme_only()` or `index_only()` is visible there.
