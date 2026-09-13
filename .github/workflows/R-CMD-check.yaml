@@ -259,7 +259,7 @@ jobs:
       - name: Collect the outcomes of the checks
         id: outcomes
         if: always()
-        uses: ./.github/workflows/summarize-checks
+        uses: ./.github/workflows/collect-checks
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           # One `<step name>|<label>|<outcome>` per line, in the order the steps
@@ -284,27 +284,11 @@ jobs:
       - name: >-
           Summarize checks${{ steps.outcomes.outputs.failed_labels }}
         if: always()
-        env:
-          FAILED: ${{ steps.outcomes.outputs.failed_count }}
-          REPORT: ${{ steps.outcomes.outputs.report }}
-          SUMMARY: ${{ steps.outcomes.outputs.summary }}
-        run: |
-          ## -- Summarize checks --
-          set -uo pipefail
-
-          if [ -z "${REPORT}" ] || [ ! -f "${REPORT}" ]; then
-            echo "::error title=rcc: no summary::The checks were never collected, so their outcome is unknown."
-            exit 1
-          fi
-
-          cat "${SUMMARY}" >> "${GITHUB_STEP_SUMMARY}"
-          # Printing the report here, rather than where it was built, keeps the
-          # annotations and the table on the step that goes red -- and on stdout,
-          # which is what a log tail returns.
-          cat "${REPORT}"
-
-          [ "${FAILED:-1}" = "0" ] || exit 1
-        shell: bash
+        uses: ./.github/workflows/summarize-checks
+        with:
+          failed-count: ${{ steps.outcomes.outputs.failed_count }}
+          report: ${{ steps.outcomes.outputs.report }}
+          summary: ${{ steps.outcomes.outputs.summary }}
 
       - name: Update status for rcc (final)
         if: always() && (github.actor != 'Copilot') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
@@ -408,17 +392,7 @@ jobs:
         if: hashFiles('.github/workflows/custom/after-install/action.yml') != ''
 
       - name: Must allow NOTEs if packages are missing, even with _R_CHECK_FORCE_SUGGESTS_
-        run: |
-          if (Sys.getenv("RCMDCHECK_ERROR_ON") %in% c("", "note")) {
-            pkgs <- setdiff(desc::desc_get_deps()$package, "R")
-            installable <- vapply(pkgs, FUN.VALUE = logical(1), requireNamespace, quietly = TRUE)
-            if (any(!installable)) {
-              message("Missing packages: ", paste(pkgs[!installable], collapse = ", "))
-              cat('RCMDCHECK_ERROR_ON="warning"\n', file = Sys.getenv("GITHUB_ENV"), append = TRUE)
-            }
-          }
-        shell: Rscript {0}
-
+        uses: ./.github/workflows/allow-notes-when-deps-missing
       - name: Update the testthat snapshots
         uses: ./.github/workflows/update-snapshots
         # Generic escape hatch: a custom action may set SKIP_UPDATE_SNAPSHOTS
