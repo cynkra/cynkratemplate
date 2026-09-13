@@ -128,14 +128,14 @@ runs:
 
     - name: Read `Config/gha/extra-packages` from DESCRIPTION
       id: get-extra
-      uses: ./.github/workflows/get-extra
+      uses: cynkra/cynkratemplate/.github/actions/get-extra@main
 
     - name: Resolve `Config/Needs/website` from DESCRIPTION
       # Expands `needs: website` into refs, dropping the packages that CRAN has
       # archived, so a website dependency that went away does not fail the solve
       # for every job that asks for it. See the action for the full reasoning.
       id: get-website
-      uses: ./.github/workflows/get-website
+      uses: cynkra/cynkratemplate/.github/actions/get-website@main
       with:
         needs: ${{ inputs.needs }}
 
