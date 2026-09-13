@@ -62,10 +62,22 @@ readme_document <- function(...) {
 
   # The package root, captured while we can still see the original input.
   # By post-processing time the paths in play may be intermediates.
+  #
+  # `max.print` is pinned here too. A README that prints a query result or a
+  # data frame otherwise renders differently depending on the value in the
+  # rendering session -- a maintainer with it set gets a truncated table, a
+  # runner without it gets the whole thing. That is how DBI's and RSQLite's
+  # front pages came to open with two complete `mtcars` dumps, thirty-odd
+  # lines each, in a commit that claimed to change only pandoc settings.
+  #
+  # Set in `pre_knit`, so the README's own setup chunk runs afterwards and
+  # still wins if it wants something else. Restored in the post-processor.
   root <- NULL
+  old_max_print <- NULL
   inner_pre <- base$pre_knit
   base$pre_knit <- function(input, ...) {
     root <<- dirname(normalizePath(input, mustWork = TRUE))
+    old_max_print <<- options(max.print = 100)
     if (is.function(inner_pre)) inner_pre(input, ...)
   }
 
@@ -102,6 +114,7 @@ readme_document <- function(...) {
     if (is.function(inner_post)) {
       output_file <- inner_post(metadata, input_file, output_file, clean, verbose)
     }
+    if (!is.null(old_max_print)) options(old_max_print)
     split_readme(root %||% dirname(normalizePath(input_file)), output_file, knit_env)
     output_file
   }
