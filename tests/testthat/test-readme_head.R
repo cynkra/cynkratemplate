@@ -11,9 +11,9 @@ test_that("a README without a horizontal rule is kept whole", {
 })
 
 test_that("a rule inside a fenced code block is not a rule", {
-  # The snippet every README configured for this format may show: pandoc writes
-  # the YAML front matter as a fenced block whose first and last lines are the
-  # three dashes the old scan matched.
+  # The snippet every README configured for this format may show:
+  # pandoc writes the YAML front matter as a fenced block
+  # whose first and last lines are the three dashes the old scan matched.
   lines <- c(
     "# Title",
     "",
@@ -34,8 +34,8 @@ test_that("a rule inside a fenced code block is not a rule", {
 })
 
 test_that("fences of every shape are tracked", {
-  # A tilde fence, a fence longer than three characters, and a fence whose
-  # content contains a shorter run of the same character.
+  # A tilde fence, a fence longer than three characters,
+  # and a fence whose content contains a shorter run of the same character.
   lines <- c(
     "~~~",
     "---",

@@ -21,44 +21,49 @@ Use it from \code{README.Rmd}:
 \if{html}{\out{<div class="sourceCode yaml">}}\preformatted{output: cynkratemplate::readme_document
 }\if{html}{\out{</div>}}
 
-Rendering then works the ordinary way -- \code{rmarkdown::render("README.Rmd")},
-\code{devtools::build_readme()}, or the Knit button -- with no wrapper to
-remember.
+Rendering then works the ordinary way --
+\code{rmarkdown::render("README.Rmd")}, \code{devtools::build_readme()}, or the Knit button --
+with no wrapper to remember.
 }
 \section{Why two files}{
 The README and the front page differ in exactly two ways:
 \itemize{
-\item \strong{Colour.} pkgdown turns ANSI SGR escapes into HTML; GitHub shows the
-raw bytes. So \code{index.md} keeps the escapes and \code{README.md} has them
-stripped.
-\item \strong{The tail.} Everything from the first horizontal rule onwards -- the
-code of conduct, licence and funding boilerplate -- belongs on GitHub,
-while pkgdown puts that material in its sidebar.
+\item \strong{Colour.} pkgdown turns ANSI SGR escapes into HTML;
+GitHub shows the raw bytes.
+So \code{index.md} keeps the escapes and \code{README.md} has them stripped.
+\item \strong{The tail.} Everything from the first horizontal rule onwards
+-- the code of conduct, licence and funding boilerplate --
+belongs on GitHub, while pkgdown puts that material in its sidebar.
 }
 
-\code{index.md} is written only when it would differ from \code{README.md}. A README
-with no horizontal rule that emits no colour produces two identical files,
-so the file is dropped and pkgdown falls through to \code{README.md} on its own
-lookup order. \code{.Rbuildignore} is kept in step either way.
+\code{index.md} is written only when it would differ from \code{README.md}.
+A README with no horizontal rule that emits no colour produces two identical files,
+so the file is dropped
+and pkgdown falls through to \code{README.md} on its own lookup order.
+\code{.Rbuildignore} is kept in step either way.
 
-Only a generated \code{index.md} is dropped. Every one this format writes opens
-with a marker comment, the way roxygen2 stamps the files it generates, and
-a file without that marker is left where it is with a warning.
+Only a generated \code{index.md} is dropped.
+Every one this format writes opens with a marker comment,
+the way roxygen2 stamps the files it generates,
+and a file without that marker is left where it is with a warning.
 A hand-written front page is not this format's to remove.
 }
 
 \section{Package-specific touch-ups}{
-A README may define \code{readme_only()} or \code{index_only()} in a chunk, each
-taking and returning a character vector. Each is applied to just that one
-output. This is how an asymmetry survives a single render: the usual case
-is rewriting \code{vignette("x")} into an absolute article link, which GitHub
-needs and pkgdown must not have, since downlit already auto-links it there.
+A README may define \code{readme_only()} or \code{index_only()} in a chunk,
+each taking and returning a character vector.
+Each is applied to just that one output.
+This is how an asymmetry survives a single render:
+the usual case is rewriting \code{vignette("x")} into an absolute article link,
+which GitHub needs and pkgdown must not have,
+since downlit already auto-links it there.
 }
 
 \section{Encoding}{
-Rendering requires a UTF-8 locale. The pandoc output this format reads back
-is UTF-8 whatever the session is, so a non-UTF-8 locale would have it
-re-encoded on the way in and quietly corrupt every non-ASCII character.
+Rendering requires a UTF-8 locale.
+The pandoc output this format reads back is UTF-8 whatever the session is,
+so a non-UTF-8 locale would have it re-encoded on the way in
+and quietly corrupt every non-ASCII character.
 Rather than guess, the format checks \code{l10n_info()} before knitting and stops.
 }
 

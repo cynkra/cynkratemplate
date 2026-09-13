@@ -1,21 +1,23 @@
 # Everything above the first horizontal rule.
 #
-# pandoc writes a source `---` rule as a run of dashes on its own line, not as
-# `---`, so the marker to match is the rendered form. A README with no rule
-# yields the whole document, which then collapses into README.md.
+# pandoc writes a source `---` rule as a run of dashes on its own line, not as `---`,
+# so the marker to match is the rendered form.
+# A README with no rule yields the whole document,
+# which then collapses into README.md.
 #
-# Only a rule in prose counts. A run of dashes inside a fenced code block is
-# verbatim text, not a horizontal rule -- a README that shows the YAML front
-# matter this format is configured from contains three of them, and matching
-# those truncates the front page in the middle of the snippet.
+# Only a rule in prose counts.
+# A run of dashes inside a fenced code block is verbatim text, not a horizontal rule
+# -- a README that shows the YAML front matter this format is configured from
+# contains three of them,
+# and matching those truncates the front page in the middle of the snippet.
 readme_head <- function(lines) {
   at <- which(grepl("^-{3,}\\s*$", lines) & is.na(fence_lang(lines)))
   if (length(at) == 0) {
     return(lines)
   }
   head <- lines[seq_len(at[[1]] - 1L)]
-  # Drop the blank line the rule was separated by, so the file does not end
-  # with trailing whitespace.
+  # Drop the blank line the rule was separated by,
+  # so the file does not end with trailing whitespace.
   while (length(head) > 0 && !nzchar(head[[length(head)]])) {
     head <- head[-length(head)]
   }
@@ -24,16 +26,18 @@ readme_head <- function(lines) {
 
 # Which fenced code block each line of pandoc's markdown output belongs to.
 #
-# Returns the block's info string -- `""` when the opening fence carries none
-# -- for every line of a fenced block, the delimiters included, and `NA` for
-# every line outside one. Callers use the `NA` to tell prose from verbatim
-# text, and the info string to tell a language-tagged block (source the README
-# is showing) from an untagged one.
+# Returns the block's info string
+# -- `""` when the opening fence carries none --
+# for every line of a fenced block, the delimiters included,
+# and `NA` for every line outside one.
+# Callers use the `NA` to tell prose from verbatim text,
+# and the info string to tell a language-tagged block (source the README is showing)
+# from an untagged one.
 #
 # A fence opens with at least three backticks or tildes at the start of a line
-# and closes with at least as many of the same character and nothing else on
-# the line. That is what CommonMark says and what pandoc writes; an unclosed
-# fence runs to the end of the document, also as CommonMark says.
+# and closes with at least as many of the same character and nothing else on the line.
+# That is what CommonMark says and what pandoc writes;
+# an unclosed fence runs to the end of the document, also as CommonMark says.
 fence_lang <- function(lines) {
   out <- rep(NA_character_, length(lines))
   char <- ""
@@ -70,31 +74,34 @@ fence_lang <- function(lines) {
   out
 }
 
-# Rewrite box-drawing horizontals as hyphens, in knitr's output and nowhere
-# else.
+# Rewrite box-drawing horizontals as hyphens, in knitr's output and nowhere else.
 #
-# The substitution is there because those characters line up badly in several
-# pkgdown themes. That argument is about the monospace blocks a console session
-# prints, so prose and inline code have no business being rewritten -- and a
-# chunk's *source* has none either: a README that shows how to draw a box had
-# the drawing silently taken out of its own code.
+# The substitution is there
+# because those characters line up badly in several pkgdown themes.
+# That argument is about the monospace blocks a console session prints,
+# so prose and inline code have no business being rewritten
+# -- and a chunk's *source* has none either:
+# a README that shows how to draw a box
+# had the drawing silently taken out of its own code.
 #
-# Two shapes of output have to be recognised, because pandoc writes them
-# differently:
+# Two shapes of output have to be recognised,
+# because pandoc writes them differently:
 #
-# * A chunk with `collapse = TRUE` puts output in the same fenced block as its
-#   source, tagged with the chunk's language. There the comment prefix is the
-#   only marker, which is why the option hook records it.
-# * Anything else becomes a code block with no language, which pandoc's gfm
-#   writer emits indented by four spaces rather than fenced.
+# * A chunk with `collapse = TRUE` puts output in the same fenced block as its source,
+#   tagged with the chunk's language.
+#   There the comment prefix is the only marker,
+#   which is why the option hook records it.
+# * Anything else becomes a code block with no language,
+#   which pandoc's gfm writer emits indented by four spaces rather than fenced.
 #
-# What this cannot separate, at this stage, is knitr's unprefixed output from a
-# verbatim block the README wrote by hand: pandoc renders both as the same
-# indented block. Both are monospace, so the theme argument applies to both,
-# and the residual is a hand-written box drawing in an untagged block. Telling
-# those two apart needs the text knitr actually emitted, captured from an
-# output hook during the knit and matched here -- worth doing if a README ever
-# hits it, not worth the hook wrangling before then.
+# What this cannot separate, at this stage,
+# is knitr's unprefixed output from a verbatim block the README wrote by hand:
+# pandoc renders both as the same indented block.
+# Both are monospace, so the theme argument applies to both,
+# and the residual is a hand-written box drawing in an untagged block.
+# Telling those two apart needs the text knitr actually emitted,
+# captured from an output hook during the knit and matched here
+# -- worth doing if a README ever hits it, not worth the hook wrangling before then.
 dash_output <- function(lines, comments = character()) {
   at <- is_knitr_output(lines, comments)
   lines[at] <- gsub("\u2500", "-", lines[at])
@@ -115,8 +122,8 @@ is_knitr_output <- function(lines, comments = character()) {
   indented | (!is.na(lang) & nzchar(lang) & prefixed)
 }
 
-# `fansi::strip_sgr()` without the dependency: the CSI sequences R's own
-# colour output emits are all of the form ESC [ ... m.
+# `fansi::strip_sgr()` without the dependency:
+# the CSI sequences R's own colour output emits are all of the form ESC [ ... m.
 strip_sgr <- function(x) {
   gsub("\033\\[[0-9;]*m", "", x)
 }
@@ -137,10 +144,11 @@ apply_side <- function(env, name, lines) {
   out
 }
 
-# `index.md` is not part of the package, so `R CMD check --as-cran` reports it
-# as a non-standard top-level file unless it is ignored. Kept in step with
-# whether the file actually exists, so a package that stops needing one does
-# not keep a dangling entry.
+# `index.md` is not part of the package,
+# so `R CMD check --as-cran` reports it as a non-standard top-level file
+# unless it is ignored.
+# Kept in step with whether the file actually exists,
+# so a package that stops needing one does not keep a dangling entry.
 edit_buildignore <- function(path, add) {
   file <- file.path(path, ".Rbuildignore")
   entry <- "^index\\.md$"

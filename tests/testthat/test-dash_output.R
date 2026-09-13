@@ -24,8 +24,8 @@ test_that("prose and inline code are left alone", {
 })
 
 test_that("an indented block is output and is rewritten", {
-  # Output that is not collapsed into its source block carries no language, and
-  # pandoc's gfm writer indents those rather than fencing them.
+  # Output that is not collapsed into its source block carries no language,
+  # and pandoc's gfm writer indents those rather than fencing them.
   lines <- c("Prose.", "", paste0("    Backtrace: ", box), "")
 
   expect_equal(dash_output(lines, "#>"), c("Prose.", "", "    Backtrace: -", ""))
