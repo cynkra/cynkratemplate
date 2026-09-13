@@ -1,5 +1,48 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9029
+
+### Bug fixes
+
+#### ci
+
+- Keep the raw name expression out of the running job’s step list
+  ([\#119](https://github.com/cynkra/cynkratemplate/issues/119)).
+
+#### fledge
+
+- Push the bump to the default branch wherever that is allowed
+  ([\#117](https://github.com/cynkra/cynkratemplate/issues/117)).
+
+#### ci
+
+- Make a failing `rcc` run say what failed, and link to it
+  ([\#115](https://github.com/cynkra/cynkratemplate/issues/115)).
+
+#### ci
+
+- Exempt deprecation warnings from the roxygenize warning gate
+  ([\#114](https://github.com/cynkra/cynkratemplate/issues/114)).
+
+### Features
+
+- Add
+  [`readme_document()`](https://cynkratemplate.cynkra.com/dev/reference/readme_document.md)
+  to build `README.md` and `index.md` together
+  ([\#116](https://github.com/cynkra/cynkratemplate/issues/116)).
+
+### Refactoring
+
+#### ci
+
+- Serve the actions from this repository instead of copying them
+  ([\#121](https://github.com/cynkra/cynkratemplate/issues/121)).
+
+#### ci
+
+- Move every script out of the workflows and into a named action
+  ([\#120](https://github.com/cynkra/cynkratemplate/issues/120)).
+
 ## cynkratemplate 0.0.2.9028
 
 ### Bug fixes
