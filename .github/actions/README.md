@@ -17,6 +17,31 @@ which is also why a job with no checkout can still use one.
 There are no tags to move and no versions to bump,
 and a change merged here is live in every repository on the next run.
 
+## An action is one file
+
+Every action here is a single `action.yml`, and nothing else lives in its directory:
+
+```bash
+find .github/actions -type f ! -name action.yml ! -name README.md   # prints nothing
+```
+
+That is not tidiness, it is the only thing that works.
+An action is fetched into the runner's action cache and never into the workspace,
+so a script sitting beside `action.yml` is not a path the runner can reach,
+and a workspace-relative path to it resolves inside the *consuming* repository,
+where the file does not exist.
+Either way the step dies at run time, in nine repositories at once,
+and nothing says so beforehand --
+`actionlint` does not follow paths, and a repository that still had a stale copy would even pass.
+
+So a script an action runs goes in the `run:` block, however long it is.
+`shell: Rscript {0}` for R, which is how the two matrix actions carry their hundred-odd lines.
+
+The one deliberate exception is the revdep scripts under `.github/workflows/revdep2`,
+`revdep4` and `revdepx`.
+Those are run from the workspace by design, are shared between actions and workflows,
+and are still copied into every repository -- see the last section.
+
 ## Testing a change to an action
 
 Because every caller says `@main`,
