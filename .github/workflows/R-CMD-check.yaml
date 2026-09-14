@@ -174,7 +174,11 @@ jobs:
           base: ${{ inputs.ref || github.head_ref }}
 
       - name: Install roxygen2 from the fork branch
-        uses: ./.github/workflows/roxygen2-fork
+        # Referenced locally, unlike the shared actions above: this repository
+        # owns this one, so it has to run the copy in the branch under test.
+        # `@main` would not resolve until this pull request merged, and
+        # afterwards would test main's copy rather than the one being changed.
+        uses: ./.github/actions/roxygen2-fork
 
       - name: Roxygenize the documentation
         id: roxygenize
