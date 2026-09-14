@@ -1,0 +1,180 @@
+name: "Action to re-render the README"
+description: >
+  Re-renders `README.Rmd` and leaves the generated files in the working tree,
+  for the `commit` action to pick up in the same commit as the roxygen and
+  style changes.
+  The README declares its own output format in the YAML front matter, and this
+  action honours it rather than choosing one: `cynkratemplate::readme_document`
+  writes the pkgdown front page `index.md` beside `README.md`, a plain
+  `github_document` writes `README.md` alone.
+  A package with no `README.Rmd` is skipped, and so is one that has not set
+  `Config/cynkra/render-readme: true` in `DESCRIPTION`: rendering is opt-in,
+  because committing the result is only safe for a README that renders
+  reproducibly. Packages the README needs in order to render are declared
+  in `Config/Needs/readme`.
+
+runs:
+  using: "composite"
+  steps:
+    - name: Decide whether to render, and check the format is installed
+      id: check
+      # Read in R, not in the shell: DESCRIPTION is DCF, where a field may be
+      # continued over several indented lines, and the output format lives in
+      # the README's YAML front matter.
+      run: |
+        ## -- Decide whether to render --
+        out <- Sys.getenv("GITHUB_OUTPUT")
+
+        if (!file.exists("README.Rmd")) {
+          writeLines("No README.Rmd here, nothing to render.")
+          writeLines("render=false", out)
+          quit(save = "no")
+        }
+
+        # Opt-in, and deliberately not opt-out. Committing a re-rendered README
+        # is only safe once that README renders the same way twice: anything
+        # that varies between runs -- a timestamp, an unseeded sample, a live
+        # address -- would otherwise be committed as noise on every scheduled
+        # run. A repository therefore asks for this in the same change that
+        # makes its README reproducible, rather than being enrolled by a
+        # template update it has not been prepared for.
+        field <- "Config/cynkra/render-readme"
+        enabled <- FALSE
+        if (file.exists("DESCRIPTION")) {
+          desc <- read.dcf("DESCRIPTION")[1, ]
+          enabled <- field %in% names(desc) &&
+            tolower(trimws(desc[[field]])) %in% c("true", "yes")
+        }
+        if (!enabled) {
+          writeLines(paste0("DESCRIPTION does not set `", field, ": true`, skipping."))
+          writeLines("render=false", out)
+          quit(save = "no")
+        }
+
+        # Packages this README needs in order to render, declared in our own
+        # field. `Config/Needs/website` is pkgdown's and means something else:
+        # pkgdown never renders README.Rmd, it reads the rendered markdown, so
+        # a render dependency does not belong there.
+        #
+        # These are real and not hypothetical -- DBI's README opens an RSQLite
+        # connection, adbi's needs arrow and two drivers that are not on CRAN --
+        # and none of them appears anywhere else in DESCRIPTION.
+        if (file.exists("DESCRIPTION")) {
+          desc <- read.dcf("DESCRIPTION")[1, ]
+          field <- "Config/Needs/readme"
+          if (field %in% names(desc)) {
+            pkgs <- trimws(strsplit(desc[[field]], ",")[[1]])
+            pkgs <- pkgs[nzchar(pkgs)]
+            missing <- pkgs[!vapply(
+              sub("^.*/", "", pkgs),
+              function(p) requireNamespace(p, quietly = TRUE),
+              logical(1)
+            )]
+            if (length(missing) > 0) {
+              writeLines(paste0("Installing from `", field, "`: ",
+                                paste(missing, collapse = ", ")))
+              pak::pak(missing, ask = FALSE)
+            }
+          }
+        }
+
+        # An output format written as `pkg::format` has two ways to go wrong,
+        # and rmarkdown reports neither in terms a maintainer can act on: the
+        # package may be missing from the runner, or it may be present and not
+        # export that format at all. Name both the cause and the remedy here.
+        formats <- rmarkdown::yaml_front_matter("README.Rmd")$output
+        formats <- if (is.character(formats)) formats else names(formats)
+        qualified <- grep("::", formats, value = TRUE)
+
+        absent <- character()
+        unexported <- character()
+        for (fmt in qualified) {
+          pkg <- sub("::.*$", "", fmt)
+          fun <- sub("^.*::", "", fmt)
+          if (!requireNamespace(pkg, quietly = TRUE)) {
+            absent <- c(absent, fmt)
+          } else if (!exists(fun, envir = asNamespace(pkg))) {
+            unexported <- c(unexported, fmt)
+          }
+        }
+
+        if (length(absent) > 0 || length(unexported) > 0) {
+          msg <- "README.Rmd declares an output format that cannot be used here."
+          if (length(absent) > 0) {
+            msg <- paste0(
+              msg, "\n* Not installed: ", paste(absent, collapse = ", "),
+              "\n  Add the package to `Config/Needs/readme` in DESCRIPTION, ",
+              "or, if every package in the fleet needs it, to `extra-packages` ",
+              "in the shared R-CMD-check workflow."
+            )
+          }
+          if (length(unexported) > 0) {
+            msg <- paste0(
+              msg, "\n* Installed, but no such format: ",
+              paste(unexported, collapse = ", "),
+              "\n  Fix the `output:` field in README.Rmd."
+            )
+          }
+          stop(msg, call. = FALSE)
+        }
+
+        writeLines("render=true", out)
+      shell: Rscript {0}
+
+    - name: Render the README
+      if: steps.check.outputs.render == 'true'
+      run: |
+        ## -- Render the README --
+        # A plain `rmarkdown::render()`, which is what `devtools::build_readme()`
+        # and the Knit button do too. Keeping to the ordinary entry point is the
+        # point: whatever a maintainer gets locally is what lands here.
+        #
+        # `envir` is the global environment, which is where chunks run under a
+        # plain `rmarkdown::render("README.Rmd")` from the console. Pinning it
+        # rather than taking the default keeps this frame's locals out of the
+        # chunks' way -- `path`, `dir` and `pkg` are all assigned by READMEs in
+        # this fleet -- and several of them `setwd()`, hence the restore.
+        #
+        # It must not be a *child* of the global environment. S3 methods
+        # defined in a chunk would then not dispatch: a generic called from
+        # inside a package searches the namespace's parent chain, which reaches
+        # the global environment but not an environment hanging off it. The
+        # render would succeed and commit a README demonstrating the package's
+        # own extension point failing to work.
+        owd <- getwd()
+        on.exit(setwd(owd), add = TRUE)
+
+        rmarkdown::render(
+          "README.Rmd",
+          output_file = "README.md",
+          output_dir = owd,
+          envir = globalenv(),
+          quiet = FALSE
+        )
+      shell: Rscript {0}
+
+    - name: Show what the render changed
+      if: steps.check.outputs.render == 'true'
+      # The `commit` action is what decides whether there is anything to commit,
+      # and it looks at the whole working tree, so a render that also refreshed
+      # a figure under `man/figures/` is covered there.
+      #
+      # This is also the place to read when a scheduled run keeps committing: a
+      # README reported as changed on a run that touched no source is a README
+      # that does not render reproducibly. The fix belongs in its setup chunk.
+      run: |
+        ## -- Show what the render changed --
+        git --no-pager diff --stat
+        git status --porcelain
+
+        # `github_document` writes an HTML preview beside README.md unless the
+        # README sets `html_preview: false`. That file is a local convenience,
+        # not repository content, and the commit step would commit it -- so drop
+        # it, and say why, rather than let a build artifact into the tree. Only
+        # ever an untracked one: a repository that deliberately keeps a
+        # README.html is left alone.
+        if [ -f README.html ] && ! git ls-files --error-unmatch README.html > /dev/null 2>&1; then
+          rm -f README.html
+          echo "::warning title=README.html::The render wrote README.html, which is not repository content; it has been removed. Set \`html_preview: false\` on the output format in README.Rmd."
+        fi
+      shell: bash
