@@ -45,6 +45,25 @@
 #' which GitHub needs and pkgdown must not have,
 #' since downlit already auto-links it there.
 #'
+#' # Autolinking
+#'
+#' Inline code in the README's prose is linked to its documentation:
+#' `dbGetQuery()` becomes a link to the package's own pkgdown reference,
+#' `tibble::tibble()` to tibble's, `print()` to the base R help.
+#' The reference URL is taken from the pkgdown site declared in `URL`,
+#' so a package without a published site is left unlinked rather than
+#' pointed at a page that does not exist.
+#'
+#' Only prose is linked.
+#' Fenced code blocks are passed through untouched:
+#' `downlit::downlit_md_path()` would rewrite them into HTML whose highlighting
+#' GitHub does not render, and would reflow the prose besides,
+#' undoing the line breaks these sources are written with.
+#' A span that resolves to no documented object -- `TRUE`, a local variable,
+#' a SQL fragment -- is left exactly as it was.
+#'
+#' `index.md` is not linked here: pkgdown runs downlit over the front page itself.
+#'
 #' # Encoding
 #'
 #' Rendering requires a UTF-8 locale.
@@ -231,10 +250,17 @@ split_readme <- function(root, output_file, knit_env = NULL,
   readme <- apply_side(env, "readme_only", readme)
   index <- apply_side(env, "index_only", index)
 
+  # Autolinking happens after the comparison copy is taken, not before it.
+  # `index.md` is written only when it differs from `README.md`, and the links
+  # exist on one side only, so linking first would make every package look
+  # different and start writing a front page that is not wanted.
+  readme_plain <- readme
+  readme <- autolink_readme(readme, root)
+
   writeLines(readme, output_file)
 
   index_path <- file.path(root, "index.md")
-  if (identical(index, readme)) {
+  if (identical(index, readme_plain)) {
     kept <- file.exists(index_path) && !is_generated_index(index_path)
     if (kept) {
       cli::cli_warn(c(
