@@ -59,6 +59,25 @@ which GitHub needs and pkgdown must not have,
 since downlit already auto-links it there.
 }
 
+\section{Autolinking}{
+Inline code in the README's prose is linked to its documentation:
+\code{dbGetQuery()} becomes a link to the package's own pkgdown reference,
+\code{tibble::tibble()} to tibble's, \code{print()} to the base R help.
+The reference URL is taken from the pkgdown site declared in \code{URL},
+so a package without a published site is left unlinked rather than
+pointed at a page that does not exist.
+
+Only prose is linked.
+Fenced code blocks are passed through untouched:
+\code{downlit::downlit_md_path()} would rewrite them into HTML whose highlighting
+GitHub does not render, and would reflow the prose besides,
+undoing the line breaks these sources are written with.
+A span that resolves to no documented object -- \code{TRUE}, a local variable,
+a SQL fragment -- is left exactly as it was.
+
+\code{index.md} is not linked here: pkgdown runs downlit over the front page itself.
+}
+
 \section{Encoding}{
 Rendering requires a UTF-8 locale.
 The pandoc output this format reads back is UTF-8 whatever the session is,
