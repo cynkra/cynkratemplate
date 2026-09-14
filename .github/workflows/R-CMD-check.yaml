@@ -190,11 +190,7 @@ jobs:
       - name: Re-render the README
         id: render-readme
         continue-on-error: true
-        # Referenced locally, unlike the shared actions above: this repository
-        # owns this one, so it has to run the copy in the branch under test.
-        # `@main` would not resolve until this pull request merged, and
-        # afterwards would test main's copy rather than the one being changed.
-        uses: ./.github/actions/render-readme
+        uses: cynkra/cynkratemplate/.github/actions/render-readme@main
 
       - name: Remove config files from previous iteration
         run: |
