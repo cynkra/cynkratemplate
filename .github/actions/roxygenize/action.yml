@@ -32,38 +32,56 @@ runs:
         warns <- character()
         depr <- character()
 
-        withCallingHandlers(
+        # Everything from here on calls base functions as `base::fun()`.
+        # roxygen2 loads the package with `pkgload::load_all()`, which *attaches*
+        # `package:<pkg>` to the search path -- with `export_all = TRUE`, so the
+        # internal objects land there too -- and roxygen2 never detaches it.
+        # This script is evaluated in the global environment, whose parent is
+        # that search path, so an unqualified base call made from the
+        # `withCallingHandlers()` call onwards can resolve to an object of the
+        # package being documented. cynkra/dd, which generates a stub per DuckDB
+        # function, defines `length()` among 60-odd other base names, so
+        # `length(depr)` below errored there before any warning was even seen.
+        # The warning handler needs the same treatment: it runs while
+        # roxygenize() is still going, and by then the package is attached.
+        # Local variables (`deprecated`, `warns`, `depr`, `escape`) live in the
+        # global environment itself, which is searched first, so they are safe.
+        # Operators and control flow stay unqualified -- see the pull request
+        # that introduced this for where that line is drawn.
+        base::withCallingHandlers(
           roxygen2::roxygenize(),
           warning = function(w) {
-            if (any(class(w) %in% deprecated)) {
-              depr <<- c(depr, conditionMessage(w))
+            # `base::inherits(w, deprecated)` is `any(class(w) %in% deprecated)`
+            # in a single qualified call, and leaves no `%in%` to be masked.
+            if (base::inherits(w, deprecated)) {
+              depr <<- base::c(depr, base::conditionMessage(w))
             } else {
-              warns <<- c(warns, conditionMessage(w))
+              warns <<- base::c(warns, base::conditionMessage(w))
             }
-            invokeRestart("muffleWarning")
+            base::invokeRestart("muffleWarning")
           }
         )
 
         # Workflow commands are single-line, the payload needs escaping
         escape <- function(x) {
-          x <- gsub("%", "%25", x, fixed = TRUE)
-          x <- gsub("\r", "%0D", x, fixed = TRUE)
-          gsub("\n", "%0A", x, fixed = TRUE)
+          x <- base::gsub("%", "%25", x, fixed = TRUE)
+          x <- base::gsub("\r", "%0D", x, fixed = TRUE)
+          base::gsub("\n", "%0A", x, fixed = TRUE)
         }
 
-        if (length(depr) > 0) {
-          writeLines(sprintf("roxygen2 emitted %d deprecation warning(s), these do not fail the step:", length(depr)))
-          writeLines(paste0("* ", depr))
-          writeLines(sprintf("::warning title=roxygen2 deprecation::%s", escape(depr)))
+        if (base::length(depr) > 0) {
+          base::writeLines(base::sprintf("roxygen2 emitted %d deprecation warning(s), these do not fail the step:", base::length(depr)))
+          base::writeLines(base::paste0("* ", depr))
+          base::writeLines(base::sprintf("::warning title=roxygen2 deprecation::%s", escape(depr)))
         }
 
-        if (length(warns) == 0) {
-          writeLines("roxygen2 emitted no warnings that fail the step.")
+        if (base::length(warns) == 0) {
+          base::writeLines("roxygen2 emitted no warnings that fail the step.")
         } else {
-          writeLines(sprintf("roxygen2 emitted %d warning(s):", length(warns)))
-          writeLines(paste0("* ", warns))
-          writeLines(sprintf("::warning title=roxygen2::%s", escape(warns)))
+          base::writeLines(base::sprintf("roxygen2 emitted %d warning(s):", base::length(warns)))
+          base::writeLines(base::paste0("* ", warns))
+          base::writeLines(base::sprintf("::warning title=roxygen2::%s", escape(warns)))
 
-          stop("Fix the roxygen2 warnings above.", call. = FALSE)
+          base::stop("Fix the roxygen2 warnings above.", call. = FALSE)
         }
       shell: Rscript {0}
