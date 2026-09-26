@@ -1,5 +1,12 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9031
+
+### Bug fixes
+
+- Qualify base calls in the roxygenize action with `base::`
+  ([\#137](https://github.com/cynkra/cynkratemplate/issues/137)).
+
 ## cynkratemplate 0.0.2.9030
 
 ### Bug fixes
