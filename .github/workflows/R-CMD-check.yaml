@@ -159,9 +159,6 @@ jobs:
         # Always run for other events.
         if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.head_ref, 'cran-')) && (github.event_name != 'workflow_dispatch' || inputs.versions-matrix)
         uses: cynkra/cynkratemplate/.github/actions/versions-matrix@main
-        with:
-          # The smoke test computes the coverage, see below.
-          covr: false
 
       - name: Collect the suggested dependencies into a matrix
         id: dep-suggests-matrix
@@ -234,9 +231,9 @@ jobs:
 
       # Coverage for every run, from the environment the smoke test already
       # installed, so that pull requests and the default branch are measured the
-      # same way. The version matrix therefore leaves out its default covr entry
-      # (`covr: false` above); entries a repository adds in
-      # .github/versions-matrix.R, such as extra backends, still run there.
+      # same way. The version matrix no longer has a covr entry of its own;
+      # entries a repository adds in .github/versions-matrix.R, such as extra
+      # backends, still run there.
       # In the smoke test rather than a job of its own, because this job's status
       # is the `rcc` status of a pull request from this repository: a separate job
       # would let it turn green, and auto-merge go ahead, while coverage was still
