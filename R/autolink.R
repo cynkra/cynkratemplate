@@ -39,7 +39,7 @@ autolink_readme <- function(lines, root) {
 local_downlit_context <- function(root, .local_envir = parent.frame()) {
   desc_path <- file.path(root, "DESCRIPTION")
   if (!file.exists(desc_path)) {
-    return(invisible())
+    return(invisible(list()))
   }
   desc <- read.dcf(desc_path)[1, ]
   pkg <- unname(desc[["Package"]])
@@ -51,7 +51,7 @@ local_downlit_context <- function(root, .local_envir = parent.frame()) {
   # the site rather than to the package's CRAN page.
   site <- documentation_site(desc[["URL"]] %||% NA_character_)
   if (is.na(site)) {
-    return(invisible())
+    return(invisible(list()))
   }
 
   withr::local_options(

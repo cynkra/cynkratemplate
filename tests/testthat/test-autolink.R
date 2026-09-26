@@ -42,6 +42,7 @@ test_that("autolinking is idempotent", {
 })
 
 test_that("a tilde fence is honoured too", {
+  skip_if_not_installed("downlit")
   lines <- c("~~~", "`base::print()`", "~~~")
   expect_identical(autolink_lines(lines), lines)
 })
