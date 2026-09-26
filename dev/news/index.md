@@ -1,5 +1,22 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9032
+
+### Bug fixes
+
+#### ci
+
+- Collect the fleet’s workflow fixes after the move to central actions
+  ([\#139](https://github.com/cynkra/cynkratemplate/issues/139)).
+
+### Documentation
+
+- Break lines at meaning boundaries
+  ([\#128](https://github.com/cynkra/cynkratemplate/issues/128)).
+
+- Render `README.md` from a new `README.Rmd`
+  ([\#127](https://github.com/cynkra/cynkratemplate/issues/127)).
+
 ## cynkratemplate 0.0.2.9031
 
 ### Bug fixes
