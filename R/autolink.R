@@ -17,22 +17,27 @@
 # `index.md` is deliberately not autolinked: pkgdown runs downlit over the front
 # page itself, so linking here would be redundant work on one side and a source
 # of double-linked spans on the other.
+#
+# downlit is only suggested, so a README renders without links where it is not
+# installed. That also makes it the package the rcc-suggests ("without") job
+# drops and re-checks: nothing in the CI toolchain (rmarkdown, rcmdcheck,
+# testthat) pulls it in, so the dep-suggests-matrix action does not rule it out.
 autolink_readme <- function(lines, root) {
   if (!requireNamespace("downlit", quietly = TRUE)) {
     return(lines)
   }
-  old <- set_downlit_context(root)
-  on.exit(options(old), add = TRUE)
+  local_downlit_context(root)
   autolink_lines(lines)
 }
 
 # Teach downlit which package it is looking at, so a README may write its own
 # `foo()` unqualified and still get a link. Without this only `pkg::foo()` and
 # base R resolve, which is the smaller and less useful half.
-set_downlit_context <- function(root) {
+# The options are restored when `.local_envir` exits.
+local_downlit_context <- function(root, .local_envir = parent.frame()) {
   desc_path <- file.path(root, "DESCRIPTION")
   if (!file.exists(desc_path)) {
-    return(list())
+    return(invisible())
   }
   desc <- read.dcf(desc_path)[1, ]
   pkg <- unname(desc[["Package"]])
@@ -44,10 +49,11 @@ set_downlit_context <- function(root) {
   # the site rather than to the package's CRAN page.
   site <- documentation_site(desc[["URL"]] %||% NA_character_)
   if (is.na(site)) {
-    return(list())
+    return(invisible())
   }
 
-  options(
+  withr::local_options(
+    .local_envir = .local_envir,
     downlit.package = pkg,
     downlit.topic_index = topic_index(root),
     downlit.topic_path = paste0(site, "/reference/"),

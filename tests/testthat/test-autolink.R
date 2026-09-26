@@ -1,4 +1,5 @@
 test_that("code blocks are left alone", {
+  skip_if_not_installed("downlit")
   lines <- c(
     "Use `base::print()` here.",
     "```r",
