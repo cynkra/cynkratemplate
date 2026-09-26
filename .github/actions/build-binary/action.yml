@@ -41,47 +41,7 @@ runs:
   steps:
     - name: Determine the version of the binary package
       id: version
-      run: |
-        ## -- Determine the version of the binary package --
-        set -euo pipefail
-
-        version=$(sed -n 's/^Version:[[:space:]]*//p' DESCRIPTION | tr -d '[:space:]')
-        echo "Version in DESCRIPTION: ${version}"
-
-        if [ -f NEWS.md ] && grep -qF "NEWS.md is maintained by https://fledge.cynkra.com" NEWS.md; then
-          echo "NEWS.md is maintained by fledge, which bumps the version with every commit."
-          exit 0
-        fi
-
-        # Only a development version: a release, or a release candidate on a
-        # `cran-*` branch, keeps the version it declares.
-        dev=$(printf '%s' "${version}" | sed -nE 's/^[0-9]+[.-][0-9]+[.-][0-9]+[.-]([0-9]+)$/\1/p')
-        if [ -z "${dev}" ] || [ "${dev}" -lt 9000 ]; then
-          echo "Not a development version, keeping it."
-          exit 0
-        fi
-
-        # The checkout is shallow and has no tags.
-        if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
-          git fetch --quiet --unshallow --tags origin
-        else
-          git fetch --quiet --tags origin
-        fi
-
-        # The last release is the highest release tag this commit contains:
-        # `v1.2.3` or `1.2.3`, never a development tag such as `v1.2.3.9001`.
-        tag=$(git tag --merged HEAD | grep -E '^v?[0-9]+[.-][0-9]+([.-][0-9]+)?$' | sort -V | tail -n 1 || true)
-        if [ -n "${tag}" ]; then
-          commits=$(git rev-list --count --first-parent "${tag}..HEAD")
-          echo "${commits} first-parent commits since ${tag}."
-        else
-          commits=$(git rev-list --count --first-parent HEAD)
-          echo "No release yet, ${commits} first-parent commits in all."
-        fi
-
-        version=$(printf '%s' "${version}" | sed -E "s/[0-9]+\$/$((9000 + commits))/")
-        echo "Version of the binary package: ${version}"
-        echo "version=${version}" >> "${GITHUB_OUTPUT}"
+      run: bash "${{ github.action_path }}/version.sh"
       shell: bash
 
     - name: Build and install the binary package
@@ -93,67 +53,12 @@ runs:
         # Debug symbols can make up most of a compiled package,
         # and every run uploads this file.
         _R_SHLIB_STRIP_: "true"
-      run: |
-        ## -- Build and install the binary package --
-        src <- normalizePath(".")
-        version <- Sys.getenv("VERSION")
-
-        desc_path <- file.path(src, "DESCRIPTION")
-        desc_orig <- readBin(desc_path, "raw", file.size(desc_path))
-        if (nzchar(version)) {
-          lines <- readLines(desc_path, warn = FALSE)
-          lines <- sub("^Version:.*$", paste0("Version: ", version), lines)
-          writeLines(lines, desc_path)
-        }
-
-        # An empty directory of its own, because `R CMD INSTALL --build`
-        # writes the binary into the working directory under a name that
-        # differs by platform: `.tar.gz` with the platform in it on Linux,
-        # `.tgz` on macOS, `.zip` on Windows. Not the checkout, where the
-        # binary would end up in the source tarball and in commits.
-        out_dir <- file.path(Sys.getenv("RUNNER_TEMP"), "build-binary")
-        unlink(out_dir, recursive = TRUE)
-        dir.create(out_dir, recursive = TRUE)
-
-        # Into the default library, so that later steps find it installed.
-        status <- tryCatch(
-          {
-            setwd(out_dir)
-            # Quoted: system2() quotes the command, but not the arguments.
-            system2(file.path(R.home("bin"), "R"), c("CMD", "INSTALL", "--build", shQuote(src)))
-          },
-          finally = writeBin(desc_orig, desc_path)
-        )
-        if (status != 0) {
-          stop("`R CMD INSTALL --build` failed.", call. = FALSE)
-        }
-
-        file <- list.files(out_dir)
-        if (length(file) != 1) {
-          stop(
-            "Expected one binary package, found: ", paste(file, collapse = ", "),
-            call. = FALSE
-          )
-        }
-
-        artifact <- gsub("[^A-Za-z0-9._-]+", "-", paste0("binary-", Sys.getenv("NAME")))
-        artifact <- sub("-+$", "", artifact)
-
-        writeLines(
-          c(
-            paste0("artifact-name=", artifact),
-            paste0("path=", file.path(out_dir, file)),
-            paste0("file=", file),
-            paste0("r-version=", R.version.string),
-            paste0("platform=", R.version$platform)
-          ),
-          Sys.getenv("GITHUB_OUTPUT")
-        )
       # Not the checkout's `.Rprofile`: the environment it may set reaches
       # `R CMD INSTALL`. tibble's sets `R_MAKEVARS_USER` to its `-O0` debug
       # flags, which would bypass the ccache wrappers in `~/.R/Makevars` and
       # ship an unoptimized binary.
-      shell: Rscript --no-init-file {0}
+      run: Rscript --no-init-file "${{ github.action_path }}/build.R"
+      shell: bash
 
     - name: Upload the binary package
       id: upload
