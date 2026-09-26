@@ -18,13 +18,13 @@ URL: https://cynkratemplate.cynkra.com/,
 BugReports: https://github.com/cynkra/cynkratemplate/issues
 Imports: 
     cli,
-    desc,
-    withr
+    desc
 Suggests:
     downlit,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
+    withr,
     yaml
 Config/roxygen2/version: 8.1.0.9000
 Config/testthat/edition: 3

@@ -34,6 +34,8 @@ autolink_readme <- function(lines, root) {
 # `foo()` unqualified and still get a link. Without this only `pkg::foo()` and
 # base R resolve, which is the smaller and less useful half.
 # The options last until `.local_envir` exits.
+# withr is only suggested: this runs only once downlit is known to be
+# installed, and downlit imports withr.
 local_downlit_context <- function(root, .local_envir = parent.frame()) {
   desc_path <- file.path(root, "DESCRIPTION")
   if (!file.exists(desc_path)) {
