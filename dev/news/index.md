@@ -1,5 +1,41 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9033
+
+### Bug fixes
+
+#### revdep2
+
+- Let a slice with no packages check nothing instead of failing
+  ([\#150](https://github.com/cynkra/cynkratemplate/issues/150)).
+
+### Features
+
+#### ci
+
+- Run R-hub checks on every `cran-*` push, through `rhub-setup` and
+  `rhub-check` actions
+  ([\#145](https://github.com/cynkra/cynkratemplate/issues/145)).
+
+#### ci
+
+- Report coverage on pull requests from this repository
+  ([\#146](https://github.com/cynkra/cynkratemplate/issues/146)).
+
+- Autolink inline code in the README’s prose
+  ([\#135](https://github.com/cynkra/cynkratemplate/issues/135)).
+
+- Build a binary package in every check job and share it as an artifact
+  ([\#141](https://github.com/cynkra/cynkratemplate/issues/141)).
+
+- Add `build-binary` and `install-binary` actions
+  ([\#142](https://github.com/cynkra/cynkratemplate/issues/142)).
+
+### Continuous integration
+
+- Bound every job with `timeout-minutes`
+  ([\#144](https://github.com/cynkra/cynkratemplate/issues/144)).
+
 ## cynkratemplate 0.0.2.9032
 
 ### Bug fixes
