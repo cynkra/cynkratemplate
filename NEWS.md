@@ -1,5 +1,20 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9032
+
+## Bug fixes
+
+### ci
+
+- Collect the fleet's workflow fixes after the move to central actions (#139).
+
+## Documentation
+
+- Break lines at meaning boundaries (#128).
+
+- Render `README.md` from a new `README.Rmd` (#127).
+
+
 # cynkratemplate 0.0.2.9031
 
 ## Bug fixes
