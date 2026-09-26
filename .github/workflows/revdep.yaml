@@ -58,7 +58,7 @@ jobs:
     needs: matrix
 
     runs-on: ubuntu-26.04
-    timeout-minutes: 180 # no recent runs to measure
+    timeout-minutes: 120 # no recent runs to measure
 
     name: 'revdep: ${{ matrix.package }}'
 

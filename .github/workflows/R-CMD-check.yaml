@@ -66,12 +66,10 @@ permissions:
 # and notes the longest run seen across the fleet next to it.
 # GitHub's default is six hours, so a step that hangs instead of failing
 # keeps the `rcc` status pending and holds a runner until someone cancels the run.
-# Each limit sits well above the longest run, because only a hang should reach it:
-# a cold cache that compiles every dependency from source is slower than anything measured,
-# and a limit sized to the measurements would turn honest runs red.
+# Every job that runs R CMD check or builds the pkgdown site gets the same 120 minutes.
+# The other jobs get a limit well above their longest run, because only a hang should reach it.
 # The measurements are from September 2026,
 # over the last 30 to 100 completed runs of each workflow in nine repositories of the fleet.
-# Raise a limit when a real run gets within reach of it.
 jobs:
   rcc-smoke:
     # Deliberately amd64. The smoke test is the gate that also styles,
@@ -351,7 +349,7 @@ jobs:
       - rcc-smoke
 
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 180 # longest run seen: 99 min
+    timeout-minutes: 120 # longest run seen: 99 min
 
     if: ${{ needs.rcc-smoke.outputs.versions-matrix != '' }}
 
