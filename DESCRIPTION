@@ -20,7 +20,7 @@ Imports:
     cli,
     desc
 Suggests:
-    DBI,
+    downlit,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),

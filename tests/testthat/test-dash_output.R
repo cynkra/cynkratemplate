@@ -50,8 +50,6 @@ test_that("an unusable recorded prefix is ignored", {
 })
 
 test_that("a rendered README keeps the character in its own code", {
-  skip_if_not_installed("withr")
-
   out <- render_fixture(c(
     "# fixture",
     "",
