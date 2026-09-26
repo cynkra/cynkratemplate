@@ -369,6 +369,7 @@ jobs:
     if: inputs.dry-run != true
 
     runs-on: ubuntu-26.04
+    timeout-minutes: 90 # longest run seen: 9 min
 
     name: "Build the dev binary"
 
@@ -769,6 +770,7 @@ jobs:
       && inputs.dry-run != true
 
     runs-on: ubuntu-26.04
+    timeout-minutes: 120 # longest run seen: 3 min
 
     name: "Collect results and report"
 
