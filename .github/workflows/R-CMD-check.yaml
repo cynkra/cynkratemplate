@@ -62,6 +62,16 @@ name: rcc
 permissions:
   contents: read
 
+# Every job in the workflows of this kit sets `timeout-minutes`,
+# and notes the longest run seen across the fleet next to it.
+# GitHub's default is six hours, so a step that hangs instead of failing
+# keeps the `rcc` status pending and holds a runner until someone cancels the run.
+# Each limit sits well above the longest run, because only a hang should reach it:
+# a cold cache that compiles every dependency from source is slower than anything measured,
+# and a limit sized to the measurements would turn honest runs red.
+# The measurements are from September 2026,
+# over the last 30 to 100 completed runs of each workflow in nine repositories of the fleet.
+# Raise a limit when a real run gets within reach of it.
 jobs:
   rcc-smoke:
     # Deliberately amd64. The smoke test is the gate that also styles,
@@ -72,6 +82,7 @@ jobs:
     # (rcc-full) instead, where fail-fast: false isolates failures and jobs don't
     # mutate the repo. Revisit once the arm image is generally available.
     runs-on: ubuntu-26.04
+    timeout-minutes: 120 # longest run seen: 28 min
 
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
@@ -310,6 +321,7 @@ jobs:
 
   rcc-smoke-check-matrix:
     runs-on: ubuntu-26.04
+    timeout-minutes: 15 # longest run seen: 1 min
 
     name: "Check matrix"
 
@@ -339,6 +351,7 @@ jobs:
       - rcc-smoke
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 180 # longest run seen: 99 min
 
     if: ${{ needs.rcc-smoke.outputs.versions-matrix != '' }}
 
@@ -426,6 +439,7 @@ jobs:
       - rcc-smoke
 
     runs-on: ubuntu-26.04
+    timeout-minutes: 120 # longest run seen: 16 min
 
     if: ${{ needs.rcc-smoke.outputs.dep-suggests-matrix != '' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run-rcc-suggests)) }}
 

@@ -21,6 +21,7 @@ permissions: {}
 jobs:
   pkgdown:
     runs-on: ubuntu-26.04
+    timeout-minutes: 240 # longest run seen: 137 min
 
     name: "pkgdown"
 
