@@ -48,7 +48,7 @@
 #' # Autolinking
 #'
 #' Inline code in the README's prose is linked to its documentation:
-#' `dbGetQuery()` becomes a link to the package's own pkgdown reference,
+#' `readme_document()` becomes a link to the package's own pkgdown reference,
 #' `tibble::tibble()` to tibble's, `print()` to the base R help.
 #' The reference URL is taken from the pkgdown site declared in `URL`,
 #' so a package without a published site is left unlinked rather than

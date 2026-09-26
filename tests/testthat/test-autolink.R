@@ -22,6 +22,7 @@ test_that("spans that resolve to nothing are untouched", {
 })
 
 test_that("an existing link is not nested", {
+  skip_if_not_installed("downlit")
   lines <- "See [`base::print()`](https://example.org) for details."
   expect_identical(autolink_lines(lines), lines)
 })
@@ -34,6 +35,7 @@ test_that("line breaks survive, so semantic line breaks do", {
 })
 
 test_that("autolinking is idempotent", {
+  skip_if_not_installed("downlit")
   lines <- c("Call `base::print()` twice: `base::print()`.")
   once <- autolink_lines(lines)
   expect_identical(autolink_lines(once), once)
@@ -77,6 +79,23 @@ test_that("the renderer's own `downlit.local_packages` wins", {
   out <- local_packages("dm", "https://dm.cynkra.com")
   expect_identical(out[["testthat"]], "file:///tmp/site")
   expect_identical(out[["dm"]], "https://dm.cynkra.com")
+})
+
+test_that("the downlit context lasts until the caller exits", {
+  withr::local_options(downlit.package = NULL, downlit.local_packages = list(testthat = "file:///tmp/site"))
+  root <- withr::local_tempdir()
+  writeLines(c("Package: fixture", "URL: https://fixture.example.org"), file.path(root, "DESCRIPTION"))
+
+  inside <- local({
+    local_downlit_context(root)
+    list(pkg = getOption("downlit.package"), local = getOption("downlit.local_packages"))
+  })
+
+  expect_identical(inside$pkg, "fixture")
+  expect_identical(inside$local[["fixture"]], "https://fixture.example.org")
+  expect_identical(inside$local[["testthat"]], "file:///tmp/site")
+  expect_null(getOption("downlit.package"))
+  expect_identical(getOption("downlit.local_packages"), list(testthat = "file:///tmp/site"))
 })
 
 test_that("a seeded site is used instead of the rdrr.io fallback", {

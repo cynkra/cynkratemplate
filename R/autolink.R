@@ -33,7 +33,7 @@ autolink_readme <- function(lines, root) {
 # Teach downlit which package it is looking at, so a README may write its own
 # `foo()` unqualified and still get a link. Without this only `pkg::foo()` and
 # base R resolve, which is the smaller and less useful half.
-# The options are restored when `.local_envir` exits.
+# The options last until `.local_envir` exits.
 local_downlit_context <- function(root, .local_envir = parent.frame()) {
   desc_path <- file.path(root, "DESCRIPTION")
   if (!file.exists(desc_path)) {

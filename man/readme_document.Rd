@@ -61,7 +61,7 @@ since downlit already auto-links it there.
 
 \section{Autolinking}{
 Inline code in the README's prose is linked to its documentation:
-\code{dbGetQuery()} becomes a link to the package's own pkgdown reference,
+\code{readme_document()} becomes a link to the package's own pkgdown reference,
 \code{tibble::tibble()} to tibble's, \code{print()} to the base R help.
 The reference URL is taken from the pkgdown site declared in \code{URL},
 so a package without a published site is left unlinked rather than
