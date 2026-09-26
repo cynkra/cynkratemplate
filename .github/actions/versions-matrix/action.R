@@ -30,6 +30,12 @@ windows <- data.frame(os = "windows-latest", r = r_versions[1:3])
 linux_devel <- data.frame(os = "ubuntu-26.04", r = r_versions[1], `http-user-agent` = "release", check.names = FALSE)
 linux <- data.frame(os = "ubuntu-26.04", r = r_versions[-1])
 covr <- data.frame(os = "ubuntu-26.04", r = r_versions[2], covr = "true", desc = "with covr")
+# Left out when the calling workflow computes the coverage in its smoke test
+# and says so with the action's `covr: false`. Zero rows rather than NULL,
+# so that the filter and the JSON conversion below need no special case.
+if (Sys.getenv("VERSIONS_MATRIX_COVR", "true") == "false") {
+  covr <- covr[0, ]
+}
 
 # Linux arm64 (ubuntu-26.04-arm) is intentionally ragged: only the two newest R
 # versions, R-devel and R-release. These are the versions actually deployed to
