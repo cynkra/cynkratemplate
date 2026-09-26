@@ -61,6 +61,27 @@ case is rewriting `vignette("x")` into an absolute article link, which
 GitHub needs and pkgdown must not have, since downlit already auto-links
 it there.
 
+## Autolinking
+
+Inline code in the README's prose is linked to its documentation:
+`readme_document()` becomes a link to the package's own pkgdown
+reference,
+[`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html)
+to tibble's, [`print()`](https://rdrr.io/r/base/print.html) to the base
+R help. The reference URL is taken from the pkgdown site declared in
+`URL`, so a package without a published site is left unlinked rather
+than pointed at a page that does not exist.
+
+Only prose is linked. Fenced code blocks are passed through untouched:
+[`downlit::downlit_md_path()`](https://downlit.r-lib.org/reference/downlit_md_path.html)
+would rewrite them into HTML whose highlighting GitHub does not render,
+and would reflow the prose besides, undoing the line breaks these
+sources are written with. A span that resolves to no documented object –
+`TRUE`, a local variable, a SQL fragment – is left exactly as it was.
+
+`index.md` is not linked here: pkgdown runs downlit over the front page
+itself.
+
 ## Encoding
 
 Rendering requires a UTF-8 locale. The pandoc output this format reads

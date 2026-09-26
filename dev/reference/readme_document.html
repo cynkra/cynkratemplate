@@ -101,6 +101,23 @@ which GitHub needs and pkgdown must not have,
 since downlit already auto-links it there.</p>
     </div>
     <div class="section level2">
+    <h2 id="autolinking">Autolinking<a class="anchor" aria-label="anchor" href="#autolinking"></a></h2>
+    <p>Inline code in the README's prose is linked to its documentation:
+<code>readme_document()</code> becomes a link to the package's own pkgdown reference,
+<code><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble::tibble()</a></code> to tibble's, <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> to the base R help.
+The reference URL is taken from the pkgdown site declared in <code>URL</code>,
+so a package without a published site is left unlinked rather than
+pointed at a page that does not exist.</p>
+<p>Only prose is linked.
+Fenced code blocks are passed through untouched:
+<code><a href="https://downlit.r-lib.org/reference/downlit_md_path.html" class="external-link">downlit::downlit_md_path()</a></code> would rewrite them into HTML whose highlighting
+GitHub does not render, and would reflow the prose besides,
+undoing the line breaks these sources are written with.
+A span that resolves to no documented object – <code>TRUE</code>, a local variable,
+a SQL fragment – is left exactly as it was.</p>
+<p><code>index.md</code> is not linked here: pkgdown runs downlit over the front page itself.</p>
+    </div>
+    <div class="section level2">
     <h2 id="encoding">Encoding<a class="anchor" aria-label="anchor" href="#encoding"></a></h2>
     <p>Rendering requires a UTF-8 locale.
 The pandoc output this format reads back is UTF-8 whatever the session is,
