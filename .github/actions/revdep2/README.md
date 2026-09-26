@@ -61,8 +61,9 @@ and `dry-run: true` stops after planning,
 which is how a plan is inspected for free.
 The `ref` input checks any branch, tag or commit SHA:
 the dispatch itself can only target a branch or tag,
-so arbitrary SHAs travel through the input,
-with the one constraint that the tree must contain these scripts.
+so arbitrary SHAs travel through the input.
+The scripts come with the kit's actions rather than from the checked-out tree,
+so any commit of the package can be checked, including one from before they existed.
 
 Planning and the preflight share a job. They were two, and the second did
 nothing the first had not already paid for: a runner, a checkout, `setup-r`, a
@@ -587,11 +588,15 @@ setup and install cost —
 because those are the numbers the next plan is sized in,
 and they are worth reading next to the results they came from.
 
+The scripts are served from cynkra/cynkratemplate rather than copied into each repository,
+so the commands below run them from a checkout of it, here `$TEMPLATE`,
+while the working directory is the repository whose results they are about.
+
 To fetch a run's results:
 
 ```sh
-.github/workflows/revdep2/fetch.sh            # newest completed run
-.github/workflows/revdep2/fetch.sh <run-id>   # a specific one
+"$TEMPLATE"/.github/actions/revdep2/fetch.sh            # newest completed run
+"$TEMPLATE"/.github/actions/revdep2/fetch.sh <run-id>   # a specific one
 ```
 
 It brings `timings.json` down with the report,
@@ -599,7 +604,7 @@ so a plan can be replayed against exactly what that run measured:
 
 ```sh
 REVDEP2_MEASURED_DIR=revdep OUT=plan.json \
-  Rscript .github/workflows/revdep2/plan.R
+  Rscript "$TEMPLATE"/.github/actions/revdep2/plan.R
 ```
 
 To re-check only what a run could not declare ok —

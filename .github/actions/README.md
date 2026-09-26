@@ -39,16 +39,18 @@ That path resolves inside the *consuming* repository, where the file does not ex
 The step then dies at run time, in nine repositories at once, and nothing says so beforehand:
 `actionlint` does not follow paths, and a repository that still had a stale copy would even pass.
 
-The one deliberate exception is the revdep scripts under `.github/workflows/revdep2`,
-`revdep4` and `revdepx`.
-Those are run from the workspace by design, are shared between actions and workflows,
-and are still copied into every repository -- see the last section.
+Scripts that several actions share live in a directory of their own,
+reached with a relative path from `${{ github.action_path }}`.
+The revdep subsystems keep theirs in `revdep2/`, `revdep4/` and `revdepx/`, each with a README of its own.
+A workflow step cannot see `github.action_path`,
+so a job that runs one of these scripts from a step of its own first calls the `revdep-scripts` action,
+which exports the three directories as `REVDEP2_DIR`, `REVDEP4_DIR` and `REVDEPX_DIR`.
 
 ## Testing a change to an action
 
 Because every caller says `@main`,
 a pull request that edits an action changes nothing about what its own run executes:
-the run still fetches the action from `main`.
+the run still fetches the action from `main`, and the scripts beside it with it.
 A green pull request therefore says nothing at all about the change,
 and the first time the new action runs is the moment it lands on every repository at once.
 
@@ -149,8 +151,3 @@ Adding an input with a default does not, and neither does anything a caller cann
   They are referenced with `./` and guarded by `hashFiles()`, so a repository without them skips the step.
   Fetching them from here would give every repository the same hooks,
   which is the opposite of what they are for, so they stay local and stay where they are.
-- **`.github/workflows/revdep2`, `revdep4` and `revdepx`** hold the shell and R scripts
-  that the revdep actions run, and those run from the workspace rather than from the action.
-  They are still copied into each repository.
-  An action fetched from here can therefore drift from a script synced from here:
-  keep a change that spans both in one commit, and land it in the consuming repositories together.

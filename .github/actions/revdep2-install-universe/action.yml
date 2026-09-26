@@ -62,7 +62,7 @@ runs:
         # after it in about a second. The space is on the big disk.: 
       run: |
         mkdir -p "${RUNNER_TEMP}/preflight" "${RUNNER_TEMP}/tmp"
-        watch=./.github/workflows/revdep2/watch-resources.sh
+        watch="${{ github.action_path }}/../revdep2/watch-resources.sh"
         # Backgrounded and left running, like the shard's. It used to be
         # killed when this step ended, which left the two artifact uploads
         # after it unsampled -- and this job's library artifact is gigabytes
@@ -77,7 +77,7 @@ runs:
           unbuffered="stdbuf -oL -eL"
         fi
         status=0
-        ${unbuffered} Rscript ./.github/workflows/revdep2/preflight.R || status=$?
+        ${unbuffered} Rscript "${{ github.action_path }}/../revdep2/preflight.R" || status=$?
         "${watch}" once "after the install"
         exit "${status}"
       shell: bash
