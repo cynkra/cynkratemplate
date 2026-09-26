@@ -4,22 +4,10 @@
 # https://github.com/r-hub/actions/blob/v1/workflows/rhub.yaml,
 # and still what `rhub::rhub_check()` dispatches: it passes the platforms in the `config` input.
 #
-# A push to a `cran-*` branch checks the release candidate on the package's platforms,
-# taken from the first of these that is set:
-#
-#   * the `config` input, for a dispatched run;
-#   * `Config/gha/rhub-platforms` in DESCRIPTION, a comma- or space-separated list,
-#     or `none` to skip the checks;
-#   * the default: `nosuggests` for every package,
-#     plus `gcc-asan`, `clang-asan`, `clang-ubsan`, `valgrind` and `rchk`
-#     when `src/` holds sources to compile.
-#
-# rchk in particular belongs to compiled code only.
-# It inspects the package's shared object, and on a package without one the check fails
-# instead of finding nothing.
-#
-# Platform names are R-hub's, https://r-hub.github.io/containers/,
-# and an unknown one fails the `setup` job.
+# A push to a `cran-*` branch checks the release candidate on the package's platforms:
+# `Config/gha/rhub-platforms` in DESCRIPTION, or else a default that depends on
+# whether the package has compiled code.
+# The `rhub-setup` action chooses them, see `platforms.R` beside it.
 name: R-hub
 run-name: >-
   ${{ github.event_name == 'push' && format('Release candidate {0}', github.ref_name) || github.event.inputs.id || format('Manual run by @{0}', github.triggering_actor) }}${{ github.event_name != 'push' && format(': {0}', github.event.inputs.name || github.event.inputs.config || 'the package''s platforms') || '' }}
@@ -59,89 +47,19 @@ jobs:
     timeout-minutes: 15
 
     outputs:
-      containers: ${{ steps.rhub-setup.outputs.containers || '[]' }}
-      platforms: ${{ steps.rhub-setup.outputs.platforms || '[]' }}
+      containers: ${{ steps.setup.outputs.containers }}
+      platforms: ${{ steps.setup.outputs.platforms }}
 
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          use-public-rspm: true
-
       - name: Choose the platforms
-        id: choose
-        env:
-          REQUESTED: ${{ github.event.inputs.config }}
-        run: |
-          ## -- Choose the platforms --
-          requested <- trimws(Sys.getenv("REQUESTED"))
-          # read.dcf(), not `grep`: a DCF value may wrap onto continuation lines.
-          declared <- read.dcf("DESCRIPTION", fields = "Config/gha/rhub-platforms")[1, 1]
-
-          # The file types R CMD INSTALL compiles from src/.
-          sources <- dir(
-            "src",
-            pattern = "[.](c|cc|cpp|cxx|f|f90|f95|m|mm)$",
-            ignore.case = TRUE,
-            recursive = TRUE
-          )
-          compiled <- length(sources) > 0
-
-          if (nzchar(requested)) {
-            spec <- requested
-            origin <- "the `config` input of this run"
-          } else if (!is.na(declared)) {
-            spec <- declared
-            origin <- "`Config/gha/rhub-platforms` in DESCRIPTION"
-          } else if (compiled) {
-            spec <- "nosuggests gcc-asan clang-asan clang-ubsan valgrind rchk"
-            origin <- "the default for a package with compiled code in src/"
-          } else {
-            spec <- "nosuggests"
-            origin <- "the default for a package without compiled code"
-          }
-
-          platforms <- strsplit(trimws(spec), "[[:space:],]+")[[1]]
-          platforms <- platforms[nzchar(platforms)]
-
-          # The list is spliced into a shell command by r-hub/actions/setup,
-          # so anything but a plain platform name is refused here.
-          bad <- grep("^[A-Za-z0-9._-]+$", platforms, value = TRUE, invert = TRUE)
-          if (length(bad) > 0) {
-            stop("Not an R-hub platform name: ", paste0("'", bad, "'", collapse = ", "), call. = FALSE)
-          }
-          if ("none" %in% platforms) {
-            if (length(platforms) > 1) {
-              stop("`none` cannot be combined with other platforms.", call. = FALSE)
-            }
-            platforms <- character()
-          }
-
-          config <- paste(platforms, collapse = ",")
-          cat("config=", config, "\n", sep = "", file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
-
-          summary <- c(
-            "## R-hub platforms",
-            "",
-            if (length(platforms) > 0) {
-              paste0("Checking on ", paste0("`", platforms, "`", collapse = ", "), ", from ", origin, ".")
-            } else {
-              paste0("No checks, as set by ", origin, ".")
-            },
-            ""
-          )
-          writeLines(summary)
-          cat(summary, sep = "\n", file = Sys.getenv("GITHUB_STEP_SUMMARY"), append = TRUE)
-        shell: Rscript {0}
-
-      - uses: r-hub/actions/setup@v1
-        if: steps.choose.outputs.config != ''
+        id: setup
+        uses: cynkra/cynkratemplate/.github/actions/rhub-setup@main
         with:
-          config: ${{ steps.choose.outputs.config }}
-        id: rhub-setup
+          config: ${{ github.event.inputs.config }}
 
   linux-containers:
     needs: setup
@@ -154,24 +72,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Named `config`: `rhub-check` relies on `matrix.config.label`.
         config: ${{ fromJson(needs.setup.outputs.containers) }}
     container:
       image: ${{ matrix.config.container }}
 
     steps:
-      - uses: r-hub/actions/checkout@v1
-      - uses: r-hub/actions/platform-info@v1
+      - uses: cynkra/cynkratemplate/.github/actions/rhub-check@main
         with:
-          token: ${{ secrets.RHUB_TOKEN }}
           job-config: ${{ matrix.config.job-config }}
-      - uses: r-hub/actions/setup-deps@v1
-        with:
           token: ${{ secrets.RHUB_TOKEN }}
-          job-config: ${{ matrix.config.job-config }}
-      - uses: r-hub/actions/run-check@v1
-        with:
-          token: ${{ secrets.RHUB_TOKEN }}
-          job-config: ${{ matrix.config.job-config }}
 
   other-platforms:
     needs: setup
@@ -183,23 +93,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Named `config`: `rhub-check` relies on `matrix.config.label`.
         config: ${{ fromJson(needs.setup.outputs.platforms) }}
 
     steps:
-      - uses: r-hub/actions/checkout@v1
-      - uses: r-hub/actions/setup-r@v1
+      - uses: cynkra/cynkratemplate/.github/actions/rhub-check@main
         with:
           job-config: ${{ matrix.config.job-config }}
           token: ${{ secrets.RHUB_TOKEN }}
-      - uses: r-hub/actions/platform-info@v1
-        with:
-          token: ${{ secrets.RHUB_TOKEN }}
-          job-config: ${{ matrix.config.job-config }}
-      - uses: r-hub/actions/setup-deps@v1
-        with:
-          job-config: ${{ matrix.config.job-config }}
-          token: ${{ secrets.RHUB_TOKEN }}
-      - uses: r-hub/actions/run-check@v1
-        with:
-          job-config: ${{ matrix.config.job-config }}
-          token: ${{ secrets.RHUB_TOKEN }}
+          setup-r: true
