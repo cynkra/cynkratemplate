@@ -1,0 +1,93 @@
+name: "Build a binary package, install it and share it"
+description: >
+  Build a binary package from the checkout with `R CMD INSTALL --build`, which also installs it,
+  upload it as an artifact of the run, and link it from the job summary.
+
+  Call this before the steps that test the package.
+  It compiles in place, so `pkgload::load_all()` -- the snapshot tests, roxygen2 --
+  finds an up-to-date shared object in `src/` and does not compile again,
+  and, with the `CCACHE_NOHASHDIR` that the `install` action sets,
+  it fills ccache for the compilations of `R CMD build` and `R CMD check`.
+  The vignettes are not built, which is what keeps this cheap.
+
+  Where `NEWS.md` is not maintained by fledge, the development version in `DESCRIPTION`
+  does not move from commit to commit.
+  The binary then gets `9000` plus the number of first-parent commits since the last release
+  as the last component of its version, so that binaries of different commits can be told apart.
+  `DESCRIPTION` itself is restored after the build.
+
+inputs:
+  name:
+    description: >
+      What the binary was built on, for instance `ubuntu-26.04-r4.5`.
+      The artifact is called `binary-<name>`, with every run of characters other than
+      letters, digits, `.`, `_` and `-` replaced by a single `-`.
+      It must be unique in the run: `upload-artifact` refuses a second artifact of the same name.
+    required: true
+
+outputs:
+  artifact-name:
+    description: The name of the artifact, which the `install-binary` action takes.
+    value: ${{ steps.build.outputs.artifact-name }}
+  artifact-url:
+    description: The URL of the artifact.
+    value: ${{ steps.upload.outputs.artifact-url }}
+  file:
+    description: The file name of the binary package.
+    value: ${{ steps.build.outputs.file }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Determine the version of the binary package
+      id: version
+      run: bash "${{ github.action_path }}/version.sh"
+      shell: bash
+
+    - name: Build and install the binary package
+      id: build
+      env:
+        NAME: ${{ inputs.name }}
+        VERSION: ${{ steps.version.outputs.version }}
+        # Strip the shared objects, as CRAN does for its binaries.
+        # Debug symbols can make up most of a compiled package,
+        # and every run uploads this file.
+        _R_SHLIB_STRIP_: "true"
+      # Not the checkout's `.Rprofile`: the environment it may set reaches
+      # `R CMD INSTALL`. tibble's sets `R_MAKEVARS_USER` to its `-O0` debug
+      # flags, which would bypass the ccache wrappers in `~/.R/Makevars` and
+      # ship an unoptimized binary.
+      run: Rscript --no-init-file "${{ github.action_path }}/build.R"
+      shell: bash
+
+    - name: Upload the binary package
+      id: upload
+      uses: actions/upload-artifact@v6
+      with:
+        name: ${{ steps.build.outputs.artifact-name }}
+        path: ${{ steps.build.outputs.path }}
+        if-no-files-found: error
+        # A binary package is compressed already.
+        compression-level: 0
+
+    - name: Link the binary package from the job summary
+      env:
+        ARTIFACT: ${{ steps.build.outputs.artifact-name }}
+        URL: ${{ steps.upload.outputs.artifact-url }}
+        FILE: ${{ steps.build.outputs.file }}
+        R_VERSION: ${{ steps.build.outputs.r-version }}
+        PLATFORM: ${{ steps.build.outputs.platform }}
+      run: |
+        ## -- Link the binary package from the job summary --
+        commit=$(git rev-parse --short HEAD)
+        {
+          echo "## Binary package"
+          echo
+          echo "[\`${FILE}\`](${URL}), built from \`${commit}\` with ${R_VERSION} for \`${PLATFORM}\`, is the artifact \`${ARTIFACT}\` of this run:"
+          echo
+          echo '```sh'
+          echo "gh run download ${GITHUB_RUN_ID} --repo ${GITHUB_REPOSITORY} --name ${ARTIFACT}"
+          echo "R CMD INSTALL ${FILE}"
+          echo '```'
+        } >> "${GITHUB_STEP_SUMMARY}"
+      shell: bash

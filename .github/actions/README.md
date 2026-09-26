@@ -17,25 +17,27 @@ which is also why a job with no checkout can still use one.
 There are no tags to move and no versions to bump,
 and a change merged here is live in every repository on the next run.
 
-## An action is one file
+## An action is one directory
 
-Every action here is a single `action.yml`, and nothing else lives in its directory:
+An action is fetched with the whole repository into the runner's action cache, never into the workspace.
+Its `action.yml` reaches the files beside it through `${{ github.action_path }}`:
 
-```bash
-find .github/actions -type f ! -name action.yml ! -name README.md   # prints nothing
+```yaml
+- run: Rscript --no-init-file "${{ github.action_path }}/build.R"
+  shell: bash
 ```
 
-That is not tidiness, it is the only thing that works.
-An action is fetched into the runner's action cache and never into the workspace,
-so a script sitting beside `action.yml` is not a path the runner can reach,
-and a workspace-relative path to it resolves inside the *consuming* repository,
-where the file does not exist.
-Either way the step dies at run time, in nine repositories at once,
-and nothing says so beforehand --
-`actionlint` does not follow paths, and a repository that still had a stale copy would even pass.
+Prefer such a script to a long `run:` block: it can be read, linted and run on its own.
+A short step stays inline, and the older actions still carry long inline blocks until someone moves them out.
 
-So a script an action runs goes in the `run:` block, however long it is.
-`shell: Rscript {0}` for R, which is how the two matrix actions carry their hundred-odd lines.
+Call the script through its interpreter, as above, so that its file mode does not matter.
+From R, prefer `Rscript` in a `shell: bash` step over `source()` in a `shell: Rscript {0}` step:
+on Windows the path holds backslashes, which an R string reads as escapes.
+
+Never refer to a script by a workspace-relative path.
+That path resolves inside the *consuming* repository, where the file does not exist.
+The step then dies at run time, in nine repositories at once, and nothing says so beforehand:
+`actionlint` does not follow paths, and a repository that still had a stale copy would even pass.
 
 The one deliberate exception is the revdep scripts under `.github/workflows/revdep2`,
 `revdep4` and `revdepx`.
