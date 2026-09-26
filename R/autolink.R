@@ -40,17 +40,83 @@ set_downlit_context <- function(root) {
   # The reference URL comes from the pkgdown site declared in `URL`, not from a
   # guess: a package whose site is not published would otherwise have every one
   # of its own functions linked to a 404.
-  urls <- trimws(strsplit(desc[["URL"]] %||% "", ",")[[1]])
-  site <- urls[!grepl("github[.]com|gitlab[.]com", urls)][1]
-  if (is.na(site) || !nzchar(site)) {
+  # Its articles are pinned the same way, so `vignette()` in a README links to
+  # the site rather than to the package's CRAN page.
+  site <- documentation_site(desc[["URL"]] %||% NA_character_)
+  if (is.na(site)) {
     return(list())
   }
 
   options(
     downlit.package = pkg,
     downlit.topic_index = topic_index(root),
-    downlit.topic_path = paste0(sub("/$", "", site), "/reference/")
+    downlit.topic_path = paste0(site, "/reference/"),
+    downlit.article_path = paste0(site, "/articles/"),
+    downlit.local_packages = local_packages(pkg, site)
   )
+}
+
+# downlit discovers another package's documentation URLs by fetching
+# `<site>/pkgdown.yml`, and when that fetch fails it falls back to rdrr.io for a
+# topic and to the CRAN vignette page for an article, silently. The link a
+# README ends up with would then depend on which sites the renderer happens to
+# reach, so the same source would render to different bytes for different
+# people -- the one thing a checked-in generated file must not do.
+#
+# `downlit.local_packages` is consulted before any fetch, so the rule used above
+# for the package being rendered is applied up front to every installed package
+# instead. This also makes the links correct rather than merely stable: rdrr.io
+# is a mirror of the manual, and the package's own site is where its readers are.
+local_packages <- function(pkg, site) {
+  sites <- installed_sites()
+  # From the source tree, which documents a new function before any installed
+  # copy does.
+  sites[[pkg]] <- site
+  # The renderer's own setting wins, so a local pkgdown preview keeps pointing
+  # at itself.
+  utils::modifyList(sites, as.list(getOption("downlit.local_packages")))
+}
+
+# Every installed package that declares a documentation site, `pkg = site`.
+installed_sites <- function() {
+  installed <- tryCatch(
+    utils::installed.packages(fields = "URL"),
+    error = function(e) NULL
+  )
+  if (is.null(installed) || nrow(installed) == 0) {
+    return(list())
+  }
+  sites <- vapply(installed[, "URL"], documentation_site, character(1))
+  names(sites) <- rownames(installed)
+  # A package installed into more than one library is listed once per copy;
+  # `.libPaths()` order is precedence order, so the first copy wins.
+  sites <- sites[!is.na(sites) & !duplicated(names(sites))]
+  as.list(sites)
+}
+
+# The first `URL` entry that can be a pkgdown site. A source host and a package
+# index are documentation for people, not `/reference/` trees, so a link built
+# from either would 404; a package that declares nothing else has no site.
+#
+# The first entry is taken on the same grounds pkgdown itself does it: a package
+# whose `URL` leads with a redirect to its site, as `data.table` does, links
+# through that redirect rather than to a second address for the same pages.
+documentation_site <- function(url) {
+  if (length(url) != 1 || is.na(url)) {
+    return(NA_character_)
+  }
+  urls <- trimws(strsplit(url, ",")[[1]])
+  urls <- urls[grepl("^https?://", urls)]
+  index <- grepl(
+    "(github|gitlab|bitbucket|codeberg)[.]com|(^|[.])r-project[.]org|r-universe[.]dev|rdrr[.]io",
+    urls,
+    ignore.case = TRUE
+  )
+  site <- urls[!index][1]
+  if (is.na(site) || !nzchar(site)) {
+    return(NA_character_)
+  }
+  sub("/$", "", site)
 }
 
 # alias -> Rd page, which is what downlit resolves against. Read from `man/`

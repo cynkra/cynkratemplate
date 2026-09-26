@@ -42,3 +42,50 @@ test_that("a tilde fence is honoured too", {
   lines <- c("~~~", "`base::print()`", "~~~")
   expect_identical(autolink_lines(lines), lines)
 })
+
+test_that("the documentation site is the first `URL` that can be a pkgdown site", {
+  expect_identical(
+    documentation_site("https://dm.cynkra.com, https://github.com/cynkra/dm"),
+    "https://dm.cynkra.com"
+  )
+  # A trailing slash would double up in `<site>//reference/`.
+  expect_identical(
+    documentation_site("https://pillar.r-lib.org/, https://github.com/r-lib/pillar"),
+    "https://pillar.r-lib.org"
+  )
+  # A source host or a package index is not a `/reference/` tree.
+  expect_identical(documentation_site("https://github.com/r-lib/gargle"), NA_character_)
+  expect_identical(documentation_site("https://CRAN.R-project.org/package=foo"), NA_character_)
+  expect_identical(documentation_site("https://foo.r-universe.dev"), NA_character_)
+  # A site hosted on GitHub Pages is a site, unlike the repository next to it.
+  expect_identical(
+    documentation_site("https://Rdatatable.github.io/data.table, https://github.com/Rdatatable/data.table"),
+    "https://Rdatatable.github.io/data.table"
+  )
+  expect_identical(documentation_site(NA_character_), NA_character_)
+})
+
+test_that("the package being rendered is taken from its source tree", {
+  out <- local_packages("dm", "https://dm.cynkra.com")
+  expect_identical(out[["dm"]], "https://dm.cynkra.com")
+})
+
+test_that("the renderer's own `downlit.local_packages` wins", {
+  # A local pkgdown preview sets this to point at itself, and must keep doing so.
+  withr::local_options(downlit.local_packages = list(testthat = "file:///tmp/site"))
+  out <- local_packages("dm", "https://dm.cynkra.com")
+  expect_identical(out[["testthat"]], "file:///tmp/site")
+  expect_identical(out[["dm"]], "https://dm.cynkra.com")
+})
+
+test_that("a seeded site is used instead of the rdrr.io fallback", {
+  # This is the guarantee the seeding rests on: downlit consults
+  # `downlit.local_packages` before it tries to fetch `<site>/pkgdown.yml`, so
+  # the link is the same whether or not the renderer can reach that site.
+  skip_if_not_installed("downlit")
+  withr::local_options(downlit.local_packages = list(testthat = "https://testthat.r-lib.org"))
+  expect_identical(
+    downlit::autolink_url("testthat::test_that()"),
+    "https://testthat.r-lib.org/reference/test_that.html"
+  )
+})
