@@ -29,7 +29,6 @@ windows <- data.frame(os = "windows-latest", r = r_versions[1:3])
 # it is where the deep back-compatibility testing lives.
 linux_devel <- data.frame(os = "ubuntu-26.04", r = r_versions[1], `http-user-agent` = "release", check.names = FALSE)
 linux <- data.frame(os = "ubuntu-26.04", r = r_versions[-1])
-covr <- data.frame(os = "ubuntu-26.04", r = r_versions[2], covr = "true", desc = "with covr")
 
 # Linux arm64 (ubuntu-26.04-arm) is intentionally ragged: only the two newest R
 # versions, R-devel and R-release. These are the versions actually deployed to
@@ -86,7 +85,6 @@ include_list <- list(
   windows,
   linux_devel,
   linux,
-  covr,
   linux_arm64,
   windows_arm64
 )
