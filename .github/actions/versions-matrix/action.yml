@@ -1,0 +1,24 @@
+name: "Actions to compute a matrix with all R and OS versions"
+description: >
+  Compute the matrix of operating systems and R versions the full check runs over.
+
+outputs:
+  matrix:
+    description: "Generated matrix"
+    value: ${{ steps.set-matrix.outputs.matrix }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install json2yaml
+      run: |
+        sudo npm install -g json2yaml
+      shell: bash
+
+    - name: Collect the R versions to check
+      id: set-matrix
+      # The script sits beside this file, and the runner fetched both together.
+      # It runs in the workspace, so it reads the package being checked.
+      run: |
+        Rscript "${{ github.action_path }}/action.R"
+      shell: bash

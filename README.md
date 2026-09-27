@@ -1,3 +1,8 @@
+
+<!-- README.md and index.md are generated from README.Rmd.
+     Edit that file and render it the usual way: rmarkdown::render(), devtools::build_readme(), or the Knit button.
+     The cynkratemplate package must be installed; it supplies the output format. -->
+
 # cynkratemplate
 
 [![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
@@ -9,17 +14,18 @@ Please don't use it for your own package.
 
 Install cynkratemplate.
 
-```r
+``` r
 devtools::install_github("cynkra/cynkratemplate")
 ```
 
-Run 
+Run
 
-```r
+``` r
 cynkratemplate::use_cynkra_pkgdown()
 ```
 
-Please ask the person in charge (see website page of the general manual in clickup) for a plausible subdomain via email or another mean of communication of their choice.
+Please ask the person in charge (see website page of the general manual in clickup) for a plausible subdomain
+via email or another mean of communication of their choice.
 
 ## Fonts
 
@@ -31,9 +37,13 @@ In addition, he ACL settings of the bucket must be set to "public read" so the f
 
 ### cynkra blog, dm and similar repositories
 
-The *cynkra blog*, *cynkratemplate*, *dm* and similar repositories use the same fonts from [cynkra/cynkraweb on GitHub](https://github.com/cynkra/cynkraweb/blob/main/www/assets/css/base/fonts.css), specifically `font-family: "frutiger", sans-serif;` with font weights of `300` (light), `400` (normal), and `700` (bold). Please ensure not to use **500**, **600**, **bolder**, or other weights, as the browser would render them using faux styles.
+The *cynkra blog*, *cynkratemplate*, *dm* and similar repositories use the same fonts from [cynkra/cynkraweb on GitHub](https://github.com/cynkra/cynkraweb/blob/main/www/assets/css/base/fonts.css),
+specifically `font-family: "frutiger", sans-serif;` with font weights of `300` (light), `400` (normal), and `700` (bold).
+Please ensure not to use **500**, **600**, **bolder**, or other weights, as the browser would render them using faux styles.
 
-Keep in mind that since the Cynkra blog loads fonts from absolute URLs (e.g. `src: url("https://cynkra.com/assets/fonts/frutiger-400.woff2") format("woff2");`), if there is a font update at the [cynkra/cynkraweb GitHub repository](https://github.com/cynkra/cynkraweb/), the URLs might change, requiring updates on our end as well.
+Keep in mind that since the Cynkra blog loads fonts from absolute URLs (e.g. `src: url("https://cynkra.com/assets/fonts/frutiger-400.woff2") format("woff2");`),
+if there is a font update at the [cynkra/cynkraweb GitHub repository](https://github.com/cynkra/cynkraweb/),
+the URLs might change, requiring updates on our end as well.
 
 ### Local preview
 

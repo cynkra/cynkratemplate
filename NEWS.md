@@ -1,5 +1,104 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9033
+
+## Bug fixes
+
+### revdep2
+
+- Let a slice with no packages check nothing instead of failing (#150).
+
+## Features
+
+### ci
+
+- Run R-hub checks on every `cran-*` push, through `rhub-setup` and `rhub-check` actions (#145).
+
+### ci
+
+- Report coverage on pull requests from this repository (#146).
+
+- Autolink inline code in the README's prose (#135).
+
+- Build a binary package in every check job and share it as an artifact (#141).
+
+- Add `build-binary` and `install-binary` actions (#142).
+
+## Continuous integration
+
+- Bound every job with `timeout-minutes` (#144).
+
+
+# cynkratemplate 0.0.2.9032
+
+## Bug fixes
+
+### ci
+
+- Collect the fleet's workflow fixes after the move to central actions (#139).
+
+## Documentation
+
+- Break lines at meaning boundaries (#128).
+
+- Render `README.md` from a new `README.Rmd` (#127).
+
+
+# cynkratemplate 0.0.2.9031
+
+## Bug fixes
+
+- Qualify base calls in the roxygenize action with `base::` (#137).
+
+
+# cynkratemplate 0.0.2.9030
+
+## Bug fixes
+
+### ci
+
+- Inline the two scripts that an action can no longer reach (#134).
+
+## Chore
+
+- Remove Copilot setup steps.
+
+
+# cynkratemplate 0.0.2.9029
+
+## Bug fixes
+
+### ci
+
+- Keep the raw name expression out of the running job's step list (#119).
+
+### fledge
+
+- Push the bump to the default branch wherever that is allowed (#117).
+
+### ci
+
+- Make a failing `rcc` run say what failed, and link to it (#115).
+
+### ci
+
+- Exempt deprecation warnings from the roxygenize warning gate (#114).
+
+## Features
+
+- Add `readme_document()` to build `README.md` and `index.md` together (#116).
+
+## Refactoring
+
+### ci
+
+- Serve the actions from this repository instead of copying them (#121).
+
+### ci
+
+- Move every script out of the workflows and into a named action (#120).
+
+
 # cynkratemplate 0.0.2.9028
 
 ## Bug fixes
