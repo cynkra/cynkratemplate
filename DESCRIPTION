@@ -1,6 +1,6 @@
 Package: cynkratemplate
 Title: pkgdown template for cynkra packages
-Version: 0.0.2.9031
+Version: 0.0.2.9033
 Authors@R: c(
     person("Christoph", "Sax", , "christoph.sax@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-7192-7044")),
@@ -20,7 +20,7 @@ Imports:
     cli,
     desc
 Suggests:
-    DBI,
+    downlit,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),

@@ -1,5 +1,49 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9033
+
+## Bug fixes
+
+### revdep2
+
+- Let a slice with no packages check nothing instead of failing (#150).
+
+## Features
+
+### ci
+
+- Run R-hub checks on every `cran-*` push, through `rhub-setup` and `rhub-check` actions (#145).
+
+### ci
+
+- Report coverage on pull requests from this repository (#146).
+
+- Autolink inline code in the README's prose (#135).
+
+- Build a binary package in every check job and share it as an artifact (#141).
+
+- Add `build-binary` and `install-binary` actions (#142).
+
+## Continuous integration
+
+- Bound every job with `timeout-minutes` (#144).
+
+
+# cynkratemplate 0.0.2.9032
+
+## Bug fixes
+
+### ci
+
+- Collect the fleet's workflow fixes after the move to central actions (#139).
+
+## Documentation
+
+- Break lines at meaning boundaries (#128).
+
+- Render `README.md` from a new `README.Rmd` (#127).
+
+
 # cynkratemplate 0.0.2.9031
 
 ## Bug fixes
