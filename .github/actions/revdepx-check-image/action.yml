@@ -28,10 +28,10 @@ runs:
         # is the shard's longest phase, and the streamed samples are what
         # survives if the runner dies in it (the file-writing sampler's
         # stdout stopped reaching the log when its own step ended).
-        ./.github/workflows/revdepx/watch-resources.sh watch 120 "shard ${SHARD} image prep" &
+        "${{ github.action_path }}/../revdepx/watch-resources.sh" watch 120 "shard ${SHARD} image prep" &
         sampler=$!
         trap 'kill "${sampler}" 2> /dev/null || true' EXIT
-        ./.github/workflows/revdepx/shard-prep.sh \
+        "${{ github.action_path }}/../revdepx/shard-prep.sh" \
           "${UNIVERSE_IMAGE}" \
           "${RUNNER_TEMP}/universe-image" \
           "${REVDEPX_LIB_INDEX}" \

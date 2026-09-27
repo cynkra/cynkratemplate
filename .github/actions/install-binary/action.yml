@@ -1,0 +1,46 @@
+name: "Install a binary package built earlier in the run"
+description: >
+  Download a binary package that the `build-binary` action uploaded earlier in this run, and install it.
+  The job must run on the same operating system and the same R version as the job that built it.
+
+inputs:
+  name:
+    description: The artifact to install, as the `artifact-name` output of the `build-binary` action gives it.
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # `download-artifact` with an empty name downloads every artifact of the
+    # run, which is never what is meant here.
+    - name: Require an artifact name
+      env:
+        NAME: ${{ inputs.name }}
+      run: |
+        ## -- Require an artifact name --
+        if [ -z "${NAME}" ]; then
+          echo "::error title=No binary package::The job that should have built the binary package did not name one."
+          exit 1
+        fi
+      shell: bash
+
+    - name: Download the binary package
+      uses: actions/download-artifact@v7
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ runner.temp }}/install-binary
+
+    - name: Install the binary package
+      env:
+        DIR: ${{ runner.temp }}/install-binary
+      run: |
+        ## -- Install the binary package --
+        set -euo pipefail
+        shopt -s nullglob
+        files=("${DIR}"/*)
+        if [ "${#files[@]}" -ne 1 ]; then
+          echo "::error title=No binary package::Expected one file in the artifact, found ${#files[@]}."
+          exit 1
+        fi
+        R CMD INSTALL "${files[0]}"
+      shell: bash

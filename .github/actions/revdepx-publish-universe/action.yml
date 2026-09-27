@@ -33,7 +33,7 @@ runs:
         echo "Universe delta: ${delta_gb}G in ${delta_files} files; free: ${free_gb}G, ${free_inodes} inodes"
 
         # Streamed from inside the step (see the build step for why).
-        ./.github/workflows/revdepx/watch-resources.sh watch 60 "committing the universe image" &
+        "${{ github.action_path }}/../revdepx/watch-resources.sh" watch 60 "committing the universe image" &
         sampler=$!
         trap 'kill "${sampler}" 2> /dev/null || true' EXIT
 
