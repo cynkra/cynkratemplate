@@ -1,5 +1,42 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9034
+
+## Features
+
+### ci
+
+- Render the README by default, with `false` to opt out (#153).
+
+### ci
+
+- Render `README.md` and `index.md` in CI (#118).
+
+### ci
+
+- Add the `render-readme` action (#136).
+
+### ci
+
+- Compute the coverage in the smoke test for every run (#152).
+
+## Documentation
+
+### actions
+
+- Say that `after-install` appends to `~/.R/Makevars` (#154).
+
+## Refactoring
+
+### ci
+
+- Serve the revdep scripts with the actions instead of copying them (#149).
+
+### ci
+
+- Run the two matrix scripts from a file beside their action again (#148).
+
+
 # cynkratemplate 0.0.2.9033
 
 ## Bug fixes
