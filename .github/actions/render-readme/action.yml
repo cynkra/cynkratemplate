@@ -7,11 +7,11 @@ description: >
   action honours it rather than choosing one: `cynkratemplate::readme_document`
   writes the pkgdown front page `index.md` beside `README.md`, a plain
   `github_document` writes `README.md` alone.
-  A package with no `README.Rmd` is skipped, and so is one that has not set
-  `Config/cynkra/render-readme: true` in `DESCRIPTION`: rendering is opt-in,
-  because committing the result is only safe for a README that renders
-  reproducibly. Packages the README needs in order to render are declared
-  in `Config/Needs/readme`.
+  A package with no `README.Rmd` is skipped, and so is one that sets
+  `Config/cynkra/render-readme: false` in `DESCRIPTION`: rendering is opt-out.
+  Committing the result is only safe for a README that renders reproducibly,
+  so a README that does not yet should opt out until it does. Packages the
+  README needs in order to render are declared in `Config/Needs/readme`.
 
 runs:
   using: "composite"
@@ -31,22 +31,23 @@ runs:
           quit(save = "no")
         }
 
-        # Opt-in, and deliberately not opt-out. Committing a re-rendered README
-        # is only safe once that README renders the same way twice: anything
-        # that varies between runs -- a timestamp, an unseeded sample, a live
-        # address -- would otherwise be committed as noise on every scheduled
-        # run. A repository therefore asks for this in the same change that
-        # makes its README reproducible, rather than being enrolled by a
-        # template update it has not been prepared for.
+        # Opt-out. Committing a re-rendered README is only safe once that
+        # README renders the same way twice: anything that varies between runs
+        # -- a timestamp, an unseeded sample, a live address -- would otherwise
+        # be committed as noise on every scheduled run. This started out opt-in
+        # for that reason, and became opt-out once every README in the fleet
+        # had been made to render reproducibly. A repository whose README
+        # cannot, for now, says so with `false`; `true` is accepted and changes
+        # nothing, so the repositories that opted in early need no edit.
         field <- "Config/cynkra/render-readme"
-        enabled <- FALSE
+        disabled <- FALSE
         if (file.exists("DESCRIPTION")) {
           desc <- read.dcf("DESCRIPTION")[1, ]
-          enabled <- field %in% names(desc) &&
-            tolower(trimws(desc[[field]])) %in% c("true", "yes")
+          disabled <- field %in% names(desc) &&
+            tolower(trimws(desc[[field]])) %in% c("false", "no")
         }
-        if (!enabled) {
-          writeLines(paste0("DESCRIPTION does not set `", field, ": true`, skipping."))
+        if (disabled) {
+          writeLines(paste0("DESCRIPTION sets `", field, ": false`, skipping."))
           writeLines("render=false", out)
           quit(save = "no")
         }
