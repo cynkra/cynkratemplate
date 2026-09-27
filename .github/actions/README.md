@@ -151,3 +151,5 @@ Adding an input with a default does not, and neither does anything a caller cann
   They are referenced with `./` and guarded by `hashFiles()`, so a repository without them skips the step.
   Fetching them from here would give every repository the same hooks,
   which is the opposite of what they are for, so they stay local and stay where they are.
+  `after-install` runs once `install` has written the ccache wrappers and `MAKEFLAGS` to `~/.R/Makevars`.
+  A hook that adds to that file appends, with `>>` or `tee -a`; overwriting it drops them.
