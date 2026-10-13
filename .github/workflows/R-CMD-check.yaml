@@ -18,10 +18,6 @@ on:
       - master
   workflow_dispatch:
     inputs:
-      ref:
-        description: "Branch, tag, or commit to check out"
-        required: false
-        default: "main"
       versions-matrix:
         description: "Create a matrix of R versions"
         type: boolean
@@ -51,7 +47,7 @@ on:
     - cron: "10 1 * * *"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.ref || github.head_ref || github.sha }}-${{ github.base_ref || '' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || github.sha }}-${{ github.base_ref || '' }}
   cancel-in-progress: true
 
 name: rcc
@@ -73,7 +69,7 @@ permissions:
 jobs:
   rcc-smoke:
     # Deliberately amd64. The smoke test is the gate that also styles,
-    # roxygenizes, updates snapshots, commits back and deploys pkgdown, so it
+    # roxygenizes, updates snapshots, reports the changes and deploys pkgdown, so it
     # must run on the most stable and available runner. The ubuntu-26.04-arm
     # image is still in public preview (actions/runner-images#14226 -- possible
     # instability and queueing), so arm64 is exercised in the full version matrix
@@ -83,31 +79,18 @@ jobs:
     timeout-minutes: 120 # longest run seen: 28 min
 
     outputs:
-      sha: ${{ steps.commit.outputs.sha }}
       versions-matrix: ${{ steps.versions-matrix.outputs.matrix }}
       dep-suggests-matrix: ${{ steps.dep-suggests-matrix.outputs.matrix }}
       binary: ${{ steps.binary.outputs.artifact-name }}
 
     name: "Smoke test: stock R"
 
+    # For the pkgdown deployment, nothing pushes to the branch under check.
     permissions:
       contents: write
-      statuses: write
-      pull-requests: write
-      actions: write
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.ref }}
-
-      - name: Update status for rcc (pending)
-        if: github.actor != 'Copilot' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: cynkra/cynkratemplate/.github/actions/commit-status@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          state: pending
-          sha: ${{ inputs.ref }}
 
       - name: Report the GitHub API rate limit
         uses: cynkra/cynkratemplate/.github/actions/rate-limit@main
@@ -141,8 +124,7 @@ jobs:
         if: hashFiles('.github/workflows/custom/after-install/action.yml') != ''
 
       # Must come after the custom after-install workflow.
-      # Builds the commit as pushed: the styling and roxygenizing below may
-      # push a new commit on top, which this binary does not include.
+      # Builds the commit as pushed, before the styling and roxygenizing below.
       - name: Build, install and upload the binary package
         id: binary
         uses: cynkra/cynkratemplate/.github/actions/build-binary@main
@@ -172,25 +154,17 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || inputs.dep-suggests-matrix
         uses: cynkra/cynkratemplate/.github/actions/dep-suggests-matrix@main
 
-      - name: Determine repository state
-        id: repo-state
-        uses: cynkra/cynkratemplate/.github/actions/repo-state@main
-
-      # Styling on foreign PRs works through the format-suggest workflow
       - name: Style the R sources
         id: style
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/style@main
-        if: steps.repo-state.outputs.foreign != 'true' || steps.repo-state.outputs.is_pr != 'true'
 
-      # Snapshot tests can't work in a way similar to format-suggests
-      # because it requires running code which is a security risk on pull_request_target workflows
       - name: Update the testthat snapshots
         id: snapshots
         continue-on-error: true
-        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@main
+        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@claude/vibrant-cori-x9jtyo
         with:
-          base: ${{ inputs.ref || github.head_ref }}
+          pull-request: false
 
       - name: Roxygenize the documentation
         id: roxygenize
@@ -198,25 +172,23 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/roxygenize@main
 
       # After roxygenize, so a README rendering against the installed package
-      # sees documentation that is already up to date, and before the commit
-      # step, so the rendered files ride along in the same commit. The action
+      # sees documentation that is already up to date, and before the report
+      # step, so the rendered files are in the same patch. The action
       # is a no-op for a repository that sets `Config/cynkra/render-readme: false`.
       - name: Re-render the README
         id: render-readme
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/render-readme@main
 
-      - name: Remove config files from previous iteration
-        run: |
-          rm -f .github/dep-suggests-matrix.json .github/versions-matrix.json
-        shell: bash
-
-      - name: Commit and push the generated changes
-        id: commit
+      # What the steps above changed is reported, never pushed. It fails a pull
+      # request, whose author fixes it; on the default branch it becomes an
+      # issue, through `rcc-findings` below.
+      - name: Report the findings
+        id: findings
         continue-on-error: true
-        uses: cynkra/cynkratemplate/.github/actions/commit@main
+        uses: cynkra/cynkratemplate/.github/actions/report-findings@claude/vibrant-cori-x9jtyo
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fail: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
 
       - name: Run R CMD check
         id: check
@@ -248,28 +220,13 @@ jobs:
       # same way. The version matrix no longer has a covr entry of its own;
       # entries a repository adds in .github/versions-matrix.R, such as extra
       # backends, still run there.
-      # In the smoke test rather than a job of its own, because this job's status
-      # is the `rcc` status of a pull request from this repository: a separate job
-      # would let it turn green, and auto-merge go ahead, while coverage was still
-      # running. After the pkgdown steps, so that a push deploys its site first.
+      # After the pkgdown steps, so that a push deploys its site first.
       - name: Compute and upload the test coverage
         id: covr
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/covr@main
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      # Upload sha as artifact
-      - name: Record the commit SHA reached by the smoke test
-        run: |
-          echo -n "${{ steps.commit.outputs.sha }}" > rcc-smoke-sha.txt
-        shell: bash
-
-      - name: Upload the commit SHA reached by the smoke test
-        uses: actions/upload-artifact@v6
-        with:
-          name: rcc-smoke-sha
-          path: rcc-smoke-sha.txt
 
       # These two steps are what fails the job if any of the checks above failed.
       #
@@ -317,7 +274,7 @@ jobs:
             Update the testthat snapshots|Snapshots|${{ steps.snapshots.outcome }}
             Roxygenize the documentation|Roxygenize|${{ steps.roxygenize.outcome }}
             Re-render the README|README|${{ steps.render-readme.outcome }}
-            Commit and push the generated changes|Commit|${{ steps.commit.outcome }}
+            Report the findings|Findings|${{ steps.findings.outcome }}
             Run R CMD check|R CMD check|${{ steps.check.outcome }}
             Build the pkgdown website|pkgdown build|${{ steps.pkgdown-build.outcome }}
             Build and deploy the pkgdown website|pkgdown deploy|${{ steps.pkgdown-deploy.outcome }}
@@ -336,24 +293,6 @@ jobs:
           report: ${{ steps.outcomes.outputs.report }}
           summary: ${{ steps.outcomes.outputs.summary }}
 
-      - name: Update status for rcc (final)
-        if: always() && (github.actor != 'Copilot') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: cynkra/cynkratemplate/.github/actions/commit-status@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          state: ${{ job.status }}
-          # The commit that the commit-back step created, if there was one
-          sha: ${{ steps.commit.outputs.sha || inputs.ref }}
-
-      - name: Update status for rcc (Copilot)
-        # Update status directly when triggered by Copilot or bots, since they can't dispatch workflows
-        if: always() && (github.actor == 'Copilot')
-        uses: cynkra/cynkratemplate/.github/actions/commit-status@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          state: ${{ job.status }}
-          sha: ${{ inputs.ref }}
-
   rcc-smoke-check-matrix:
     runs-on: ubuntu-26.04
     timeout-minutes: 15 # longest run seen: 1 min
@@ -368,8 +307,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.rcc-smoke.outputs.sha }}
 
       - name: Show the R versions matrix
         uses: cynkra/cynkratemplate/.github/actions/matrix-check@main
@@ -393,11 +330,7 @@ jobs:
     name: 'rcc: ${{ matrix.os }} (${{ matrix.r }}) ${{ matrix.desc }}'
 
     permissions:
-      # Both required by the update-snapshots action, which opens a pull
-      # request with refreshed snapshots. It is skipped for forks, where the
-      # token is read-only anyway.
-      contents: write
-      pull-requests: write
+      contents: read
 
     strategy:
       fail-fast: false
@@ -405,8 +338,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.rcc-smoke.outputs.sha }}
 
       - name: Apply environment variables from the test matrix
         # Generic: matrix entries defined in .github/versions-matrix.R can
@@ -455,14 +386,22 @@ jobs:
       - name: Must allow NOTEs if packages are missing, even with _R_CHECK_FORCE_SUGGESTS_
         uses: cynkra/cynkratemplate/.github/actions/allow-notes-when-deps-missing@main
       - name: Update the testthat snapshots
-        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@main
+        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@claude/vibrant-cori-x9jtyo
         # Generic escape hatch: a custom action may set SKIP_UPDATE_SNAPSHOTS
         # to opt out of running the snapshot updater,
         # which runs tests directly via testthat::test_local()
         # and is difficult to disable otherwise.
-        if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && env.SKIP_UPDATE_SNAPSHOTS != 'true'
+        if: env.SKIP_UPDATE_SNAPSHOTS != 'true'
         with:
-          base: ${{ github.head_ref }}
+          pull-request: false
+
+      - name: Report the findings
+        uses: cynkra/cynkratemplate/.github/actions/report-findings@claude/vibrant-cori-x9jtyo
+        with:
+          fail: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+          name: ${{ matrix.os }}-r${{ matrix.r }}${{ matrix.desc && format('-{0}', matrix.desc) || '' }}${{ matrix.covr && '-covr' || '' }}
+          # Only the snapshots, a build on this platform may leave other files.
+          paths: tests/testthat/_snaps
 
       - name: Run R CMD check
         uses: cynkra/cynkratemplate/.github/actions/check@main
@@ -480,7 +419,58 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-# The status update is taken care of by R-CMD-check-status.yaml
+  # The default branch has nobody watching its runs, so its findings become an
+  # issue, for an agent or a person who watches the `ci-finding` label.
+  rcc-findings:
+    needs:
+      - rcc-smoke
+      - rcc-full
+
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15 # new job, expected to take a minute
+
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch)) }}
+
+    name: "File the findings as an issue"
+
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Download the findings
+        uses: actions/download-artifact@v7
+        with:
+          pattern: changes-patch*
+          path: findings
+
+      - name: File the findings as an issue
+        uses: cynkra/cynkratemplate/.github/actions/file-findings@claude/vibrant-cori-x9jtyo
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          smoke-result: ${{ needs.rcc-smoke.result }}
+
+  # The one check that pull requests are gated on, named like the status it
+  # replaces, red when any job above failed. A check of this run attaches to
+  # the commit it ran on, for pull requests from forks too, so nothing has to
+  # set a status by hand.
+  rcc:
+    needs:
+      - rcc-smoke
+      - rcc-smoke-check-matrix
+      - rcc-full
+      - rcc-findings
+      - rcc-suggests
+
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15 # new job, expected to take seconds
+
+    if: always()
+
+    steps:
+      - name: Fail if any job failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
 
   rcc-suggests:
     needs:
@@ -563,5 +553,3 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/check@main
         with:
           results: ${{ matrix.package }}
-
-# The status update is taken care of by R-CMD-check-status.yaml

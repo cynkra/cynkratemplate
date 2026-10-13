@@ -101,7 +101,7 @@ jobs:
           name: ubuntu-26.04-rrelease-base
 
       - name: Update the testthat snapshots
-        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@main
+        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@claude/vibrant-cori-x9jtyo
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
       - name: Run R CMD check
@@ -167,7 +167,7 @@ jobs:
         if: hashFiles('.github/workflows/custom/after-install/action.yml') != ''
 
       - name: Update the testthat snapshots
-        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@main
+        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@claude/vibrant-cori-x9jtyo
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
       - name: Run R CMD check
