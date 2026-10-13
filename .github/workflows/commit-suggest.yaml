@@ -1,5 +1,8 @@
-# Posts the formatting patch produced by the `rcc` workflow
+# Posts the patch of what the `rcc` workflow would have changed --
+# formatting, documentation, snapshots, the README --
 # as a comment on the pull request it came from.
+# `rcc` does not push to the branch under check, this comment is how the
+# change reaches the author, or the agent that drives the pull request.
 #
 # SECURITY -- `workflow_run` is a privileged trigger.
 # It runs from the default branch of the BASE repository
@@ -12,7 +15,7 @@
 #     permits `"`, `` ` ``, `;` and `$(...)` in branch names.
 #   * `head_commit.message`, repository descriptions and similar fields
 #     are free text and may contain quotes.
-#   * The `changes-patch` artifact was produced by a run
+#   * The `findings-smoke` artifact was produced by a run
 #     that executed the fork's code, so its contents are arbitrary.
 #
 # Consequently no field of the event is ever interpolated with `${{ }}`
@@ -64,25 +67,34 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v7
         with:
-          name: changes-patch
+          name: findings-smoke
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
         continue-on-error: true
 
+      # `results` is in every findings artifact, `changes.patch` only where
+      # something was found. A run without the artifact never got that far,
+      # and says nothing either way.
       - name: Check if artifact exists
         id: check-artifact
         run: |
-          if [ -f changes.patch ]; then
-            echo "has_diff=true" >> $GITHUB_OUTPUT
+          if [ -f results ]; then
+            echo "has_findings=true" >> "$GITHUB_OUTPUT"
           else
-            echo "has_diff=false" >> $GITHUB_OUTPUT
-            echo "No changes-patch artifact found"
+            echo "has_findings=false" >> "$GITHUB_OUTPUT"
+            echo "No findings-smoke artifact"
+          fi
+          if [ -f changes.patch ]; then
+            echo "has_diff=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_diff=false" >> "$GITHUB_OUTPUT"
+            echo "No changes.patch in the findings-smoke artifact"
           fi
         shell: bash
 
       - name: Find PR number for branch from correct head repository
         id: find-pr
-        if: steps.check-artifact.outputs.has_diff == 'true'
+        if: steps.check-artifact.outputs.has_findings == 'true'
         uses: cynkra/cynkratemplate/.github/actions/commit-suggest-find-pr@main
         with:
           gh-token: ${{ github.token }}
@@ -95,6 +107,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           repo: ${{ github.repository }}
           pr-number: ${{ steps.find-pr.outputs.pr_number }}
+          artifact-name: findings-smoke
       - name: Post or update comment
         if: steps.check-artifact.outputs.has_diff == 'true' && steps.find-pr.outputs.pr_number != ''
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
@@ -103,3 +116,13 @@ jobs:
           file-path: comment.md
           comment-tag: formatting-suggestions
           mode: recreate
+
+      # A comment that outlives its findings would send the author, or an agent
+      # reading the pull request, after a patch that no longer applies.
+      - name: Delete the comment once nothing is found
+        if: steps.check-artifact.outputs.has_findings == 'true' && steps.check-artifact.outputs.has_diff != 'true' && steps.find-pr.outputs.pr_number != ''
+        uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b # v3.0.1
+        with:
+          pr-number: ${{ steps.find-pr.outputs.pr_number }}
+          comment-tag: formatting-suggestions
+          mode: delete

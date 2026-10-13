@@ -1,0 +1,40 @@
+name: "Report the findings"
+description: >
+  Publish what the `record-finding` steps of this job found:
+  as a patch per kind in the job summary, as a warning annotation,
+  and as the artifact `findings-<name>`,
+  which holds `changes.patch` with every finding in one patch
+  and which the `file-findings` action turns into issues.
+  A finding does not fail the step.
+  A formatting or documentation change is not a failure,
+  and a snapshot that no longer matches fails the tests by itself,
+  because the `record-finding` action reverts it before the check.
+
+inputs:
+  name:
+    description: >
+      Names the artifact, `findings-<name>`, and so the source of a finding in an issue.
+      Unique within the run.
+    required: true
+
+outputs:
+  found:
+    description: "The kinds found, comma-separated, empty where there were none."
+    value: ${{ steps.report.outputs.found }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Summarize the findings
+      id: report
+      env:
+        NAME: ${{ inputs.name }}
+      run: bash "${{ github.action_path }}/report.sh"
+      shell: bash
+
+    - name: Upload the findings
+      uses: actions/upload-artifact@v6
+      with:
+        name: findings-${{ inputs.name }}
+        path: ${{ runner.temp }}/findings/
+        if-no-files-found: warn

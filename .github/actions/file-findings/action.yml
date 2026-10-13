@@ -1,0 +1,34 @@
+name: "File the findings as issues"
+description: >
+  Turn the findings that the jobs of this run reported into issues labelled `ci-finding`,
+  one per kind of finding and branch,
+  so that an agent or a person who watches the label can fix them in a pull request.
+  An issue is opened when a kind is found, its body is replaced when the patch changes,
+  and it is closed when a run on the branch checked that kind and found nothing.
+  Only the run for the branch's current head files anything,
+  so that a slow run cannot reopen what a newer one closed.
+  Needs `issues: write` and `contents: read`, and the `findings-*` artifacts of the run downloaded to `path`.
+
+inputs:
+  token:
+    description: "Token with `issues: write`."
+    required: true
+  path:
+    description: "Where the `findings-*` artifacts were downloaded, one directory each."
+    required: false
+    default: "findings"
+  label:
+    description: "The label that marks the issues, and that a fixing agent watches."
+    required: false
+    default: "ci-finding"
+
+runs:
+  using: "composite"
+  steps:
+    - name: File the findings as issues
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        FINDINGS_DIR: ${{ inputs.path }}
+        LABEL: ${{ inputs.label }}
+      run: bash "${{ github.action_path }}/file-findings.sh"
+      shell: bash

@@ -1,6 +1,8 @@
 name: "Action to commit changes to the repository"
 description: >
   Commit and push whatever the generating steps changed, opening a pull request instead where the branch is protected.
+  Superseded by `record-finding`, `report-findings` and `file-findings`, which report the changes instead of pushing them;
+  kept for the copies of the workflows that still call it, and to be deleted once none does.
 inputs:
   token:
     description: "GitHub token"

@@ -1,0 +1,49 @@
+name: "Record a finding"
+description: >
+  Record what the step before this one changed in the working tree,
+  as a patch for one kind of finding,
+  so that CI reports the change rather than committing it.
+  The first call of a job, with `kind: baseline`,
+  marks the tree that the later findings are measured from:
+  anything changed before it, such as the `.gitignore` entry that the `install` action adds,
+  is not a finding.
+  An adapted finding stays in the working tree for the steps that follow,
+  any other is reverted, so that the check sees the commit as pushed.
+  The `report-findings` action publishes what was recorded.
+
+inputs:
+  kind:
+    description: >
+      What the step before fixes, as one lowercase word: `style`, `roxygen`, `snapshots`, `readme`.
+      `baseline` starts the record instead.
+    required: true
+  outcome:
+    description: >
+      The outcome of the step that made the change.
+      A skipped step found nothing, and a failed one that changed nothing proves nothing,
+      so neither lets the `file-findings` action close an issue.
+    required: false
+    default: "success"
+  adapt:
+    description: >
+      `true` keeps the change in the working tree, for generated files that the check should see regenerated;
+      `false` reverts it, so that sources and test expectations are checked as pushed.
+    required: false
+    default: "false"
+
+outputs:
+  found:
+    description: "`true` where the step changed the working tree."
+    value: ${{ steps.record.outputs.found }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Record the ${{ inputs.kind }} finding
+      id: record
+      env:
+        KIND: ${{ inputs.kind }}
+        OUTCOME: ${{ inputs.outcome }}
+        ADAPT: ${{ inputs.adapt }}
+      run: bash "${{ github.action_path }}/record.sh"
+      shell: bash

@@ -73,9 +73,9 @@ permissions:
 jobs:
   rcc-smoke:
     # Deliberately amd64. The smoke test is the gate that also styles,
-    # roxygenizes, updates snapshots, commits back and deploys pkgdown, so it
-    # must run on the most stable and available runner. The ubuntu-26.04-arm
-    # image is still in public preview (actions/runner-images#14226 -- possible
+    # roxygenizes, updates snapshots, reports what that changed and deploys
+    # pkgdown, so it must run on the most stable and available runner.
+    # The ubuntu-26.04-arm image is still in public preview (actions/runner-images#14226 -- possible
     # instability and queueing), so arm64 is exercised in the full version matrix
     # (rcc-full) instead, where fail-fast: false isolates failures and jobs don't
     # mutate the repo. Revisit once the arm image is generally available.
@@ -83,18 +83,18 @@ jobs:
     timeout-minutes: 120 # longest run seen: 28 min
 
     outputs:
-      sha: ${{ steps.commit.outputs.sha }}
       versions-matrix: ${{ steps.versions-matrix.outputs.matrix }}
       dep-suggests-matrix: ${{ steps.dep-suggests-matrix.outputs.matrix }}
       binary: ${{ steps.binary.outputs.artifact-name }}
 
     name: "Smoke test: stock R"
 
+    # Nothing here writes to the branch under check. `contents: write` is for
+    # the pkgdown deployment to `gh-pages`, `statuses: write` for the `rcc`
+    # status. What the fixers below change is reported, see "Report the findings".
     permissions:
       contents: write
       statuses: write
-      pull-requests: write
-      actions: write
 
     steps:
       - uses: actions/checkout@v6
@@ -141,8 +141,7 @@ jobs:
         if: hashFiles('.github/workflows/custom/after-install/action.yml') != ''
 
       # Must come after the custom after-install workflow.
-      # Builds the commit as pushed: the styling and roxygenizing below may
-      # push a new commit on top, which this binary does not include.
+      # Builds the commit as pushed, before the documentation is regenerated below.
       - name: Build, install and upload the binary package
         id: binary
         uses: cynkra/cynkratemplate/.github/actions/build-binary@main
@@ -176,47 +175,86 @@ jobs:
         id: repo-state
         uses: cynkra/cynkratemplate/.github/actions/repo-state@main
 
-      # Styling on foreign PRs works through the format-suggest workflow
+      # CI never commits what the four fixers below change: it reports it.
+      # Each fixer runs as before, and the `record-finding` step after it keeps
+      # what it changed as a patch of its own kind. Generated files -- the
+      # roxygen2 output and the rendered README -- stay regenerated, so that the
+      # check and the website see them as they should be. Everything else is
+      # reverted, so that the code and the snapshots are checked as pushed, and a
+      # snapshot that no longer matches fails the tests as it should.
+      # "Report the findings" then publishes the patches: in the job summary, in
+      # a comment on a pull request through `commit-suggest`, and, on the default
+      # branch, as issues for an agent or a person to fix, through the
+      # `rcc-findings` job below. Before, these were pushed onto the branch
+      # under check, which took a token that could write to it, a second commit
+      # whose status had to be set by hand, and a different route for every kind
+      # of branch.
+      - name: Start recording the findings
+        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
+        with:
+          kind: baseline
+
+      # Styling on foreign PRs works through the format-suggest workflow,
+      # which suggests the changes inline.
       - name: Style the R sources
         id: style
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/style@main
         if: steps.repo-state.outputs.foreign != 'true' || steps.repo-state.outputs.is_pr != 'true'
 
-      # Snapshot tests can't work in a way similar to format-suggests
-      # because it requires running code which is a security risk on pull_request_target workflows
+      - name: Record what styling changed
+        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
+        with:
+          kind: style
+          outcome: ${{ steps.style.outcome }}
+
       - name: Update the testthat snapshots
         id: snapshots
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/update-snapshots@main
         with:
-          base: ${{ inputs.ref || github.head_ref }}
+          pull-request: false
+
+      - name: Record what the snapshot update changed
+        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
+        with:
+          kind: snapshots
+          outcome: ${{ steps.snapshots.outcome }}
 
       - name: Roxygenize the documentation
         id: roxygenize
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/roxygenize@main
 
+      - name: Record what roxygenizing changed
+        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
+        with:
+          kind: roxygen
+          outcome: ${{ steps.roxygenize.outcome }}
+          adapt: true
+
       # After roxygenize, so a README rendering against the installed package
-      # sees documentation that is already up to date, and before the commit
-      # step, so the rendered files ride along in the same commit. The action
-      # is a no-op for a repository that sets `Config/cynkra/render-readme: false`.
+      # sees documentation that is already up to date. The action is a no-op
+      # for a repository that sets `Config/cynkra/render-readme: false`.
       - name: Re-render the README
         id: render-readme
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/render-readme@main
 
-      - name: Remove config files from previous iteration
-        run: |
-          rm -f .github/dep-suggests-matrix.json .github/versions-matrix.json
-        shell: bash
-
-      - name: Commit and push the generated changes
-        id: commit
-        continue-on-error: true
-        uses: cynkra/cynkratemplate/.github/actions/commit@main
+      - name: Record what rendering the README changed
+        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          kind: readme
+          outcome: ${{ steps.render-readme.outcome }}
+          adapt: true
+
+      # Never fails on a finding, see the description of the action.
+      - name: Report the findings
+        id: findings
+        continue-on-error: true
+        uses: cynkra/cynkratemplate/.github/actions/report-findings@main
+        with:
+          name: smoke
 
       - name: Run R CMD check
         id: check
@@ -258,18 +296,6 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/covr@main
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      # Upload sha as artifact
-      - name: Record the commit SHA reached by the smoke test
-        run: |
-          echo -n "${{ steps.commit.outputs.sha }}" > rcc-smoke-sha.txt
-        shell: bash
-
-      - name: Upload the commit SHA reached by the smoke test
-        uses: actions/upload-artifact@v6
-        with:
-          name: rcc-smoke-sha
-          path: rcc-smoke-sha.txt
 
       # These two steps are what fails the job if any of the checks above failed.
       #
@@ -317,7 +343,7 @@ jobs:
             Update the testthat snapshots|Snapshots|${{ steps.snapshots.outcome }}
             Roxygenize the documentation|Roxygenize|${{ steps.roxygenize.outcome }}
             Re-render the README|README|${{ steps.render-readme.outcome }}
-            Commit and push the generated changes|Commit|${{ steps.commit.outcome }}
+            Report the findings|Findings|${{ steps.findings.outcome }}
             Run R CMD check|R CMD check|${{ steps.check.outcome }}
             Build the pkgdown website|pkgdown build|${{ steps.pkgdown-build.outcome }}
             Build and deploy the pkgdown website|pkgdown deploy|${{ steps.pkgdown-deploy.outcome }}
@@ -342,8 +368,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           state: ${{ job.status }}
-          # The commit that the commit-back step created, if there was one
-          sha: ${{ steps.commit.outputs.sha || inputs.ref }}
+          sha: ${{ inputs.ref }}
 
       - name: Update status for rcc (Copilot)
         # Update status directly when triggered by Copilot or bots, since they can't dispatch workflows
@@ -369,7 +394,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ needs.rcc-smoke.outputs.sha }}
+          ref: ${{ inputs.ref }}
 
       - name: Show the R versions matrix
         uses: cynkra/cynkratemplate/.github/actions/matrix-check@main
@@ -392,12 +417,10 @@ jobs:
 
     name: 'rcc: ${{ matrix.os }} (${{ matrix.r }}) ${{ matrix.desc }}'
 
+    # Snapshot updates are reported like the smoke test's findings,
+    # so nothing in this job writes to the repository.
     permissions:
-      # Both required by the update-snapshots action, which opens a pull
-      # request with refreshed snapshots. It is skipped for forks, where the
-      # token is read-only anyway.
-      contents: write
-      pull-requests: write
+      contents: read
 
     strategy:
       fail-fast: false
@@ -406,7 +429,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ needs.rcc-smoke.outputs.sha }}
+          ref: ${{ inputs.ref }}
 
       - name: Apply environment variables from the test matrix
         # Generic: matrix entries defined in .github/versions-matrix.R can
@@ -454,15 +477,40 @@ jobs:
 
       - name: Must allow NOTEs if packages are missing, even with _R_CHECK_FORCE_SUGGESTS_
         uses: cynkra/cynkratemplate/.github/actions/allow-notes-when-deps-missing@main
+
+      # The snapshot update is recorded and reverted as in the smoke test, so a
+      # snapshot that differs on this platform fails the check below, and the
+      # patch that would fix it is reported under this entry's name. This job
+      # does not regenerate the documentation: it checks the commit as pushed.
+      - name: Start recording the findings
+        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
+        with:
+          kind: baseline
+
       - name: Update the testthat snapshots
+        id: snapshots
         uses: cynkra/cynkratemplate/.github/actions/update-snapshots@main
         # Generic escape hatch: a custom action may set SKIP_UPDATE_SNAPSHOTS
         # to opt out of running the snapshot updater,
         # which runs tests directly via testthat::test_local()
         # and is difficult to disable otherwise.
-        if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && env.SKIP_UPDATE_SNAPSHOTS != 'true'
+        # It runs for pull requests from forks too, now that it needs no token.
+        if: env.SKIP_UPDATE_SNAPSHOTS != 'true'
         with:
-          base: ${{ github.head_ref }}
+          pull-request: false
+
+      - name: Record what the snapshot update changed
+        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
+        with:
+          kind: snapshots
+          outcome: ${{ steps.snapshots.outcome }}
+
+      - name: Report the findings
+        uses: cynkra/cynkratemplate/.github/actions/report-findings@main
+        with:
+          # As unique as the binary's name above, and a covr entry, which builds
+          # no binary, may share its OS and R version with an entry that does.
+          name: ${{ matrix.os }}-r${{ matrix.r }}${{ matrix.desc && format('-{0}', matrix.desc) || '' }}${{ matrix.covr && '-covr' || '' }}
 
       - name: Run R CMD check
         uses: cynkra/cynkratemplate/.github/actions/check@main
@@ -481,6 +529,43 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
 # The status update is taken care of by R-CMD-check-status.yaml
+
+  # The default branch has no author watching its runs, so its findings become
+  # issues, labelled `ci-finding`, for an agent or a person to pick up and fix
+  # in a pull request. Everywhere else, the run's summary and the pull request
+  # comment reach whoever pushed. This job runs no code of the package and
+  # holds the only token in this workflow that can write issues.
+  rcc-findings:
+    needs:
+      - rcc-smoke
+      - rcc-full
+
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15 # new job, no runs seen yet
+
+    # `!cancelled()` rather than `always()`: a run that a newer push cancelled
+    # has nothing to say about the branch.
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch)) }}
+
+    name: "File the findings as issues"
+
+    permissions:
+      # To read the branch head, which decides whether this run may file.
+      contents: read
+      issues: write
+
+    steps:
+      - name: Download the findings
+        uses: actions/download-artifact@v7
+        with:
+          pattern: findings-*
+          path: findings
+
+      - name: File the findings as issues
+        uses: cynkra/cynkratemplate/.github/actions/file-findings@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: findings
 
   rcc-suggests:
     needs:
