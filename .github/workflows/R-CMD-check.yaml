@@ -162,7 +162,7 @@ jobs:
       - name: Update the testthat snapshots
         id: snapshots
         continue-on-error: true
-        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@main
+        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@claude/vibrant-cori-x9jtyo
         with:
           pull-request: false
 
@@ -186,7 +186,7 @@ jobs:
       - name: Report the findings
         id: findings
         continue-on-error: true
-        uses: cynkra/cynkratemplate/.github/actions/report-findings@main
+        uses: cynkra/cynkratemplate/.github/actions/report-findings@claude/vibrant-cori-x9jtyo
         with:
           fail: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
 
@@ -386,7 +386,7 @@ jobs:
       - name: Must allow NOTEs if packages are missing, even with _R_CHECK_FORCE_SUGGESTS_
         uses: cynkra/cynkratemplate/.github/actions/allow-notes-when-deps-missing@main
       - name: Update the testthat snapshots
-        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@main
+        uses: cynkra/cynkratemplate/.github/actions/update-snapshots@claude/vibrant-cori-x9jtyo
         # Generic escape hatch: a custom action may set SKIP_UPDATE_SNAPSHOTS
         # to opt out of running the snapshot updater,
         # which runs tests directly via testthat::test_local()
@@ -396,7 +396,7 @@ jobs:
           pull-request: false
 
       - name: Report the findings
-        uses: cynkra/cynkratemplate/.github/actions/report-findings@main
+        uses: cynkra/cynkratemplate/.github/actions/report-findings@claude/vibrant-cori-x9jtyo
         with:
           fail: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
           name: ${{ matrix.os }}-r${{ matrix.r }}${{ matrix.desc && format('-{0}', matrix.desc) || '' }}${{ matrix.covr && '-covr' || '' }}
@@ -445,7 +445,7 @@ jobs:
           path: findings
 
       - name: File the findings as an issue
-        uses: cynkra/cynkratemplate/.github/actions/file-findings@main
+        uses: cynkra/cynkratemplate/.github/actions/file-findings@claude/vibrant-cori-x9jtyo
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           smoke-result: ${{ needs.rcc-smoke.result }}
