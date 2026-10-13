@@ -3,7 +3,7 @@ description: >
   This action will run `testthat::test_local()` for tests that seem to use snapshots,
   this is determined by reading and grepping the test files.
   If the tests are failing, snapshots are updated, and a pull request is opened.
-  With `pull-request: false`, the updated snapshots stay in the working tree for `report-findings`, and the step fails.
+  With `pull-request: false`, the updated snapshots stay in the working tree for `report-findings`.
 inputs:
   base:
     description: "The base branch to create the pull request against."
@@ -109,7 +109,7 @@ runs:
           tests/testthat/_snaps
 
     - name: Fail if pull request created
-      if: ${{ steps.cpr.outputs.pull-request-number || (steps.run-tests.outputs.changed && inputs.pull-request == 'false') }}
+      if: ${{ steps.cpr.outputs.pull-request-number }}
       run: |
         false
       shell: bash

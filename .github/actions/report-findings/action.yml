@@ -2,8 +2,8 @@ name: "Report the findings"
 description: >
   Report what the fixing steps before changed in the working tree, instead of committing it:
   as a patch in the job summary, and as the artifact `changes-patch` (`changes-patch-<name>` with a name),
-  which `commit-suggest` posts on a pull request and `file-findings` files as an issue.
-  Uploads nothing where nothing changed, and never fails on a finding.
+  which `file-findings` files as an issue.
+  Uploads nothing where nothing changed.
 
 inputs:
   name:
@@ -14,6 +14,10 @@ inputs:
     description: "Only report changes under this path."
     required: false
     default: "."
+  fail:
+    description: "`true` fails the step when there is something to report."
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -22,6 +26,7 @@ runs:
       id: patch
       env:
         PATHS: ${{ inputs.paths }}
+        FAIL: ${{ inputs.fail }}
       run: |
         ## -- Write the patch --
         set -euo pipefail
@@ -55,9 +60,11 @@ runs:
           head -c 100000 "${patch}"
           printf '\n%s\n\n</details>\n' '````'
         } >> "${GITHUB_STEP_SUMMARY}"
+        [ "${FAIL}" != "true" ]
       shell: bash
 
     - name: Upload the patch
+      if: always()
       uses: actions/upload-artifact@v6
       with:
         name: changes-patch${{ inputs.name && format('-{0}', inputs.name) || '' }}

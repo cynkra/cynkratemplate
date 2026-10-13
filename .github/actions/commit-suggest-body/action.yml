@@ -58,7 +58,7 @@ runs:
           printf '### Method 1: Apply via gh CLI\n\n'
           printf '%s\n' '```bash'
           printf '# Download and apply the patch directly\n'
-          printf 'gh run download %s --repo %s --name changes-patch && git apply changes.patch && rm changes.patch\n' \
+          printf 'gh run download %s --repo %s --name changes-patch && patch -p1 < changes.patch && rm changes.patch\n' \
             "${RUN_ID}" "${REPO}"
           printf '%s\n\n' '```'
           printf 'Repo owners can also apply the patch automatically. '

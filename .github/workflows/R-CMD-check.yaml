@@ -18,10 +18,6 @@ on:
       - master
   workflow_dispatch:
     inputs:
-      ref:
-        description: "Branch, tag, or commit to check out"
-        required: false
-        default: "main"
       versions-matrix:
         description: "Create a matrix of R versions"
         type: boolean
@@ -51,7 +47,7 @@ on:
     - cron: "10 1 * * *"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.ref || github.head_ref || github.sha }}-${{ github.base_ref || '' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || github.sha }}-${{ github.base_ref || '' }}
   cancel-in-progress: true
 
 name: rcc
@@ -89,23 +85,12 @@ jobs:
 
     name: "Smoke test: stock R"
 
-    # `contents: write` deploys pkgdown, nothing pushes to the branch under check.
+    # For the pkgdown deployment, nothing pushes to the branch under check.
     permissions:
       contents: write
-      statuses: write
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.ref }}
-
-      - name: Update status for rcc (pending)
-        if: github.actor != 'Copilot' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: cynkra/cynkratemplate/.github/actions/commit-status@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          state: pending
-          sha: ${{ inputs.ref }}
 
       - name: Report the GitHub API rate limit
         uses: cynkra/cynkratemplate/.github/actions/rate-limit@main
@@ -169,19 +154,11 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || inputs.dep-suggests-matrix
         uses: cynkra/cynkratemplate/.github/actions/dep-suggests-matrix@main
 
-      - name: Determine repository state
-        id: repo-state
-        uses: cynkra/cynkratemplate/.github/actions/repo-state@main
-
-      # Styling on foreign PRs works through the format-suggest workflow
       - name: Style the R sources
         id: style
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/style@main
-        if: steps.repo-state.outputs.foreign != 'true' || steps.repo-state.outputs.is_pr != 'true'
 
-      # Snapshot tests can't work in a way similar to format-suggests
-      # because it requires running code which is a security risk on pull_request_target workflows
       - name: Update the testthat snapshots
         id: snapshots
         continue-on-error: true
@@ -203,13 +180,15 @@ jobs:
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/render-readme@main
 
-      # What the steps above changed is reported, never pushed: as a comment on
-      # a pull request through `commit-suggest`, and as an issue on the default
-      # branch through `rcc-findings` below.
+      # What the steps above changed is reported, never pushed. It fails a pull
+      # request, whose author fixes it; on the default branch it becomes an
+      # issue, through `rcc-findings` below.
       - name: Report the findings
         id: findings
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/report-findings@main
+        with:
+          fail: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
 
       - name: Run R CMD check
         id: check
@@ -241,10 +220,7 @@ jobs:
       # same way. The version matrix no longer has a covr entry of its own;
       # entries a repository adds in .github/versions-matrix.R, such as extra
       # backends, still run there.
-      # In the smoke test rather than a job of its own, because this job's status
-      # is the `rcc` status of a pull request from this repository: a separate job
-      # would let it turn green, and auto-merge go ahead, while coverage was still
-      # running. After the pkgdown steps, so that a push deploys its site first.
+      # After the pkgdown steps, so that a push deploys its site first.
       - name: Compute and upload the test coverage
         id: covr
         continue-on-error: true
@@ -317,23 +293,6 @@ jobs:
           report: ${{ steps.outcomes.outputs.report }}
           summary: ${{ steps.outcomes.outputs.summary }}
 
-      - name: Update status for rcc (final)
-        if: always() && (github.actor != 'Copilot') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: cynkra/cynkratemplate/.github/actions/commit-status@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          state: ${{ job.status }}
-          sha: ${{ inputs.ref }}
-
-      - name: Update status for rcc (Copilot)
-        # Update status directly when triggered by Copilot or bots, since they can't dispatch workflows
-        if: always() && (github.actor == 'Copilot')
-        uses: cynkra/cynkratemplate/.github/actions/commit-status@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          state: ${{ job.status }}
-          sha: ${{ inputs.ref }}
-
   rcc-smoke-check-matrix:
     runs-on: ubuntu-26.04
     timeout-minutes: 15 # longest run seen: 1 min
@@ -348,8 +307,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.ref }}
 
       - name: Show the R versions matrix
         uses: cynkra/cynkratemplate/.github/actions/matrix-check@main
@@ -381,8 +338,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.ref }}
 
       - name: Apply environment variables from the test matrix
         # Generic: matrix entries defined in .github/versions-matrix.R can
@@ -440,11 +395,10 @@ jobs:
         with:
           pull-request: false
 
-      # After a failed snapshot update too, that is when there is a patch.
       - name: Report the findings
-        if: ${{ !cancelled() }}
         uses: cynkra/cynkratemplate/.github/actions/report-findings@main
         with:
+          fail: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
           name: ${{ matrix.os }}-r${{ matrix.r }}${{ matrix.desc && format('-{0}', matrix.desc) || '' }}${{ matrix.covr && '-covr' || '' }}
           # Only the snapshots, a build on this platform may leave other files.
           paths: tests/testthat/_snaps
@@ -464,8 +418,6 @@ jobs:
         if: ${{ matrix.covr }}
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-# The status update is taken care of by R-CMD-check-status.yaml
 
   # The default branch has nobody watching its runs, so its findings become an
   # issue, for an agent or a person who watches the `ci-finding` label.
@@ -497,6 +449,28 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           smoke-result: ${{ needs.rcc-smoke.result }}
+
+  # The one check that pull requests are gated on, named like the status it
+  # replaces, red when any job above failed. A check of this run attaches to
+  # the commit it ran on, for pull requests from forks too, so nothing has to
+  # set a status by hand.
+  rcc:
+    needs:
+      - rcc-smoke
+      - rcc-smoke-check-matrix
+      - rcc-full
+      - rcc-findings
+      - rcc-suggests
+
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15 # new job, expected to take seconds
+
+    if: always()
+
+    steps:
+      - name: Fail if any job failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
 
   rcc-suggests:
     needs:
@@ -579,5 +553,3 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/check@main
         with:
           results: ${{ matrix.package }}
-
-# The status update is taken care of by R-CMD-check-status.yaml
