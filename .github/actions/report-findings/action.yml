@@ -1,40 +1,65 @@
 name: "Report the findings"
 description: >
-  Publish what the `record-finding` steps of this job found:
-  as a patch per kind in the job summary, as a warning annotation,
-  and as the artifact `findings-<name>`,
-  which holds `changes.patch` with every finding in one patch
-  and which the `file-findings` action turns into issues.
-  A finding does not fail the step.
-  A formatting or documentation change is not a failure,
-  and a snapshot that no longer matches fails the tests by itself,
-  because the `record-finding` action reverts it before the check.
+  Report what the fixing steps before changed in the working tree, instead of committing it:
+  as a patch in the job summary, and as the artifact `changes-patch` (`changes-patch-<name>` with a name),
+  which `commit-suggest` posts on a pull request and `file-findings` files as an issue.
+  Uploads nothing where nothing changed, and never fails on a finding.
 
 inputs:
   name:
-    description: >
-      Names the artifact, `findings-<name>`, and so the source of a finding in an issue.
-      Unique within the run.
-    required: true
-
-outputs:
-  found:
-    description: "The kinds found, comma-separated, empty where there were none."
-    value: ${{ steps.report.outputs.found }}
+    description: "Suffix of the artifact, to tell apart the jobs of one run."
+    required: false
+    default: ""
+  paths:
+    description: "Only report changes under this path."
+    required: false
+    default: "."
 
 runs:
   using: "composite"
   steps:
-    - name: Summarize the findings
-      id: report
+    - name: Write the patch
+      id: patch
       env:
-        NAME: ${{ inputs.name }}
-      run: bash "${{ github.action_path }}/report.sh"
+        PATHS: ${{ inputs.paths }}
+      run: |
+        ## -- Write the patch --
+        set -euo pipefail
+
+        # roxygen2 records its own version in DESCRIPTION, and CI runs a development
+        # roxygen2, so that change alone is not the repository's to make.
+        # It used to be most of what CI committed.
+        # ponytail: when roxygen2 also changes another field, such as `Collate`, the stamp rides along.
+        stamp='^(Config/roxygen2/version|RoxygenNote):'
+        if [ -f DESCRIPTION ] && ! git diff --quiet HEAD -- DESCRIPTION &&
+          diff -q <(git show HEAD:DESCRIPTION | grep -vE "${stamp}") <(grep -vE "${stamp}" DESCRIPTION) > /dev/null; then
+          git checkout HEAD -- DESCRIPTION
+        fi
+
+        # `add -A` so that new files, such as a new snapshot or Rd file, are in the patch.
+        patch="${RUNNER_TEMP}/changes-patch/changes.patch"
+        mkdir -p "$(dirname "${patch}")"
+        git add -A -- "${PATHS}"
+        git diff --cached --binary HEAD -- "${PATHS}" > "${patch}"
+
+        if [ ! -s "${patch}" ]; then
+          echo "Nothing to report."
+          rm "${patch}"
+          exit 0
+        fi
+
+        echo "::warning title=Findings::CI would have changed $(git diff --cached --stat HEAD -- "${PATHS}" | tail -n 1), the job summary has the patch."
+        {
+          printf '## Changes CI would have made\n\n'
+          printf '<details>\n\n%s\n' '````diff'
+          head -c 100000 "${patch}"
+          printf '\n%s\n\n</details>\n' '````'
+        } >> "${GITHUB_STEP_SUMMARY}"
       shell: bash
 
-    - name: Upload the findings
+    - name: Upload the patch
       uses: actions/upload-artifact@v6
       with:
-        name: findings-${{ inputs.name }}
-        path: ${{ runner.temp }}/findings/
-        if-no-files-found: warn
+        name: changes-patch${{ inputs.name && format('-{0}', inputs.name) || '' }}
+        path: ${{ runner.temp }}/changes-patch/
+        if-no-files-found: ignore

@@ -73,9 +73,9 @@ permissions:
 jobs:
   rcc-smoke:
     # Deliberately amd64. The smoke test is the gate that also styles,
-    # roxygenizes, updates snapshots, reports what that changed and deploys
-    # pkgdown, so it must run on the most stable and available runner.
-    # The ubuntu-26.04-arm image is still in public preview (actions/runner-images#14226 -- possible
+    # roxygenizes, updates snapshots, reports the changes and deploys pkgdown, so it
+    # must run on the most stable and available runner. The ubuntu-26.04-arm
+    # image is still in public preview (actions/runner-images#14226 -- possible
     # instability and queueing), so arm64 is exercised in the full version matrix
     # (rcc-full) instead, where fail-fast: false isolates failures and jobs don't
     # mutate the repo. Revisit once the arm image is generally available.
@@ -89,9 +89,7 @@ jobs:
 
     name: "Smoke test: stock R"
 
-    # Nothing here writes to the branch under check. `contents: write` is for
-    # the pkgdown deployment to `gh-pages`, `statuses: write` for the `rcc`
-    # status. What the fixers below change is reported, see "Report the findings".
+    # `contents: write` deploys pkgdown, nothing pushes to the branch under check.
     permissions:
       contents: write
       statuses: write
@@ -141,7 +139,7 @@ jobs:
         if: hashFiles('.github/workflows/custom/after-install/action.yml') != ''
 
       # Must come after the custom after-install workflow.
-      # Builds the commit as pushed, before the documentation is regenerated below.
+      # Builds the commit as pushed, before the styling and roxygenizing below.
       - name: Build, install and upload the binary package
         id: binary
         uses: cynkra/cynkratemplate/.github/actions/build-binary@main
@@ -175,39 +173,15 @@ jobs:
         id: repo-state
         uses: cynkra/cynkratemplate/.github/actions/repo-state@main
 
-      # CI never commits what the four fixers below change: it reports it.
-      # Each fixer runs as before, and the `record-finding` step after it keeps
-      # what it changed as a patch of its own kind. Generated files -- the
-      # roxygen2 output and the rendered README -- stay regenerated, so that the
-      # check and the website see them as they should be. Everything else is
-      # reverted, so that the code and the snapshots are checked as pushed, and a
-      # snapshot that no longer matches fails the tests as it should.
-      # "Report the findings" then publishes the patches: in the job summary, in
-      # a comment on a pull request through `commit-suggest`, and, on the default
-      # branch, as issues for an agent or a person to fix, through the
-      # `rcc-findings` job below. Before, these were pushed onto the branch
-      # under check, which took a token that could write to it, a second commit
-      # whose status had to be set by hand, and a different route for every kind
-      # of branch.
-      - name: Start recording the findings
-        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
-        with:
-          kind: baseline
-
-      # Styling on foreign PRs works through the format-suggest workflow,
-      # which suggests the changes inline.
+      # Styling on foreign PRs works through the format-suggest workflow
       - name: Style the R sources
         id: style
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/style@main
         if: steps.repo-state.outputs.foreign != 'true' || steps.repo-state.outputs.is_pr != 'true'
 
-      - name: Record what styling changed
-        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
-        with:
-          kind: style
-          outcome: ${{ steps.style.outcome }}
-
+      # Snapshot tests can't work in a way similar to format-suggests
+      # because it requires running code which is a security risk on pull_request_target workflows
       - name: Update the testthat snapshots
         id: snapshots
         continue-on-error: true
@@ -215,46 +189,27 @@ jobs:
         with:
           pull-request: false
 
-      - name: Record what the snapshot update changed
-        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
-        with:
-          kind: snapshots
-          outcome: ${{ steps.snapshots.outcome }}
-
       - name: Roxygenize the documentation
         id: roxygenize
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/roxygenize@main
 
-      - name: Record what roxygenizing changed
-        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
-        with:
-          kind: roxygen
-          outcome: ${{ steps.roxygenize.outcome }}
-          adapt: true
-
       # After roxygenize, so a README rendering against the installed package
-      # sees documentation that is already up to date. The action is a no-op
-      # for a repository that sets `Config/cynkra/render-readme: false`.
+      # sees documentation that is already up to date, and before the report
+      # step, so the rendered files are in the same patch. The action
+      # is a no-op for a repository that sets `Config/cynkra/render-readme: false`.
       - name: Re-render the README
         id: render-readme
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/render-readme@main
 
-      - name: Record what rendering the README changed
-        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
-        with:
-          kind: readme
-          outcome: ${{ steps.render-readme.outcome }}
-          adapt: true
-
-      # Never fails on a finding, see the description of the action.
+      # What the steps above changed is reported, never pushed: as a comment on
+      # a pull request through `commit-suggest`, and as an issue on the default
+      # branch through `rcc-findings` below.
       - name: Report the findings
         id: findings
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/report-findings@main
-        with:
-          name: smoke
 
       - name: Run R CMD check
         id: check
@@ -417,8 +372,6 @@ jobs:
 
     name: 'rcc: ${{ matrix.os }} (${{ matrix.r }}) ${{ matrix.desc }}'
 
-    # Snapshot updates are reported like the smoke test's findings,
-    # so nothing in this job writes to the repository.
     permissions:
       contents: read
 
@@ -477,40 +430,24 @@ jobs:
 
       - name: Must allow NOTEs if packages are missing, even with _R_CHECK_FORCE_SUGGESTS_
         uses: cynkra/cynkratemplate/.github/actions/allow-notes-when-deps-missing@main
-
-      # The snapshot update is recorded and reverted as in the smoke test, so a
-      # snapshot that differs on this platform fails the check below, and the
-      # patch that would fix it is reported under this entry's name. This job
-      # does not regenerate the documentation: it checks the commit as pushed.
-      - name: Start recording the findings
-        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
-        with:
-          kind: baseline
-
       - name: Update the testthat snapshots
-        id: snapshots
         uses: cynkra/cynkratemplate/.github/actions/update-snapshots@main
         # Generic escape hatch: a custom action may set SKIP_UPDATE_SNAPSHOTS
         # to opt out of running the snapshot updater,
         # which runs tests directly via testthat::test_local()
         # and is difficult to disable otherwise.
-        # It runs for pull requests from forks too, now that it needs no token.
         if: env.SKIP_UPDATE_SNAPSHOTS != 'true'
         with:
           pull-request: false
 
-      - name: Record what the snapshot update changed
-        uses: cynkra/cynkratemplate/.github/actions/record-finding@main
-        with:
-          kind: snapshots
-          outcome: ${{ steps.snapshots.outcome }}
-
+      # After a failed snapshot update too, that is when there is a patch.
       - name: Report the findings
+        if: ${{ !cancelled() }}
         uses: cynkra/cynkratemplate/.github/actions/report-findings@main
         with:
-          # As unique as the binary's name above, and a covr entry, which builds
-          # no binary, may share its OS and R version with an entry that does.
           name: ${{ matrix.os }}-r${{ matrix.r }}${{ matrix.desc && format('-{0}', matrix.desc) || '' }}${{ matrix.covr && '-covr' || '' }}
+          # Only the snapshots, a build on this platform may leave other files.
+          paths: tests/testthat/_snaps
 
       - name: Run R CMD check
         uses: cynkra/cynkratemplate/.github/actions/check@main
@@ -530,27 +467,21 @@ jobs:
 
 # The status update is taken care of by R-CMD-check-status.yaml
 
-  # The default branch has no author watching its runs, so its findings become
-  # issues, labelled `ci-finding`, for an agent or a person to pick up and fix
-  # in a pull request. Everywhere else, the run's summary and the pull request
-  # comment reach whoever pushed. This job runs no code of the package and
-  # holds the only token in this workflow that can write issues.
+  # The default branch has nobody watching its runs, so its findings become an
+  # issue, for an agent or a person who watches the `ci-finding` label.
   rcc-findings:
     needs:
       - rcc-smoke
       - rcc-full
 
     runs-on: ubuntu-26.04
-    timeout-minutes: 15 # new job, no runs seen yet
+    timeout-minutes: 15 # new job, expected to take a minute
 
-    # `!cancelled()` rather than `always()`: a run that a newer push cancelled
-    # has nothing to say about the branch.
     if: ${{ !cancelled() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch)) }}
 
-    name: "File the findings as issues"
+    name: "File the findings as an issue"
 
     permissions:
-      # To read the branch head, which decides whether this run may file.
       contents: read
       issues: write
 
@@ -558,14 +489,14 @@ jobs:
       - name: Download the findings
         uses: actions/download-artifact@v7
         with:
-          pattern: findings-*
+          pattern: changes-patch*
           path: findings
 
-      - name: File the findings as issues
+      - name: File the findings as an issue
         uses: cynkra/cynkratemplate/.github/actions/file-findings@main
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          path: findings
+          smoke-result: ${{ needs.rcc-smoke.result }}
 
   rcc-suggests:
     needs:

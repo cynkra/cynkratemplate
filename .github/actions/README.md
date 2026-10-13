@@ -49,42 +49,18 @@ which exports the three directories as `REVDEP2_DIR`, `REVDEP4_DIR` and `REVDEPX
 ## Findings, not commits
 
 CI never pushes to the branch it checks.
-The smoke test still styles the sources, updates the snapshots, roxygenizes and renders the README,
-but what each of those changes is a *finding*, reported and left for someone to fix,
-and the matrix does the same with the snapshots of its platform.
+The smoke test still styles, roxygenizes, renders the README and updates the snapshots,
+the matrix updates the snapshots of its platform,
+and `report-findings` reports the changes as the patch `changes-patch*` rather than committing them.
+A changed snapshot fails its step.
+roxygen2 recording its own version in `DESCRIPTION` is not reported, CI runs a development roxygen2.
 
-- `record-finding` runs after each fixer and keeps what it changed as a patch of its own kind:
-  `style`, `snapshots`, `roxygen` or `readme`.
-  Generated files, the roxygen2 output and the rendered README, stay regenerated for the rest of the job,
-  so that the check and the website see them as they should be.
-  Everything else is reverted, so that the code and the snapshots are checked as pushed:
-  a snapshot that no longer matches fails the tests, as it would anywhere else.
-- `report-findings` publishes the patches of a job in its summary and as the artifact `findings-<name>`.
-  A finding never fails the job.
-- On a pull request, `commit-suggest` posts the smoke test's patch as a comment and deletes it once nothing is found.
-- On the default branch, `file-findings` turns them into issues, in the `rcc-findings` job.
-
-`roxygenize` keeps the roxygen2 version that `DESCRIPTION` records.
-CI installs roxygen2 from GitHub, and its version was most of what CI ever committed.
-
-### The issues, for whoever fixes them
-
-An agent loop needs nothing but these issues, and a person can work from them just the same:
-
-- They carry the label `ci-finding`, one open issue per kind and branch.
-  The key is a hidden comment at the top of the body,
-  `<!-- ci-finding workflow="rcc" ref="main" kind="style" -->`.
-- The body says what the kind means and how to fix it,
-  names the run and the commit, and holds the patch, per job that found it.
-  `git apply` takes it at the root of a checkout of that commit or later.
-- A new patch replaces the body; an unchanged one leaves the issue alone.
-- The issue closes itself once a run on the branch head checks that kind and finds nothing,
-  so a pull request that closes it is welcome but not needed.
-  A run whose fixer failed without changing anything closes nothing.
-- Only the run for the current head of the branch writes, so a slow run cannot undo a newer one.
-
-Snapshot findings are the ones to read before applying:
-the patch accepts whatever the tests produced, and a regression produces output too.
+- On a pull request, `commit-suggest` posts the smoke test's patch as a comment.
+- On the default branch, `file-findings` keeps one issue labelled `ci-finding` that holds every patch of the run,
+  for an agent or a person who watches the label.
+  A hidden key, `<!-- ci-findings workflow="rcc" ref="main" -->`, identifies it.
+  The issue is updated when the patch changes and closed when a run whose smoke test passed finds nothing.
+  Only the run for the current head of the branch writes.
 
 ## Testing a change to an action
 

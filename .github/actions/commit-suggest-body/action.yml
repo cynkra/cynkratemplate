@@ -1,7 +1,7 @@
 name: "Generate comment body"
 description: >
-  Turn the patch of what CI would have changed -- formatting, documentation,
-  snapshots, the README -- into the body of a comment that the author can apply.
+  Turn a formatting patch into the body of a review comment, as a suggestion the
+  author can apply.
 
 inputs:
   run-id:
@@ -13,10 +13,6 @@ inputs:
   pr-number:
     description: "The pull request to comment on."
     required: true
-  artifact-name:
-    description: "The artifact of the run that holds `changes.patch`."
-    required: false
-    default: "changes-patch"
 
 runs:
   using: "composite"
@@ -27,7 +23,6 @@ runs:
         RUN_ID: ${{ inputs.run-id }}
         REPO: ${{ inputs.repo }}
         PR_NUMBER: ${{ inputs.pr-number }}
-        ARTIFACT: ${{ inputs.artifact-name }}
       run: |
         set -euo pipefail
 
@@ -57,16 +52,14 @@ runs:
         fence=$(printf '`%.0s' $(seq 1 "${fence_len}"))
 
         {
-          printf '## Changes suggested by CI\n\n'
-          printf 'CI does not push to this branch. '
-          printf 'This patch holds what its formatting, documentation, snapshot or README steps would have changed; '
-          printf 'the run summary says which. '
+          printf '## Formatting suggestions available\n\n'
+          printf 'A patch file with formatting suggestions has been generated. '
           printf 'You can apply it using one of these methods:\n\n'
           printf '### Method 1: Apply via gh CLI\n\n'
           printf '%s\n' '```bash'
           printf '# Download and apply the patch directly\n'
-          printf 'd=$(mktemp -d) && gh run download %s --repo %s --name %s --dir "$d" && git apply "$d/changes.patch"\n' \
-            "${RUN_ID}" "${REPO}" "${ARTIFACT}"
+          printf 'gh run download %s --repo %s --name changes-patch && git apply changes.patch && rm changes.patch\n' \
+            "${RUN_ID}" "${REPO}"
           printf '%s\n\n' '```'
           printf 'Repo owners can also apply the patch automatically. '
           printf 'Click the button to jump to the comment box, then post:\n\n'

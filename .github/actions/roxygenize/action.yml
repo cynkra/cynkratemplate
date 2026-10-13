@@ -4,19 +4,10 @@ description: >
   roxygen2 has no strict mode, so the warnings it emits are collected,
   and the step fails if there are any.
   Deprecation warnings are annotated, but they do not fail the step.
-  The roxygen2 version recorded in `DESCRIPTION` is left as it was:
-  CI runs a development roxygen2, and its version is not the repository's to record.
 
 runs:
   using: "composite"
   steps:
-    - name: Save DESCRIPTION
-      run: |
-        if [ -f DESCRIPTION ]; then
-          cp DESCRIPTION "${RUNNER_TEMP}/roxygenize-DESCRIPTION"
-        fi
-      shell: bash
-
     - name: Roxygenize
       run: |
         ## -- Roxygenize --
@@ -25,7 +16,7 @@ runs:
         # documentation is written, and it would also catch warnings unrelated
         # to roxygenize(), e.g. from loading the package. Collecting the
         # warnings of the roxygenize() call keeps the generated documentation,
-        # which the `record-finding` action still picks up, and fails the step afterwards.
+        # which the commit step still picks up, and fails the step afterwards.
         #
         # Deprecation warnings are carved out of that gate. A third-party
         # roclet such as `devtag` can call a function that roxygen2 has
@@ -92,51 +83,5 @@ runs:
           base::writeLines(base::sprintf("::warning title=roxygen2::%s", escape(warns)))
 
           base::stop("Fix the roxygen2 warnings above.", call. = FALSE)
-        }
-      shell: Rscript {0}
-
-    # roxygen2 writes its own version to `Config/roxygen2/version` on every run,
-    # replacing `RoxygenNote` on the way, and CI installs roxygen2 from GitHub.
-    # Left in place, every release of roxygen2 became a finding -- most of the
-    # commits CI made to cynkratemplate itself changed that one line -- and its fix
-    # would pin the development version on everybody who works on the package.
-    # So the stamp goes back to what was committed. When roxygen2 changed
-    # nothing else, the file goes back byte for byte; when it changed another
-    # field, such as `Collate`, only the stamp goes back, and the rest stays a
-    # finding. In a step of its own, run whether or not roxygenize() warned,
-    # and in a fresh R process, where the package being documented is not
-    # attached and cannot mask anything.
-    - name: Keep the roxygen2 version recorded in DESCRIPTION
-      if: always()
-      run: |
-        ## -- Keep the roxygen2 version recorded in DESCRIPTION --
-        saved <- file.path(Sys.getenv("RUNNER_TEMP"), "roxygenize-DESCRIPTION")
-        if (!file.exists(saved) || !file.exists("DESCRIPTION")) {
-          quit(save = "no")
-        }
-
-        stamp <- c("Config/roxygen2/version", "RoxygenNote")
-        before <- read.dcf(saved)[1, ]
-        after <- read.dcf("DESCRIPTION")[1, ]
-
-        others <- function(x) {
-          x <- x[setdiff(names(x), stamp)]
-          x[order(names(x))]
-        }
-
-        if (identical(before[intersect(stamp, names(before))], after[intersect(stamp, names(after))])) {
-          writeLines("roxygen2 left the version recorded in DESCRIPTION as it was.")
-        } else if (identical(others(before), others(after))) {
-          file.copy(saved, "DESCRIPTION", overwrite = TRUE)
-          writeLines("Restored DESCRIPTION, where roxygen2 only changed the version it records.")
-        } else {
-          for (field in stamp) {
-            if (field %in% names(before)) {
-              desc::desc_set(field, before[[field]], file = "DESCRIPTION")
-            } else if (field %in% names(after)) {
-              desc::desc_del(field, file = "DESCRIPTION")
-            }
-          }
-          writeLines("Restored the roxygen2 version recorded in DESCRIPTION, and kept the other changes.")
         }
       shell: Rscript {0}
