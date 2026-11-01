@@ -1,9 +1,13 @@
 #' Set up cynkratemplate usage
 #'
 #' This function
-#' * copies the favicon folder to the package;
 #' * registers cynkratemplate usage in the pkgdown config;
 #' * explains what the next steps are.
+#'
+#' The cynkra favicon is shipped with the template itself
+#' and copied to the root of every site that uses it,
+#' so the package does not need its own `pkgdown/favicon/` folder.
+#' If one exists, pkgdown uses it instead of the cynkra favicon.
 #'
 #' @param pkg Path to package
 #'
@@ -12,19 +16,6 @@
 #'
 use_cynkra_pkgdown <- function(pkg = getwd()) {
   cat(paste(cli::symbol$info, sprintf("Working in %s\n", pkg)))
-
-  if (!dir.exists(file.path(pkg, "pkgdown", "favicon"))) {
-    dir.create(file.path(pkg, "pkgdown", "favicon"), recursive = TRUE)
-    copied <- file.copy(
-      system.file("favicon", package = "cynkratemplate"),
-      file.path(pkg, "pkgdown", "favicon"),
-      recursive = TRUE
-    )
-    if (!copied) {
-      stop("Failed to copy favicon folder.")
-    }
-    cat(paste(cli::symbol$tick, "Copied favicon files to local package.\n"))
-  }
 
   current_needs <- desc::desc_get("Config/Needs/website")
   needs <- if (!is.na(current_needs)) {
