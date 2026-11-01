@@ -15,8 +15,13 @@ None
 \description{
 This function
 \itemize{
-\item copies the favicon folder to the package;
 \item registers cynkratemplate usage in the pkgdown config;
 \item explains what the next steps are.
 }
+}
+\details{
+The cynkra favicon is shipped with the template itself
+and copied to the root of every site that uses it,
+so the package does not need its own \verb{pkgdown/favicon/} folder.
+If one exists, pkgdown uses it instead of the cynkra favicon.
 }

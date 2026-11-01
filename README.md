@@ -24,6 +24,10 @@ Run
 cynkratemplate::use_cynkra_pkgdown()
 ```
 
+The template ships the cynkra favicon and adds it to every page of the site.
+Packages using the template need no `pkgdown/favicon/` folder of their own;
+remove an existing one unless it holds a deliberately different icon.
+
 Please ask the person in charge (see website page of the general manual in clickup) for a plausible subdomain
 via email or another mean of communication of their choice.
 
