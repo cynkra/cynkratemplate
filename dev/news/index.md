@@ -1,5 +1,57 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9035
+
+### Chore
+
+- Auto-update from GitHub Actions.
+
+  Run:
+  <https://github.com/cynkra/cynkratemplate/actions/runs/38014208608>
+
+## cynkratemplate 0.0.2.9034
+
+### Features
+
+#### ci
+
+- Render the README by default, with `false` to opt out
+  ([\#153](https://github.com/cynkra/cynkratemplate/issues/153)).
+
+#### ci
+
+- Render `README.md` and `index.md` in CI
+  ([\#118](https://github.com/cynkra/cynkratemplate/issues/118)).
+
+#### ci
+
+- Add the `render-readme` action
+  ([\#136](https://github.com/cynkra/cynkratemplate/issues/136)).
+
+#### ci
+
+- Compute the coverage in the smoke test for every run
+  ([\#152](https://github.com/cynkra/cynkratemplate/issues/152)).
+
+### Documentation
+
+#### actions
+
+- Say that `after-install` appends to `~/.R/Makevars`
+  ([\#154](https://github.com/cynkra/cynkratemplate/issues/154)).
+
+### Refactoring
+
+#### ci
+
+- Serve the revdep scripts with the actions instead of copying them
+  ([\#149](https://github.com/cynkra/cynkratemplate/issues/149)).
+
+#### ci
+
+- Run the two matrix scripts from a file beside their action again
+  ([\#148](https://github.com/cynkra/cynkratemplate/issues/148)).
+
 ## cynkratemplate 0.0.2.9033
 
 ### Bug fixes
