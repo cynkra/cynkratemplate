@@ -2,7 +2,24 @@
 
 # cynkratemplate 0.1.0
 
-- Same as previous version.
+## Features
+
+- The template ships the cynkra favicon and links it from every page, so packages using the template no longer need their own `pkgdown/favicon/` folder. `use_cynkra_pkgdown()` no longer copies favicons into the package (cynkra/indiedown#9, #158).
+- New `readme_document()` output format: one `README.Rmd` renders both `README.md` and the pkgdown front page `index.md`, with inline code in the prose autolinked (#116, #135).
+- The top navbar follows the new cynkra design (#55, #63).
+
+## Shared CI kit
+
+- The workflows are a shared kit for cynkra packages: every script lives in a composite action under `.github/actions/`, served from this repository at `@main` instead of being copied into each repository (#120, #121, #149).
+- R CMD check runs on Ubuntu 26.04, adds Linux arm64 and Windows arm64 checks, builds a binary package in every check job, computes coverage in every smoke test and reports it on pull requests, runs all smoke-test checks even when one fails, and says what failed (#88, #97, #99, #115, #141, #142, #146, #152).
+- CI renders `README.md` and `index.md` by default; set `Config/cynkra/render-readme: false` to opt out (#118, #136, #153).
+- Pushes to `cran-*` branches check all R versions and run R-hub checks (#82, #145).
+- New sharded reverse-dependency workflows `revdep2` and `revdep4`, with checks compiled through ccache (#113, #150).
+- The roxygenize step fails on roxygen2 warnings, except for deprecation warnings (#111, #114).
+- Hardened workflows: explicit `permissions` everywhere, third-party actions pinned to commits, `format-suggest` and `workflow_run` workflows protected against untrusted pull requests, locked-down egress, and workflow context passed through the environment (#93, #94, #102, #103, #105, #106).
+- Every job has a `timeout-minutes` bound (#144).
+- fledge pushes the version bump to the default branch wherever that is allowed, and `fledge.yaml` is shared with the fledge repository (#86, #117).
+- Archived CRAN packages are installed from where they still live (#112).
 
 
 # cynkratemplate 0.0.2.9036
