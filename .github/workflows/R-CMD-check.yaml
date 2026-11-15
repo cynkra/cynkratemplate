@@ -24,21 +24,30 @@ on:
         required: false
         default: ""
       versions-matrix:
-        description: "Create a matrix of R versions"
-        type: boolean
-        default: false
+        description: "Create a matrix of R versions (auto: unless on the default branch)"
+        # `auto`: on when dispatched on a branch other than the default branch,
+        # such as a release branch, off on the default branch.
+        type: choice
+        options: [auto, "true", "false"]
+        default: auto
       dep-suggests-matrix:
-        description: "Create a matrix of suggested dependencies"
-        type: boolean
-        default: false
+        description: "Create a matrix of suggested dependencies (auto: unless on the default branch)"
+        # `auto`: on when dispatched on a branch other than the default branch,
+        # such as a release branch, off on the default branch.
+        type: choice
+        options: [auto, "true", "false"]
+        default: auto
       run-rcc-full:
         description: "Run rcc-full job"
         type: boolean
         default: false
       run-rcc-suggests:
-        description: "Run rcc-suggests job"
-        type: boolean
-        default: false
+        description: "Run rcc-suggests job (auto: unless on the default branch)"
+        # `auto`: on when dispatched on a branch other than the default branch,
+        # such as a release branch, off on the default branch.
+        type: choice
+        options: [auto, "true", "false"]
+        default: auto
   # SECURITY: a merge-queue run executes the queued pull request's code with
   # the base repository's token and secrets, unlike `pull_request`, where a
   # fork only ever gets a read-only token and no secrets. Adding a fork's pull
@@ -171,16 +180,17 @@ jobs:
         # Only run for:
         # - pull requests if the base repo is different from the head repo
         # Do not run for:
-        # - workflow_dispatch if not requested
+        # - workflow_dispatch if not requested, or by default on the default branch
         # Always run for other events.
-        if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) && (github.event_name != 'workflow_dispatch' || inputs.versions-matrix)
+        if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) && (github.event_name != 'workflow_dispatch' || (inputs.versions-matrix == 'true' || (inputs.versions-matrix == 'auto' && github.ref_name != github.event.repository.default_branch)))
         uses: cynkra/cynkratemplate/.github/actions/versions-matrix@main
 
       - name: Collect the suggested dependencies into a matrix
         id: dep-suggests-matrix
         continue-on-error: true
-        # Not for workflow_dispatch if not requested, always run for other events
-        if: github.event_name != 'workflow_dispatch' || inputs.dep-suggests-matrix
+        # Not for workflow_dispatch if not requested, or by default on the default branch;
+        # always run for other events
+        if: github.event_name != 'workflow_dispatch' || (inputs.dep-suggests-matrix == 'true' || (inputs.dep-suggests-matrix == 'auto' && github.ref_name != github.event.repository.default_branch))
         uses: cynkra/cynkratemplate/.github/actions/dep-suggests-matrix@main
 
       - name: Determine repository state
@@ -545,7 +555,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 120 # longest run seen: 16 min
 
-    if: ${{ needs.rcc-smoke.outputs.dep-suggests-matrix != '' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run-rcc-suggests)) }}
+    if: ${{ needs.rcc-smoke.outputs.dep-suggests-matrix != '' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.run-rcc-suggests == 'true' || (inputs.run-rcc-suggests == 'auto' && github.ref_name != github.event.repository.default_branch)))) }}
 
     name: Without ${{ matrix.package }}
 
