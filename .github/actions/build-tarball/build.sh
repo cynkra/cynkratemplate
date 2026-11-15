@@ -4,6 +4,8 @@
 
 set -euo pipefail
 
+script_dir=$(cd "$(dirname "$0")" && pwd)
+
 field() {
   Rscript --no-init-file -e "cat(read.dcf('DESCRIPTION', '$1'))"
 }
@@ -16,11 +18,29 @@ work="${RUNNER_TEMP}/tarball-work"
 rm -rf "${out}" "${work}"
 mkdir -p "${out}" "${work}"
 
-# Built into a directory outside the checkout, so that nothing lands in the working tree.
-# Run in the checkout, with its `.Rprofile`, as `check-r-package` ran the build before.
+# Built from a copy of the working tree, so that nothing the build does reaches
+# the checkout: pkgbuild deletes `inst/doc` and runs `bootstrap.R`, and the steps
+# after this one commit or report whatever changed in the checkout.
+# The copy holds what the earlier steps of the job left there, as the check of
+# the checkout did, but not `.git`.
+copy="${RUNNER_TEMP}/tarball-src/${package}"
+rm -rf "${RUNNER_TEMP}/tarball-src"
+mkdir -p "${copy}"
+before_status=$(git status --porcelain --untracked-files=all)
+tar -c --exclude=./.git -f - . | tar -x -C "${copy}" -f -
+
+# Run in the copy, with its `.Rprofile`, as `check-r-package` ran the build before.
 echo "::group::Build the source tarball"
-Rscript "$(dirname "$0")/build.R" "${work}"
+(cd "${copy}" && Rscript "${script_dir}/build.R" "${work}")
 echo "::endgroup::"
+rm -rf "${RUNNER_TEMP}/tarball-src"
+
+after_status=$(git status --porcelain --untracked-files=all)
+if [ "${before_status}" != "${after_status}" ]; then
+  echo "::error title=The build changed the checkout::git status differs before and after the build:"
+  diff <(printf '%s\n' "${before_status}") <(printf '%s\n' "${after_status}") || true
+  exit 1
+fi
 
 if [ ! -f "${work}/${name}" ]; then
   echo "::error title=No source tarball::The build did not write ${name}."

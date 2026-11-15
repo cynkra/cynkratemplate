@@ -1,6 +1,7 @@
 name: "Build the source tarball once, and verify it"
 description: >
-  Build the source tarball of the checkout with `pkgbuild::build()`, as `rcmdcheck()` builds it,
+  Build the source tarball from a copy of the checkout, which it never changes,
+  with `pkgbuild::build()`, as `rcmdcheck()` builds it,
   recompress it, with zopfli (`pigz -11`) on a push or a dispatch and `pigz -9` otherwise, and verify the result: `gzip -t` passes, and it unpacks to the very tar stream
   that `R CMD build` wrote.
   The file is named `<package>_<version>.tar.gz`, from `Package:` and `Version:` in `DESCRIPTION`,
