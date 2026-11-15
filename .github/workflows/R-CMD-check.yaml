@@ -16,12 +16,14 @@ on:
     branches:
       - main
       - master
+  # Dispatchable on any branch, so that a release branch is checked, and its
+  # source tarball uploaded, before the CRAN submission takes it.
   workflow_dispatch:
     inputs:
       ref:
-        description: "Branch, tag, or commit to check out"
+        description: "Branch, tag, or commit to check out; empty for the branch the run is dispatched on"
         required: false
-        default: "main"
+        default: ""
       versions-matrix:
         description: "Create a matrix of R versions"
         type: boolean
@@ -87,6 +89,7 @@ jobs:
       versions-matrix: ${{ steps.versions-matrix.outputs.matrix }}
       dep-suggests-matrix: ${{ steps.dep-suggests-matrix.outputs.matrix }}
       binary: ${{ steps.binary.outputs.artifact-name }}
+      tarball: ${{ steps.tarball.outputs.name }}
 
     name: "Smoke test: stock R"
 
@@ -148,6 +151,15 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/build-binary@main
         with:
           name: ubuntu-26.04-rrelease-smoke
+
+      # The one source tarball of the run, built on R-release from the commit
+      # as pushed, before the steps below change the working tree. Every
+      # `R CMD check` of the run checks this file, and this job uploads it
+      # after its check, for the CRAN submission to take.
+      - name: Build the source tarball
+        id: tarball
+        continue-on-error: true
+        uses: cynkra/cynkratemplate/.github/actions/build-tarball@claude/shared-tarball
 
       # From here on, every step is marked `continue-on-error: true` so that a
       # failing check doesn't hide the results of all the checks that follow.
@@ -221,9 +233,34 @@ jobs:
       - name: Run R CMD check
         id: check
         continue-on-error: true
-        uses: cynkra/cynkratemplate/.github/actions/check@main
+        uses: cynkra/cynkratemplate/.github/actions/check@claude/shared-tarball
         with:
           results: ${{ runner.os }}-smoke-test
+          tarball: ${{ steps.tarball.outputs.path }}
+
+      # The only upload of the tarball in the run: the raw file, unchanged since
+      # the check above, as the artifact `<package>_<version>.tar.gz`, whose
+      # digest is the file's SHA-256. The other jobs download it from here.
+      - name: Verify that the check left the source tarball unchanged
+        id: tarball-unchanged
+        continue-on-error: true
+        if: steps.tarball.outcome == 'success'
+        env:
+          TARBALL: ${{ steps.tarball.outputs.path }}
+          SHA256: ${{ steps.tarball.outputs.sha256 }}
+        run: |
+          printf '%s  %s\n' "${SHA256}" "${TARBALL}" | sha256sum -c -
+        shell: bash
+
+      - name: Upload the source tarball
+        id: tarball-upload
+        continue-on-error: true
+        if: steps.tarball-unchanged.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.tarball.outputs.path }}
+          archive: false
+          if-no-files-found: error
 
       - name: Build the pkgdown website
         id: pkgdown-build
@@ -312,6 +349,7 @@ jobs:
           # stays here because only this workflow can read `steps.<id>.outcome`.
           checks: |
             Collect the R versions into a matrix|R versions matrix|${{ steps.versions-matrix.outcome }}
+            Build the source tarball|Source tarball|${{ steps.tarball.outcome }}
             Collect the suggested dependencies into a matrix|Suggested dependencies matrix|${{ steps.dep-suggests-matrix.outcome }}
             Style the R sources|Style|${{ steps.style.outcome }}
             Update the testthat snapshots|Snapshots|${{ steps.snapshots.outcome }}
@@ -319,6 +357,8 @@ jobs:
             Re-render the README|README|${{ steps.render-readme.outcome }}
             Commit and push the generated changes|Commit|${{ steps.commit.outcome }}
             Run R CMD check|R CMD check|${{ steps.check.outcome }}
+            Verify that the check left the source tarball unchanged|Tarball unchanged|${{ steps.tarball-unchanged.outcome }}
+            Upload the source tarball|Tarball upload|${{ steps.tarball-upload.outcome }}
             Build the pkgdown website|pkgdown build|${{ steps.pkgdown-build.outcome }}
             Build and deploy the pkgdown website|pkgdown deploy|${{ steps.pkgdown-deploy.outcome }}
             Compute and upload the test coverage|Coverage|${{ steps.covr.outcome }}
@@ -464,10 +504,18 @@ jobs:
         with:
           base: ${{ github.head_ref }}
 
+      - name: Download the source tarball
+        uses: actions/download-artifact@v8
+        if: ${{ ! matrix.covr && needs.rcc-smoke.outputs.tarball != '' }}
+        with:
+          name: ${{ needs.rcc-smoke.outputs.tarball }}
+          path: ${{ runner.temp }}/tarball
+
       - name: Run R CMD check
-        uses: cynkra/cynkratemplate/.github/actions/check@main
+        uses: cynkra/cynkratemplate/.github/actions/check@claude/shared-tarball
         if: ${{ ! matrix.covr }}
         with:
+          tarball: ${{ runner.temp }}/tarball/${{ needs.rcc-smoke.outputs.tarball }}
           # Include the architecture: the matrix pairs each arm64 runner with an
           # amd64 one on the same OS and the same R version (ubuntu-26.04-arm /
           # ubuntu-26.04, windows-11-arm / windows-latest), so `runner.os` alone
@@ -559,9 +607,17 @@ jobs:
           print(Sys.getenv('RCMDCHECK_ERROR_ON'))
         shell: Rscript {0}
 
+      - name: Download the source tarball
+        uses: actions/download-artifact@v8
+        if: needs.rcc-smoke.outputs.tarball != ''
+        with:
+          name: ${{ needs.rcc-smoke.outputs.tarball }}
+          path: ${{ runner.temp }}/tarball
+
       - name: Run R CMD check
-        uses: cynkra/cynkratemplate/.github/actions/check@main
+        uses: cynkra/cynkratemplate/.github/actions/check@claude/shared-tarball
         with:
           results: ${{ matrix.package }}
+          tarball: ${{ runner.temp }}/tarball/${{ needs.rcc-smoke.outputs.tarball }}
 
 # The status update is taken care of by R-CMD-check-status.yaml
