@@ -462,9 +462,11 @@ jobs:
       matrix: ${{fromJson(needs.rcc-smoke.outputs.versions-matrix)}}
 
     steps:
+      # The commit the smoke test pushed, else the commit it checked: a run
+      # dispatched with `ref` checks that ref, not the run's own commit.
       - uses: actions/checkout@v6
         with:
-          ref: ${{ needs.rcc-smoke.outputs.sha }}
+          ref: ${{ needs.rcc-smoke.outputs.sha || inputs.ref || github.sha }}
 
       - name: Apply environment variables from the test matrix
         # Generic: matrix entries defined in .github/versions-matrix.R can
@@ -567,7 +569,10 @@ jobs:
       matrix: ${{fromJson(needs.rcc-smoke.outputs.dep-suggests-matrix)}}
 
     steps:
+      # As in rcc-full above.
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.rcc-smoke.outputs.sha || inputs.ref || github.sha }}
 
       - name: Run the repository-specific before-install steps
         uses: ./.github/workflows/custom/before-install
