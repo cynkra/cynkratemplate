@@ -8,8 +8,6 @@ on:
   push:
     branches:
       - main
-      # Release branches such as v2.0-cyanoptera, not their suffixed siblings such as v2.0-cyanoptera-dev
-      - "v[0-9]+.[0-9]+-[a-z]+"
       - master
       - release
       - next
@@ -233,8 +231,7 @@ jobs:
         id: pkgdown-build
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/pkgdown-build@main
-        # Also on a push to a release branch, the only branches above starting with `v`, whose site is never deployed
-        if: github.event_name != 'push' || startsWith(github.ref_name, 'v')
+        if: github.event_name != 'push'
 
       # Deliberately deploy only on push
       # Deployment on schedule adds too much noise.
@@ -246,8 +243,7 @@ jobs:
         id: pkgdown-deploy
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/pkgdown-deploy@main
-        # Never from a release branch, whose site would replace the default branch's
-        if: github.event_name == 'push' && steps.check.outcome == 'success' && !startsWith(github.ref_name, 'v')
+        if: github.event_name == 'push' && steps.check.outcome == 'success'
 
       # Coverage for every run, from the environment the smoke test already
       # installed, so that pull requests and the default branch are measured the
