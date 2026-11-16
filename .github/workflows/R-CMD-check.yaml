@@ -83,6 +83,8 @@ jobs:
     # mutate the repo. Revisit once the arm image is generally available.
     runs-on: ubuntu-26.04
     timeout-minutes: 120 # longest run seen: 28 min
+    # Skip a fork's pull requests against its release branches, and so every job that needs this one: nobody needs them checked there
+    if: ${{ !(github.event_name == 'pull_request' && github.event.repository.fork && startsWith(github.base_ref, 'v')) }}
 
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
