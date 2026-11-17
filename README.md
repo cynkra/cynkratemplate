@@ -17,7 +17,7 @@ cynkratemplate aims to:
 - Supply the pkgdown template that gives cynkra packages one look:
   the Bootstrap 5 bslib theme, the navbar and footer includes, and the favicon set under `inst/`.
 - Set a package up for that template in a single call.
-  [`use_cynkra_pkgdown()`](https://cynkratemplate.cynkra.com/reference/use_cynkra_pkgdown.html) copies the favicon folder, registers the website dependency in `Config/Needs/website`,
+  [`use_cynkra_pkgdown()`](https://cynkratemplate.cynkra.com/reference/use_cynkra_pkgdown.html) registers the website dependency in `Config/Needs/website`,
   and points the pkgdown config at this package.
 - Serve as the upstream for the shared GitHub Actions workflows,
   where a fix found in one cynkra package is centralised for all of them.
