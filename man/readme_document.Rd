@@ -63,16 +63,16 @@ since downlit already auto-links it there.
 Inline code in the README's prose is linked to its documentation:
 \code{readme_document()} becomes a link to the package's own pkgdown reference,
 \code{tibble::tibble()} to tibble's, \code{print()} to the base R help.
-The reference URL is taken from the pkgdown site declared in \code{URL},
+ The reference URL is taken from the pkgdown site declared in \code{URL},
 so a package without a published site is left unlinked rather than
 pointed at a page that does not exist.
 
 Only prose is linked.
-Fenced code blocks are passed through untouched:
+ Fenced code blocks are passed through untouched:
 \code{downlit::downlit_md_path()} would rewrite them into HTML whose highlighting
 GitHub does not render, and would reflow the prose besides,
 undoing the line breaks these sources are written with.
-A span that resolves to no documented object -- \code{TRUE}, a local variable,
+ A span that resolves to no documented object -- \code{TRUE}, a local variable,
 a SQL fragment -- is left exactly as it was.
 
 \code{index.md} is not linked here: pkgdown runs downlit over the front page itself.

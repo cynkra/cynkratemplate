@@ -23,5 +23,5 @@ This function
 The cynkra favicon is shipped with the template itself
 and copied to the root of every site that uses it,
 so the package does not need its own \verb{pkgdown/favicon/} folder.
-If one exists, pkgdown uses it instead of the cynkra favicon.
+ If one exists, pkgdown uses it instead of the cynkra favicon.
 }
