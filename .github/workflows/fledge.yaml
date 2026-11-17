@@ -179,7 +179,7 @@ jobs:
           # Run on the branch, so that the checks attach to its head.
           # Only the smoke test, as for a pull request: a dispatch on a branch
           # other than the default branch turns the full checks on by default.
-          gh workflow run rcc --ref fledge \
+          gh workflow run R-CMD-check.yaml --ref fledge \
             -f versions-matrix=false \
             -f dep-suggests-matrix=false \
             -f run-rcc-suggests=false
