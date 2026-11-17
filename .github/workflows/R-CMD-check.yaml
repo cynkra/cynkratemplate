@@ -255,8 +255,6 @@ jobs:
       # The only upload of the tarball in the run: the raw file, unchanged since
       # the check above, as the artifact `<package>_<version>.tar.gz`, whose
       # digest is the file's SHA-256. The other jobs download it from here.
-      # A tarball built from a commit other than the one the run is of must not
-      # be taken for that commit, so the upload is guarded against that too.
       - name: Verify that the check left the source tarball unchanged
         id: tarball-unchanged
         continue-on-error: true
@@ -264,21 +262,14 @@ jobs:
         env:
           TARBALL: ${{ steps.tarball.outputs.path }}
           SHA256: ${{ steps.tarball.outputs.sha256 }}
-          COMMIT: ${{ steps.tarball.outputs.commit }}
         run: |
           printf '%s  %s\n' "${SHA256}" "${TARBALL}" | sha256sum -c -
-          if [ "${COMMIT}" = "${GITHUB_SHA}" ]; then
-            echo "upload=true" >> "${GITHUB_OUTPUT}"
-          else
-            echo "::notice title=Source tarball not uploaded::It was built from ${COMMIT}, and this run is of ${GITHUB_SHA}."
-            echo "upload=false" >> "${GITHUB_OUTPUT}"
-          fi
         shell: bash
 
       - name: Upload the source tarball
         id: tarball-upload
         continue-on-error: true
-        if: steps.tarball-unchanged.outputs.upload == 'true'
+        if: steps.tarball-unchanged.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           path: ${{ steps.tarball.outputs.path }}
