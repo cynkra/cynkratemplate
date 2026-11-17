@@ -500,10 +500,8 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 15 # new job, expected to take seconds
 
-    # Not `always()`: a run cancelled by a newer push would leave a red check
-    # on the superseded commit. A single job that was cancelled, for example
-    # by its timeout, still turns this red through the step below.
-    if: ${{ !cancelled() }}
+    # Not `!cancelled()`: a skipped required check passes, so a cancelled run must not skip this; a red check on a superseded commit is the cost.
+    if: always()
 
     steps:
       - name: Fail if any job failed
