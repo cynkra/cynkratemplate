@@ -69,8 +69,11 @@ runs:
 
           # See rule 1 in the security note at the top of this file.
           if [ "${HEAD_REPO}" = "${REPO}" ]; then
+            # Asked for by name: the listing is paged, 30 to a page, and with a
+            # binary package from every entry of the version matrix the SHA
+            # would fall off the first page.
             artifact_id=$(
-              gh api "repos/${REPO}/actions/runs/${RUN_ID}/artifacts" \
+              gh api "repos/${REPO}/actions/runs/${RUN_ID}/artifacts?name=rcc-smoke-sha" \
                 --jq '[.artifacts[] | select(.name == "rcc-smoke-sha") | .id][0] // empty'
             ) || artifact_id=""
 

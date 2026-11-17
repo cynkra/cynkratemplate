@@ -381,6 +381,18 @@ runs:
 
         echo 'CCACHE_SLOPPINESS=locale,time_macros' | tee -a $GITHUB_ENV
 
+        # Leave the working directory out of the hash. ccache hashes it into
+        # every compilation with `-g`, which R uses by default, and one job
+        # compiles the same sources in several directories: in place for the
+        # binary package and for `pkgload::load_all()`, in a copy for the
+        # vignettes of `R CMD build`, in `<pkg>.Rcheck/00_pkg_src` for
+        # `R CMD check`. Measured on tibble, the install of `R CMD check`
+        # after a `R CMD INSTALL --build` of the checkout went from 1 hit and
+        # 5 misses to 5 hits and 1 miss. The price is debug information that
+        # may name the directory of the first compilation, which nothing on a
+        # runner reads.
+        echo 'CCACHE_NOHASHDIR=true' | tee -a $GITHUB_ENV
+
         # Do NOT export UserNM here, however tempting the `UserNM=true` trick
         # from AGENTS.md looks. It is a development shortcut, not a CI setting.
         #

@@ -1,5 +1,124 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.1.0
+
+## Features
+
+- The template ships the cynkra favicon and links it from every page, so packages using the template no longer need their own `pkgdown/favicon/` folder. `use_cynkra_pkgdown()` no longer copies favicons into the package (cynkra/indiedown#9, #158).
+- New `readme_document()` output format: one `README.Rmd` renders both `README.md` and the pkgdown front page `index.md`, with inline code in the prose autolinked (#116, #135).
+- The top navbar follows the new cynkra design (#55, #63).
+
+## Shared CI kit
+
+- The workflows are a shared kit for cynkra packages: every script lives in a composite action under `.github/actions/`, served from this repository at `@main` instead of being copied into each repository (#120, #121, #149).
+- R CMD check runs on Ubuntu 26.04, adds Linux arm64 and Windows arm64 checks, builds a binary package in every check job, computes coverage in every smoke test and reports it on pull requests, runs all smoke-test checks even when one fails, and says what failed (#88, #97, #99, #115, #141, #142, #146, #152).
+- CI renders `README.md` and `index.md` by default; set `Config/cynkra/render-readme: false` to opt out (#118, #136, #153).
+- Pushes to `cran-*` branches check all R versions and run R-hub checks (#82, #145).
+- New sharded reverse-dependency workflows `revdep2` and `revdep4`, with checks compiled through ccache (#113, #150).
+- The roxygenize step fails on roxygen2 warnings, except for deprecation warnings (#111, #114).
+- Hardened workflows: explicit `permissions` everywhere, third-party actions pinned to commits, `format-suggest` and `workflow_run` workflows protected against untrusted pull requests, locked-down egress, and workflow context passed through the environment (#93, #94, #102, #103, #105, #106).
+- Every job has a `timeout-minutes` bound (#144).
+- fledge pushes the version bump to the default branch wherever that is allowed, and `fledge.yaml` is shared with the fledge repository (#86, #117).
+- Archived CRAN packages are installed from where they still live (#112).
+
+
+# cynkratemplate 0.0.2.9036
+
+## Features
+
+- Ship the cynkra favicon as a template asset (cynkra/indiedown#9, #158).
+
+
+# cynkratemplate 0.0.2.9035
+
+## Chore
+
+- Auto-update from GitHub Actions.
+
+  Run: https://github.com/cynkra/cynkratemplate/actions/runs/38014208608
+
+
+# cynkratemplate 0.0.2.9034
+
+## Features
+
+### ci
+
+- Render the README by default, with `false` to opt out (#153).
+
+### ci
+
+- Render `README.md` and `index.md` in CI (#118).
+
+### ci
+
+- Add the `render-readme` action (#136).
+
+### ci
+
+- Compute the coverage in the smoke test for every run (#152).
+
+## Documentation
+
+### actions
+
+- Say that `after-install` appends to `~/.R/Makevars` (#154).
+
+## Refactoring
+
+### ci
+
+- Serve the revdep scripts with the actions instead of copying them (#149).
+
+### ci
+
+- Run the two matrix scripts from a file beside their action again (#148).
+
+
+# cynkratemplate 0.0.2.9033
+
+## Bug fixes
+
+### revdep2
+
+- Let a slice with no packages check nothing instead of failing (#150).
+
+## Features
+
+### ci
+
+- Run R-hub checks on every `cran-*` push, through `rhub-setup` and `rhub-check` actions (#145).
+
+### ci
+
+- Report coverage on pull requests from this repository (#146).
+
+- Autolink inline code in the README's prose (#135).
+
+- Build a binary package in every check job and share it as an artifact (#141).
+
+- Add `build-binary` and `install-binary` actions (#142).
+
+## Continuous integration
+
+- Bound every job with `timeout-minutes` (#144).
+
+
+# cynkratemplate 0.0.2.9032
+
+## Bug fixes
+
+### ci
+
+- Collect the fleet's workflow fixes after the move to central actions (#139).
+
+## Documentation
+
+- Break lines at meaning boundaries (#128).
+
+- Render `README.md` from a new `README.Rmd` (#127).
+
+
 # cynkratemplate 0.0.2.9031
 
 ## Bug fixes
