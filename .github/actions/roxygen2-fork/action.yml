@@ -22,13 +22,17 @@ runs:
   using: "composite"
   steps:
     - name: Install roxygen2 with the fork's R changes
+      env:
+        INPUT_UPSTREAM: ${{ inputs.upstream }}
+        INPUT_FORK: ${{ inputs.fork }}
+        INPUT_BRANCH: ${{ inputs.branch }}
       run: |
         ## -- Install roxygen2 from a fork branch --
         set -euo pipefail
 
-        upstream="${{ inputs.upstream }}"
-        fork="${{ inputs.fork }}"
-        branch="${{ inputs.branch }}"
+        upstream="$INPUT_UPSTREAM"
+        fork="$INPUT_FORK"
+        branch="$INPUT_BRANCH"
 
         workdir="$(mktemp -d)"
         trap 'rm -rf "$workdir"' EXIT
