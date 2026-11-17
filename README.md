@@ -10,6 +10,31 @@
 This is a custom, restricted template for use by cynkra packages.
 Please don't use it for your own package.
 
+## Goals and non-goals
+
+cynkratemplate aims to:
+
+- Supply the pkgdown template that gives cynkra packages one look:
+  the Bootstrap 5 bslib theme, the navbar and footer includes, and the favicon set under `inst/`.
+- Set a package up for that template in a single call.
+  [`use_cynkra_pkgdown()`](https://cynkratemplate.cynkra.com/reference/use_cynkra_pkgdown.html) registers the website dependency in `Config/Needs/website`,
+  and points the pkgdown config at this package.
+- Serve as the upstream for the shared GitHub Actions workflows,
+  where a fix found in one cynkra package is centralised for all of them.
+- Stay small.
+  `cli` and `desc` are the only imports, and `yaml` is used from Suggests behind a [`requireNamespace()`](https://rdrr.io/r/base/ns-load.html) guard.
+
+It is explicitly not trying to:
+
+- Be a template for general use.
+  It is restricted to cynkra packages, which is why the description asks you not to use it for your own.
+- Reach CRAN.
+  It is installed from GitHub, and the workflows were changed to suit a package that is not headed there.
+- Offer theming choices.
+  [`use_cynkra_pkgdown()`](https://cynkratemplate.cynkra.com/reference/use_cynkra_pkgdown.html) pins Bootstrap 5 and removes a package's own `bootswatch` and `before_title` settings.
+- Host the Frutiger fonts.
+  They are served from cynkra's S3 bucket, through the CSS in `cynkra/cynkraweb`, where the CORS configuration also lives.
+
 ## Usage
 
 Install cynkratemplate.
@@ -30,6 +55,50 @@ remove an existing one unless it holds a deliberately different icon.
 
 Please ask the person in charge (see website page of the general manual in clickup) for a plausible subdomain
 via email or another mean of communication of their choice.
+
+## Continuous integration
+
+### Documentation-only pull requests
+
+The `rcc` workflow skips the checks for pull requests
+that only touch documentation,
+and the `rcc` check turns green
+as soon as the job that classifies the changes has finished.
+The workflow itself still runs,
+so the check is always reported,
+also for pull requests from forks.
+
+A pull request counts as documentation-only
+if *every* changed path matches a pattern
+in [`.github/workflows/docs-only/patterns.txt`](.github/workflows/docs-only/patterns.txt).
+This is an allow list:
+anything not listed there,
+including `src/`, `configure`, `man/`, `vignettes/`, `_pkgdown.yml`,
+and the workflows themselves,
+triggers the full checks.
+A path nobody thought of therefore costs one superfluous check run,
+which is visible in the pull request,
+rather than a green check for code that was never checked.
+
+The defaults come from a survey of the top-level entries
+of 64 packages across cynkra, r-lib, r-dbi, tidyverse, igraph, duckdb,
+poissonconsulting, r-prof, and krlmlr,
+and cover `index.md`, `cran-comments.md`,
+`CLAUDE.md`, `AGENTS.md`, `.claude/`, `.vscode/`, and `data-raw/`
+in addition to the usual prose files.
+
+The same applies to merge-queue runs:
+a queued group whose changes are all documentation is not checked either.
+Pushes, scheduled runs, and manual runs always check everything.
+The package is verified,
+and the website is deployed,
+for every commit that lands on the main branch.
+
+To make the list stricter or more permissive for a single repository,
+create `.github/docs-only-patterns.txt`
+with one extended regular expression per line,
+matched against the entire path.
+That file is never overwritten by updates from cynkratemplate.
 
 ## Fonts
 
