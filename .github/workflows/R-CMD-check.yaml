@@ -15,6 +15,8 @@ on:
   pull_request:
     branches:
       - main
+      # Release branches such as v2.0-cyanoptera, not their suffixed siblings such as v2.0-cyanoptera-dev
+      - "v[0-9]+.[0-9]+-[a-z]+"
       - master
   workflow_dispatch:
     inputs:
@@ -67,7 +69,35 @@ permissions:
 # The measurements are from September 2026,
 # over the last 30 to 100 completed runs of each workflow in nine repositories of the fleet.
 jobs:
+  # Pull requests that only touch documentation don't need the checks, but they
+  # still need the "rcc" check to turn green. The workflow therefore always
+  # runs -- skipping it via `paths-ignore` would leave the check pending
+  # forever -- and only the jobs that do the work are skipped. The `rcc` job
+  # below then passes, because skipped jobs are not failures.
+  rcc-changes:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10 # a checkout, the classifier's self-test and two API calls; no runs measured yet
+
+    name: "Detect documentation-only changes"
+
+    permissions:
+      contents: read
+
+    outputs:
+      docs-only: ${{ steps.docs-only.outputs.docs-only }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - id: docs-only
+        uses: ./.github/workflows/docs-only
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   rcc-smoke:
+    needs:
+      - rcc-changes
+
     # Deliberately amd64. The smoke test is the gate that also styles,
     # roxygenizes, updates snapshots, reports the changes and deploys pkgdown, so it
     # must run on the most stable and available runner. The ubuntu-26.04-arm
@@ -77,6 +107,9 @@ jobs:
     # mutate the repo. Revisit once the arm image is generally available.
     runs-on: ubuntu-26.04
     timeout-minutes: 120 # longest run seen: 28 min
+    # Skip a fork's pull requests against its release branches, and so every job that needs this one: nobody needs them checked there
+    # Skip documentation-only pull requests too, see rcc-changes
+    if: ${{ !(github.event_name == 'pull_request' && github.event.repository.fork && startsWith(github.base_ref, 'v')) && needs.rcc-changes.outputs.docs-only != 'true' }}
 
     outputs:
       versions-matrix: ${{ steps.versions-matrix.outputs.matrix }}
@@ -456,6 +489,8 @@ jobs:
   # set a status by hand.
   rcc:
     needs:
+      # A failed classifier skips every job below it, which alone would pass.
+      - rcc-changes
       - rcc-smoke
       - rcc-smoke-check-matrix
       - rcc-full
