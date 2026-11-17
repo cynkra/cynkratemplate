@@ -46,6 +46,22 @@ A workflow step cannot see `github.action_path`,
 so a job that runs one of these scripts from a step of its own first calls the `revdep-scripts` action,
 which exports the three directories as `REVDEP2_DIR`, `REVDEP4_DIR` and `REVDEPX_DIR`.
 
+## Findings, not commits
+
+CI never pushes to the branch it checks, and never sets a status by hand:
+the `rcc` job at the end of the workflow is the one check that pull requests are gated on.
+The smoke test still styles, roxygenizes, renders the README and updates the snapshots,
+the matrix updates the snapshots of its platform,
+and `report-findings` reports the changes as the patch `changes-patch*` rather than committing them.
+roxygen2 recording its own version in `DESCRIPTION` is not reported, CI runs a development roxygen2.
+
+- On a pull request, a finding fails the run, and the job summary holds the patch.
+- On the default branch, `file-findings` keeps one issue labelled `ci-finding` that holds every patch of the run,
+  for an agent or a person who watches the label.
+  A hidden key, `<!-- ci-findings workflow="rcc" ref="main" -->`, identifies it.
+  The issue is updated when the patch changes and closed when a run whose smoke test passed finds nothing.
+  Only the run for the current head of the branch writes.
+
 ## Testing a change to an action
 
 Because every caller says `@main`,
@@ -118,14 +134,11 @@ The second substitution is the exact inverse of the first,
 so the tree comes back byte-identical -- check with `git diff` if you interrupted it partway.
 Use this rather than `git checkout -- .github`, which would take your uncommitted work with it.
 
-### Two things the branch trick cannot reach
+### What the branch trick cannot reach
 
-- A workflow triggered by `workflow_run` -- `rcc-status`, `commit-suggest` --
-  always uses the *workflow file* from the default branch, whatever the branch under test.
-  A change to the workflow around the action needs merging, or a `workflow_dispatch` run.
-- A pull request from a fork cannot fetch `cynkra/cynkratemplate/...@<its branch>`,
-  because that ref does not exist in this repository.
-  Point it at the fork for the test: `<owner>/cynkratemplate/.github/actions/<name>@<branch>`.
+A pull request from a fork cannot fetch `cynkra/cynkratemplate/...@<its branch>`,
+because that ref does not exist in this repository.
+Point it at the fork for the test: `<owner>/cynkratemplate/.github/actions/<name>@<branch>`.
 
 ## Versioning, when it is needed
 

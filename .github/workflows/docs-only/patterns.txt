@@ -1,7 +1,7 @@
 # Paths that cannot affect the outcome of `R CMD check`,
 # the package website, or the CI setup itself.
 # If *all* paths changed by a pull request match one of these patterns,
-# the checks are skipped and the `rcc` status is set to success right away.
+# the checks are skipped, and the `rcc` check passes when the run ends.
 #
 # Each line is an extended regular expression
 # matched against the entire path, as if anchored with `^` and `$`.
@@ -40,7 +40,7 @@
 # and pkgdown renders them as plain markdown, like the website's other pages.
 # `README.Rmd` is not listed, although it never reaches the tarball:
 # the smoke test re-renders it into `README.md` and `index.md`
-# and commits the result back, so a change to it is a change for `rcc`.
+# and reports any difference as a finding, so a change to it is a change for `rcc`.
 README\.md
 index\.md
 NEWS\.md
@@ -86,7 +86,7 @@ data-raw/.*
 # Deliberately not here, all of them seen in the survey:
 #
 # - `air.toml` (31), `.clang-format` (7), `.lintr` (8):
-#   read by the style and format-suggest steps
+#   read by the style step
 # - `codecov.yml` (42), `.covrignore` (10):
 #   read by covr and by codecov-action, which can fail the job
 # - `.aspell/` (0 of 8 ignored) and `inst/WORDLIST`:
