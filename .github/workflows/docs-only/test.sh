@@ -119,6 +119,32 @@ expect false "old-README.md"
 # Nothing at all: we don't know what changed
 expect false ""
 
+# Renames: the API's `filename` is the new path, `previous_filename` the old.
+# Moving code into a documentation path is still a change to the code.
+expect false "data-raw/foo.R" "R/foo.R"
+
+# The same, through the filter the action applies to the API response
+expect_api() {
+  local want="$1"
+  local json="$2"
+
+  local got
+  got=$(jq -r ".[] | $(<"${dir}/paths.jq")" <<<"${json}" |
+    GITHUB_STEP_SUMMARY="" "${script}" "${patterns}" 2>/dev/null)
+
+  if [ "${got}" = "${want}" ]; then
+    echo "ok       ${want} <- ${json}"
+  else
+    echo "NOT OK   want ${want}, got ${got} <- ${json}" >&2
+    failures=$((failures + 1))
+  fi
+}
+
+expect_api false '[{"filename": "data-raw/foo.R", "previous_filename": "R/foo.R", "status": "renamed"}]'
+expect_api true '[{"filename": "data-raw/foo.R", "previous_filename": "data-raw/bar.R", "status": "renamed"}]'
+expect_api true '[{"filename": "NEWS.md", "status": "modified"}]'
+expect_api false '[{"filename": "NEWS.md", "status": "modified"}, {"filename": "R/foo.R", "status": "modified"}]'
+
 if [ "${failures}" -ne 0 ]; then
   echo "${failures} test(s) failed." >&2
   exit 1

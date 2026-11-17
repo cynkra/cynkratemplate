@@ -89,6 +89,8 @@ and cover `index.md`, `cran-comments.md`,
 `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.vscode/`, and `data-raw/`
 in addition to the usual prose files.
 
+The same applies to merge-queue runs:
+a queued group whose changes are all documentation is not checked either.
 Pushes, scheduled runs, and manual runs always check everything.
 The package is verified,
 and the website is deployed,
