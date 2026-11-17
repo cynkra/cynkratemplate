@@ -73,7 +73,7 @@ permissions:
 # Every job in the workflows of this kit sets `timeout-minutes`,
 # and notes the longest run seen across the fleet next to it.
 # GitHub's default is six hours, so a step that hangs instead of failing
-# keeps the `rcc` status pending and holds a runner until someone cancels the run.
+# keeps the `rcc` check pending and holds a runner until someone cancels the run.
 # Every job that runs R CMD check or builds the pkgdown site gets the same 120 minutes.
 # The other jobs get a limit well above their longest run, because only a hang should reach it.
 # The measurements are from September 2026,
@@ -566,6 +566,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 15 # new job, expected to take seconds
 
+    # Not `!cancelled()`: a skipped required check passes, so a cancelled run must not skip this; a red check on a superseded commit is the cost.
     if: always()
 
     steps:
