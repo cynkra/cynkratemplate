@@ -13,6 +13,31 @@ output: cynkratemplate::readme_document
 This is a custom, restricted template for use by cynkra packages.
 Please don't use it for your own package.
 
+## Goals and non-goals
+
+cynkratemplate aims to:
+
+- Supply the pkgdown template that gives cynkra packages one look:
+  the Bootstrap 5 bslib theme, the navbar and footer includes, and the favicon set under `inst/`.
+- Set a package up for that template in a single call.
+  `use_cynkra_pkgdown()` copies the favicon folder, registers the website dependency in `Config/Needs/website`,
+  and points the pkgdown config at this package.
+- Serve as the upstream for the shared GitHub Actions workflows,
+  where a fix found in one cynkra package is centralised for all of them.
+- Stay small.
+  `cli` and `desc` are the only imports, and `yaml` is used from Suggests behind a `requireNamespace()` guard.
+
+It is explicitly not trying to:
+
+- Be a template for general use.
+  It is restricted to cynkra packages, which is why the description asks you not to use it for your own.
+- Reach CRAN.
+  It is installed from GitHub, and the workflows were changed to suit a package that is not headed there.
+- Offer theming choices.
+  `use_cynkra_pkgdown()` pins Bootstrap 5 and removes a package's own `bootswatch` and `before_title` settings.
+- Host the Frutiger fonts.
+  They are served from cynkra's S3 bucket, through the CSS in `cynkra/cynkraweb`, where the CORS configuration also lives.
+
 ## Usage
 
 Install cynkratemplate.
