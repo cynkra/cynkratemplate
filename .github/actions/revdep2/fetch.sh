@@ -2,7 +2,10 @@
 # Fetch the results of a revdep2 run into revdep/ and show the summary.
 #
 # Usage:
-#   .github/workflows/revdep2/fetch.sh [<run-id>] [<dir>]
+#   <cynkratemplate>/.github/actions/revdep2/fetch.sh [<run-id>] [<dir>]
+#
+# Run it from the repository whose results to fetch.
+# The script is not copied there: it is served from a checkout of cynkra/cynkratemplate.
 #
 # Without a run id, the newest completed revdep2 run of the current repository
 # is used. Needs the `gh` CLI, authenticated for the repository.
