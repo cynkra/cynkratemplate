@@ -69,8 +69,6 @@ test_that("fence_lang() reports the info string", {
 })
 
 test_that("a rendered README keeps a front-matter snippet whole", {
-  skip_if_not_installed("withr")
-
   out <- render_fixture(c(
     "# fixture",
     "",

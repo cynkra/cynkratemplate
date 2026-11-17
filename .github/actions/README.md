@@ -17,36 +17,56 @@ which is also why a job with no checkout can still use one.
 There are no tags to move and no versions to bump,
 and a change merged here is live in every repository on the next run.
 
-## An action is one file
+## An action is one directory
 
-Every action here is a single `action.yml`, and nothing else lives in its directory:
+An action is fetched with the whole repository into the runner's action cache, never into the workspace.
+Its `action.yml` reaches the files beside it through `${{ github.action_path }}`:
 
-```bash
-find .github/actions -type f ! -name action.yml ! -name README.md   # prints nothing
+```yaml
+- run: Rscript --no-init-file "${{ github.action_path }}/build.R"
+  shell: bash
 ```
 
-That is not tidiness, it is the only thing that works.
-An action is fetched into the runner's action cache and never into the workspace,
-so a script sitting beside `action.yml` is not a path the runner can reach,
-and a workspace-relative path to it resolves inside the *consuming* repository,
-where the file does not exist.
-Either way the step dies at run time, in nine repositories at once,
-and nothing says so beforehand --
+Prefer such a script to a long `run:` block: it can be read, linted and run on its own.
+A short step stays inline, and the older actions still carry long inline blocks until someone moves them out.
+
+Call the script through its interpreter, as above, so that its file mode does not matter.
+From R, prefer `Rscript` in a `shell: bash` step over `source()` in a `shell: Rscript {0}` step:
+on Windows the path holds backslashes, which an R string reads as escapes.
+
+Never refer to a script by a workspace-relative path.
+That path resolves inside the *consuming* repository, where the file does not exist.
+The step then dies at run time, in nine repositories at once, and nothing says so beforehand:
 `actionlint` does not follow paths, and a repository that still had a stale copy would even pass.
 
-So a script an action runs goes in the `run:` block, however long it is.
-`shell: Rscript {0}` for R, which is how the two matrix actions carry their hundred-odd lines.
+Scripts that several actions share live in a directory of their own,
+reached with a relative path from `${{ github.action_path }}`.
+The revdep subsystems keep theirs in `revdep2/`, `revdep4/` and `revdepx/`, each with a README of its own.
+A workflow step cannot see `github.action_path`,
+so a job that runs one of these scripts from a step of its own first calls the `revdep-scripts` action,
+which exports the three directories as `REVDEP2_DIR`, `REVDEP4_DIR` and `REVDEPX_DIR`.
 
-The one deliberate exception is the revdep scripts under `.github/workflows/revdep2`,
-`revdep4` and `revdepx`.
-Those are run from the workspace by design, are shared between actions and workflows,
-and are still copied into every repository -- see the last section.
+## Findings, not commits
+
+CI never pushes to the branch it checks, and never sets a status by hand:
+the `rcc` job at the end of the workflow is the one check that pull requests are gated on.
+The smoke test still styles, roxygenizes, renders the README and updates the snapshots,
+the matrix updates the snapshots of its platform,
+and `report-findings` reports the changes as the patch `changes-patch*` rather than committing them.
+roxygen2 recording its own version in `DESCRIPTION` is not reported, CI runs a development roxygen2.
+
+- On a pull request, a finding fails the run, and the job summary holds the patch.
+- On the default branch, `file-findings` keeps one issue labelled `ci-finding` that holds every patch of the run,
+  for an agent or a person who watches the label.
+  A hidden key, `<!-- ci-findings workflow="rcc" ref="main" -->`, identifies it.
+  The issue is updated when the patch changes and closed when a run whose smoke test passed finds nothing.
+  Only the run for the current head of the branch writes.
 
 ## Testing a change to an action
 
 Because every caller says `@main`,
 a pull request that edits an action changes nothing about what its own run executes:
-the run still fetches the action from `main`.
+the run still fetches the action from `main`, and the scripts beside it with it.
 A green pull request therefore says nothing at all about the change,
 and the first time the new action runs is the moment it lands on every repository at once.
 
@@ -114,14 +134,11 @@ The second substitution is the exact inverse of the first,
 so the tree comes back byte-identical -- check with `git diff` if you interrupted it partway.
 Use this rather than `git checkout -- .github`, which would take your uncommitted work with it.
 
-### Two things the branch trick cannot reach
+### What the branch trick cannot reach
 
-- A workflow triggered by `workflow_run` -- `rcc-status`, `commit-suggest` --
-  always uses the *workflow file* from the default branch, whatever the branch under test.
-  A change to the workflow around the action needs merging, or a `workflow_dispatch` run.
-- A pull request from a fork cannot fetch `cynkra/cynkratemplate/...@<its branch>`,
-  because that ref does not exist in this repository.
-  Point it at the fork for the test: `<owner>/cynkratemplate/.github/actions/<name>@<branch>`.
+A pull request from a fork cannot fetch `cynkra/cynkratemplate/...@<its branch>`,
+because that ref does not exist in this repository.
+Point it at the fork for the test: `<owner>/cynkratemplate/.github/actions/<name>@<branch>`.
 
 ## Versioning, when it is needed
 
@@ -147,8 +164,5 @@ Adding an input with a default does not, and neither does anything a caller cann
   They are referenced with `./` and guarded by `hashFiles()`, so a repository without them skips the step.
   Fetching them from here would give every repository the same hooks,
   which is the opposite of what they are for, so they stay local and stay where they are.
-- **`.github/workflows/revdep2`, `revdep4` and `revdepx`** hold the shell and R scripts
-  that the revdep actions run, and those run from the workspace rather than from the action.
-  They are still copied into each repository.
-  An action fetched from here can therefore drift from a script synced from here:
-  keep a change that spans both in one commit, and land it in the consuming repositories together.
+  `after-install` runs once `install` has written the ccache wrappers and `MAKEFLAGS` to `~/.R/Makevars`.
+  A hook that adds to that file appends, with `>>` or `tee -a`; overwriting it drops them.

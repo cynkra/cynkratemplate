@@ -1,6 +1,6 @@
 Package: cynkratemplate
 Title: pkgdown template for cynkra packages
-Version: 0.0.2.9031
+Version: 0.1.0
 Authors@R: c(
     person("Christoph", "Sax", , "christoph.sax@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-7192-7044")),
@@ -20,19 +20,19 @@ Imports:
     cli,
     desc
 Suggests:
-    DBI,
+    downlit,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
     withr,
     yaml
-Config/roxygen2/version: 8.1.0.9100
+Config/roxygen2/version: 8.1.1.9100
 Config/cynkra/roxygen2: The .9100 suffix on Config/roxygen2/version marks a patched
     roxygen2, not an upstream development build. Upstream numbers its own
     development builds x.y.z.9000; the build that documents this package takes the
     same x.y.z and uses .9100. It is upstream plus the sentence-spacing fix from
     krlmlr/roxygen2@f-sentence-spacing, installed by
-    .github/workflows/roxygen2-fork. Regenerating man/ with a stock roxygen2 drops
+    .github/actions/roxygen2-fork. Regenerating man/ with a stock roxygen2 drops
     the gap after every sentence that ends a line.
 Config/testthat/edition: 3
 Encoding: UTF-8

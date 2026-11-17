@@ -1,0 +1,37 @@
+name: "File the findings as issues"
+description: >
+  Keep one open issue per workflow and branch, labelled `ci-finding`,
+  that holds the patches the `report-findings` steps of this run uploaded,
+  for an agent or a person who watches the label to fix in a pull request.
+  The issue is opened when there is a patch, updated when the patch changes,
+  and closed when a run whose smoke test passed reports none.
+  Only the run for the branch's current head writes.
+  Needs `issues: write` and `contents: read`, and the `changes-patch*` artifacts downloaded to `path`.
+
+inputs:
+  token:
+    description: "Token with `issues: write` and `contents: read`."
+    required: true
+  path:
+    description: "Where the `changes-patch*` artifacts were downloaded, one directory each."
+    required: false
+    default: "findings"
+  smoke-result:
+    description: "The result of the smoke test job, only `success` lets the issue close."
+    required: true
+  label:
+    description: "The label that marks the issues."
+    required: false
+    default: "ci-finding"
+
+runs:
+  using: "composite"
+  steps:
+    - name: File the findings as issues
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        FINDINGS_DIR: ${{ inputs.path }}
+        SMOKE_RESULT: ${{ inputs.smoke-result }}
+        LABEL: ${{ inputs.label }}
+      run: bash "${{ github.action_path }}/file-findings.sh"
+      shell: bash
