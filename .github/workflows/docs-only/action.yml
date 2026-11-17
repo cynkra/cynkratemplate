@@ -56,7 +56,7 @@ runs:
             # hide the very change we are looking for.
             if [ "${PR_CHANGED_FILES}" -gt 3000 ]; then
               echo "::notice::More than 3000 files changed, running all checks."
-            elif files=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename'); then
+            elif files=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/files" --jq ".[] | $(<"${ACTION_PATH}/paths.jq")"); then
               docs_only=$(printf '%s\n' "${files}" | classify)
             else
               echo "::warning::Could not determine the changed files, running all checks."
@@ -69,7 +69,7 @@ runs:
               if [ "$(jq '.files | length' <<<"${compare}")" -ge 300 ]; then
                 echo "::notice::Truncated list of changed files, running all checks."
               else
-                docs_only=$(jq -r '.files[].filename' <<<"${compare}" | classify)
+                docs_only=$(jq -r ".files[] | $(<"${ACTION_PATH}/paths.jq")" <<<"${compare}" | classify)
               fi
             else
               echo "::warning::Could not determine the changed files, running all checks."
