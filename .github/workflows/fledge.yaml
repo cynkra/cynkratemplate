@@ -177,7 +177,12 @@ jobs:
           # This one does have to be asked for. The pull request is gated on the
           # `rcc` check, and the branch push above raised no event either.
           # Run on the branch, so that the checks attach to its head.
-          gh workflow run rcc --ref fledge
+          # Only the smoke test, as for a pull request: a dispatch on a branch
+          # other than the default branch turns the full checks on by default.
+          gh workflow run R-CMD-check.yaml --ref fledge \
+            -f versions-matrix=false \
+            -f dep-suggests-matrix=false \
+            -f run-rcc-suggests=false
           if [ "$(gh pr view "${pr}" --json autoMergeRequest --jq '.autoMergeRequest != null')" != "true" ]; then
             gh pr merge "${pr}" --squash --auto
           fi

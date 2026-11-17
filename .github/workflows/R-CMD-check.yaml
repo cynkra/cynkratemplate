@@ -11,31 +11,41 @@ on:
       - master
       - release
       - next
-      - cran-*
   pull_request:
     branches:
       - main
       # Release branches such as v2.0-cyanoptera, not their suffixed siblings such as v2.0-cyanoptera-dev
       - "v[0-9]+.[0-9]+-[a-z]+"
       - master
+  # Dispatchable on any branch, so that a release branch is checked, and its
+  # source tarball uploaded, before the CRAN submission takes it.
   workflow_dispatch:
     inputs:
       versions-matrix:
-        description: "Create a matrix of R versions"
-        type: boolean
-        default: false
+        description: "Create a matrix of R versions (auto: unless on the default branch)"
+        # `auto`: on when dispatched on a branch other than the default branch,
+        # such as a release branch, off on the default branch.
+        type: choice
+        options: [auto, "true", "false"]
+        default: auto
       dep-suggests-matrix:
-        description: "Create a matrix of suggested dependencies"
-        type: boolean
-        default: false
+        description: "Create a matrix of suggested dependencies (auto: unless on the default branch)"
+        # `auto`: on when dispatched on a branch other than the default branch,
+        # such as a release branch, off on the default branch.
+        type: choice
+        options: [auto, "true", "false"]
+        default: auto
       run-rcc-full:
         description: "Run rcc-full job"
         type: boolean
         default: false
       run-rcc-suggests:
-        description: "Run rcc-suggests job"
-        type: boolean
-        default: false
+        description: "Run rcc-suggests job (auto: unless on the default branch)"
+        # `auto`: on when dispatched on a branch other than the default branch,
+        # such as a release branch, off on the default branch.
+        type: choice
+        options: [auto, "true", "false"]
+        default: auto
   # SECURITY: a merge-queue run executes the queued pull request's code with
   # the base repository's token and secrets, unlike `pull_request`, where a
   # fork only ever gets a read-only token and no secrets. Adding a fork's pull
@@ -115,6 +125,8 @@ jobs:
       versions-matrix: ${{ steps.versions-matrix.outputs.matrix }}
       dep-suggests-matrix: ${{ steps.dep-suggests-matrix.outputs.matrix }}
       binary: ${{ steps.binary.outputs.artifact-name }}
+      # Empty unless uploaded, so that the other jobs then build from the checkout.
+      tarball: ${{ steps.tarball-upload.outcome == 'success' && steps.tarball.outputs.name || '' }}
 
     name: "Smoke test: stock R"
 
@@ -164,6 +176,15 @@ jobs:
         with:
           name: ubuntu-26.04-rrelease-smoke
 
+      # The one source tarball of the run, built on R-release from the commit
+      # as pushed, before the steps below change the working tree. Every
+      # `R CMD check` of the run checks this file, and this job uploads it
+      # after its check, for the CRAN submission to take.
+      - name: Build the source tarball
+        id: tarball
+        continue-on-error: true
+        uses: cynkra/cynkratemplate/.github/actions/build-tarball@claude/shared-tarball
+
       # From here on, every step is marked `continue-on-error: true` so that a
       # failing check doesn't hide the results of all the checks that follow.
       # The "Summarize checks" step at the end fails the job if any of them
@@ -173,18 +194,18 @@ jobs:
         continue-on-error: true
         # Only run for:
         # - pull requests if the base repo is different from the head repo
-        # - pull requests if the branch name starts with "cran-"
         # Do not run for:
-        # - workflow_dispatch if not requested
+        # - workflow_dispatch if not requested, or by default on the default branch
         # Always run for other events.
-        if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || startsWith(github.head_ref, 'cran-')) && (github.event_name != 'workflow_dispatch' || inputs.versions-matrix)
+        if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository) && (github.event_name != 'workflow_dispatch' || (inputs.versions-matrix == 'true' || (inputs.versions-matrix == 'auto' && github.ref_name != github.event.repository.default_branch)))
         uses: cynkra/cynkratemplate/.github/actions/versions-matrix@main
 
       - name: Collect the suggested dependencies into a matrix
         id: dep-suggests-matrix
         continue-on-error: true
-        # Not for workflow_dispatch if not requested, always run for other events
-        if: github.event_name != 'workflow_dispatch' || inputs.dep-suggests-matrix
+        # Not for workflow_dispatch if not requested, or by default on the default branch;
+        # always run for other events
+        if: github.event_name != 'workflow_dispatch' || (inputs.dep-suggests-matrix == 'true' || (inputs.dep-suggests-matrix == 'auto' && github.ref_name != github.event.repository.default_branch))
         uses: cynkra/cynkratemplate/.github/actions/dep-suggests-matrix@main
 
       - name: Style the R sources
@@ -226,9 +247,34 @@ jobs:
       - name: Run R CMD check
         id: check
         continue-on-error: true
-        uses: cynkra/cynkratemplate/.github/actions/check@main
+        uses: cynkra/cynkratemplate/.github/actions/check@claude/shared-tarball
         with:
           results: ${{ runner.os }}-smoke-test
+          tarball: ${{ steps.tarball.outputs.path }}
+
+      # The only upload of the tarball in the run: the raw file, unchanged since
+      # the check above, as the artifact `<package>_<version>.tar.gz`, whose
+      # digest is the file's SHA-256. The other jobs download it from here.
+      - name: Verify that the check left the source tarball unchanged
+        id: tarball-unchanged
+        continue-on-error: true
+        if: steps.tarball.outcome == 'success'
+        env:
+          TARBALL: ${{ steps.tarball.outputs.path }}
+          SHA256: ${{ steps.tarball.outputs.sha256 }}
+        run: |
+          printf '%s  %s\n' "${SHA256}" "${TARBALL}" | sha256sum -c -
+        shell: bash
+
+      - name: Upload the source tarball
+        id: tarball-upload
+        continue-on-error: true
+        if: steps.tarball-unchanged.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.tarball.outputs.path }}
+          archive: false
+          if-no-files-found: error
 
       - name: Build the pkgdown website
         id: pkgdown-build
@@ -302,6 +348,7 @@ jobs:
           # stays here because only this workflow can read `steps.<id>.outcome`.
           checks: |
             Collect the R versions into a matrix|R versions matrix|${{ steps.versions-matrix.outcome }}
+            Build the source tarball|Source tarball|${{ steps.tarball.outcome }}
             Collect the suggested dependencies into a matrix|Suggested dependencies matrix|${{ steps.dep-suggests-matrix.outcome }}
             Style the R sources|Style|${{ steps.style.outcome }}
             Update the testthat snapshots|Snapshots|${{ steps.snapshots.outcome }}
@@ -309,6 +356,8 @@ jobs:
             Re-render the README|README|${{ steps.render-readme.outcome }}
             Report the findings|Findings|${{ steps.findings.outcome }}
             Run R CMD check|R CMD check|${{ steps.check.outcome }}
+            Verify that the check left the source tarball unchanged|Tarball unchanged|${{ steps.tarball-unchanged.outcome }}
+            Upload the source tarball|Tarball upload|${{ steps.tarball-upload.outcome }}
             Build the pkgdown website|pkgdown build|${{ steps.pkgdown-build.outcome }}
             Build and deploy the pkgdown website|pkgdown deploy|${{ steps.pkgdown-deploy.outcome }}
             Compute and upload the test coverage|Coverage|${{ steps.covr.outcome }}
@@ -436,10 +485,18 @@ jobs:
           # Only the snapshots, a build on this platform may leave other files.
           paths: tests/testthat/_snaps
 
+      - name: Download the source tarball
+        uses: actions/download-artifact@v8
+        if: ${{ ! matrix.covr && needs.rcc-smoke.outputs.tarball != '' }}
+        with:
+          name: ${{ needs.rcc-smoke.outputs.tarball }}
+          path: ${{ runner.temp }}/tarball
+
       - name: Run R CMD check
-        uses: cynkra/cynkratemplate/.github/actions/check@main
+        uses: cynkra/cynkratemplate/.github/actions/check@claude/shared-tarball
         if: ${{ ! matrix.covr }}
         with:
+          tarball: ${{ needs.rcc-smoke.outputs.tarball && format('{0}/tarball/{1}', runner.temp, needs.rcc-smoke.outputs.tarball) || '' }}
           # Include the architecture: the matrix pairs each arm64 runner with an
           # amd64 one on the same OS and the same R version (ubuntu-26.04-arm /
           # ubuntu-26.04, windows-11-arm / windows-latest), so `runner.os` alone
@@ -472,7 +529,7 @@ jobs:
 
     steps:
       - name: Download the findings
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: changes-patch*
           path: findings
@@ -515,7 +572,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 120 # longest run seen: 16 min
 
-    if: ${{ needs.rcc-smoke.outputs.dep-suggests-matrix != '' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run-rcc-suggests)) }}
+    if: ${{ needs.rcc-smoke.outputs.dep-suggests-matrix != '' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.run-rcc-suggests == 'true' || (inputs.run-rcc-suggests == 'auto' && github.ref_name != github.event.repository.default_branch)))) }}
 
     name: Without ${{ matrix.package }}
 
@@ -585,7 +642,15 @@ jobs:
           print(Sys.getenv('RCMDCHECK_ERROR_ON'))
         shell: Rscript {0}
 
+      - name: Download the source tarball
+        uses: actions/download-artifact@v8
+        if: needs.rcc-smoke.outputs.tarball != ''
+        with:
+          name: ${{ needs.rcc-smoke.outputs.tarball }}
+          path: ${{ runner.temp }}/tarball
+
       - name: Run R CMD check
-        uses: cynkra/cynkratemplate/.github/actions/check@main
+        uses: cynkra/cynkratemplate/.github/actions/check@claude/shared-tarball
         with:
           results: ${{ matrix.package }}
+          tarball: ${{ needs.rcc-smoke.outputs.tarball && format('{0}/tarball/{1}', runner.temp, needs.rcc-smoke.outputs.tarball) || '' }}
