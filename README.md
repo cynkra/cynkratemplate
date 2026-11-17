@@ -17,12 +17,12 @@ cynkratemplate aims to:
 - Supply the pkgdown template that gives cynkra packages one look:
   the Bootstrap 5 bslib theme, the navbar and footer includes, and the favicon set under `inst/`.
 - Set a package up for that template in a single call.
-  `use_cynkra_pkgdown()` copies the favicon folder, registers the website dependency in `Config/Needs/website`,
+  [`use_cynkra_pkgdown()`](https://cynkratemplate.cynkra.com/reference/use_cynkra_pkgdown.html) copies the favicon folder, registers the website dependency in `Config/Needs/website`,
   and points the pkgdown config at this package.
 - Serve as the upstream for the shared GitHub Actions workflows,
   where a fix found in one cynkra package is centralised for all of them.
 - Stay small.
-  `cli` and `desc` are the only imports, and `yaml` is used from Suggests behind a `requireNamespace()` guard.
+  `cli` and `desc` are the only imports, and `yaml` is used from Suggests behind a [`requireNamespace()`](https://rdrr.io/r/base/ns-load.html) guard.
 
 It is explicitly not trying to:
 
@@ -31,7 +31,7 @@ It is explicitly not trying to:
 - Reach CRAN.
   It is installed from GitHub, and the workflows were changed to suit a package that is not headed there.
 - Offer theming choices.
-  `use_cynkra_pkgdown()` pins Bootstrap 5 and removes a package's own `bootswatch` and `before_title` settings.
+  [`use_cynkra_pkgdown()`](https://cynkratemplate.cynkra.com/reference/use_cynkra_pkgdown.html) pins Bootstrap 5 and removes a package's own `bootswatch` and `before_title` settings.
 - Host the Frutiger fonts.
   They are served from cynkra's S3 bucket, through the CSS in `cynkra/cynkraweb`, where the CORS configuration also lives.
 
