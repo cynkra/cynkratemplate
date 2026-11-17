@@ -175,8 +175,9 @@ jobs:
           fi
 
           # This one does have to be asked for. The pull request is gated on the
-          # `rcc` status, and the branch push above raised no event either.
-          gh workflow run rcc -f ref="$(git rev-parse HEAD)"
+          # `rcc` check, and the branch push above raised no event either.
+          # Run on the branch, so that the checks attach to its head.
+          gh workflow run rcc --ref fledge
           if [ "$(gh pr view "${pr}" --json autoMergeRequest --jq '.autoMergeRequest != null')" != "true" ]; then
             gh pr merge "${pr}" --squash --auto
           fi
