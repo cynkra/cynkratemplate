@@ -33,7 +33,6 @@ expect true "NEWS.md"
 expect true "README.md" "NEWS.md" "CONTRIBUTING.md"
 expect true ".github/ISSUE_TEMPLATE/bug.yml"
 
-expect true "README.Rmd"
 expect true "index.md"
 expect true "TODO.md"
 expect true "cran-comments.md"
@@ -107,6 +106,10 @@ expect false "pkgdown/extra.scss"
 expect false "inst/pkgdown/_pkgdown.yml"
 expect false ".github/workflows/R-CMD-check.yaml"
 expect false ".github/workflows/docs-only/patterns.txt"
+
+# Re-rendered and committed back by the smoke test
+expect false "README.Rmd"
+expect false "README.Rmd" "README.md" "index.md"
 
 # Patterns match the entire path, not a part of it
 expect false "docs/README.md"

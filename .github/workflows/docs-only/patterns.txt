@@ -38,8 +38,10 @@
 # Prose. `README.md`, `index.md` and `NEWS.md` do reach the tarball,
 # but `R CMD check` does not read them,
 # and pkgdown renders them as plain markdown, like the website's other pages.
+# `README.Rmd` is not listed, although it never reaches the tarball:
+# the smoke test re-renders it into `README.md` and `index.md`
+# and commits the result back, so a change to it is a change for `rcc`.
 README\.md
-README\.Rmd
 index\.md
 NEWS\.md
 LICENSE\.md

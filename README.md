@@ -1,3 +1,8 @@
+
+<!-- README.md and index.md are generated from README.Rmd.
+     Edit that file and render it the usual way: rmarkdown::render(), devtools::build_readme(), or the Knit button.
+     The cynkratemplate package must be installed; it supplies the output format. -->
+
 # cynkratemplate
 
 [![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#maturing)
@@ -5,21 +10,51 @@
 This is a custom, restricted template for use by cynkra packages.
 Please don't use it for your own package.
 
+## Goals and non-goals
+
+cynkratemplate aims to:
+
+- Supply the pkgdown template that gives cynkra packages one look:
+  the Bootstrap 5 bslib theme, the navbar and footer includes, and the favicon set under `inst/`.
+- Set a package up for that template in a single call.
+  [`use_cynkra_pkgdown()`](https://cynkratemplate.cynkra.com/reference/use_cynkra_pkgdown.html) copies the favicon folder, registers the website dependency in `Config/Needs/website`,
+  and points the pkgdown config at this package.
+- Serve as the upstream for the shared GitHub Actions workflows,
+  where a fix found in one cynkra package is centralised for all of them.
+- Stay small.
+  `cli` and `desc` are the only imports, and `yaml` is used from Suggests behind a [`requireNamespace()`](https://rdrr.io/r/base/ns-load.html) guard.
+
+It is explicitly not trying to:
+
+- Be a template for general use.
+  It is restricted to cynkra packages, which is why the description asks you not to use it for your own.
+- Reach CRAN.
+  It is installed from GitHub, and the workflows were changed to suit a package that is not headed there.
+- Offer theming choices.
+  [`use_cynkra_pkgdown()`](https://cynkratemplate.cynkra.com/reference/use_cynkra_pkgdown.html) pins Bootstrap 5 and removes a package's own `bootswatch` and `before_title` settings.
+- Host the Frutiger fonts.
+  They are served from cynkra's S3 bucket, through the CSS in `cynkra/cynkraweb`, where the CORS configuration also lives.
+
 ## Usage
 
 Install cynkratemplate.
 
-```r
+``` r
 devtools::install_github("cynkra/cynkratemplate")
 ```
 
-Run 
+Run
 
-```r
+``` r
 cynkratemplate::use_cynkra_pkgdown()
 ```
 
-Please ask the person in charge (see website page of the general manual in clickup) for a plausible subdomain via email or another mean of communication of their choice.
+The template ships the cynkra favicon and adds it to every page of the site.
+Packages using the template need no `pkgdown/favicon/` folder of their own;
+remove an existing one unless it holds a deliberately different icon.
+
+Please ask the person in charge (see website page of the general manual in clickup) for a plausible subdomain
+via email or another mean of communication of their choice.
 
 ## Continuous integration
 
@@ -47,7 +82,7 @@ rather than a green status for code that was never checked.
 The defaults come from a survey of the top-level entries
 of 64 packages across cynkra, r-lib, r-dbi, tidyverse, igraph, duckdb,
 poissonconsulting, r-prof, and krlmlr,
-and cover `README.Rmd`, `index.md`, `cran-comments.md`,
+and cover `index.md`, `cran-comments.md`,
 `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.vscode/`, and `data-raw/`
 in addition to the usual prose files.
 
@@ -72,9 +107,13 @@ In addition, he ACL settings of the bucket must be set to "public read" so the f
 
 ### cynkra blog, dm and similar repositories
 
-The *cynkra blog*, *cynkratemplate*, *dm* and similar repositories use the same fonts from [cynkra/cynkraweb on GitHub](https://github.com/cynkra/cynkraweb/blob/main/www/assets/css/base/fonts.css), specifically `font-family: "frutiger", sans-serif;` with font weights of `300` (light), `400` (normal), and `700` (bold). Please ensure not to use **500**, **600**, **bolder**, or other weights, as the browser would render them using faux styles.
+The *cynkra blog*, *cynkratemplate*, *dm* and similar repositories use the same fonts from [cynkra/cynkraweb on GitHub](https://github.com/cynkra/cynkraweb/blob/main/www/assets/css/base/fonts.css),
+specifically `font-family: "frutiger", sans-serif;` with font weights of `300` (light), `400` (normal), and `700` (bold).
+Please ensure not to use **500**, **600**, **bolder**, or other weights, as the browser would render them using faux styles.
 
-Keep in mind that since the Cynkra blog loads fonts from absolute URLs (e.g. `src: url("https://cynkra.com/assets/fonts/frutiger-400.woff2") format("woff2");`), if there is a font update at the [cynkra/cynkraweb GitHub repository](https://github.com/cynkra/cynkraweb/), the URLs might change, requiring updates on our end as well.
+Keep in mind that since the Cynkra blog loads fonts from absolute URLs (e.g. `src: url("https://cynkra.com/assets/fonts/frutiger-400.woff2") format("woff2");`),
+if there is a font update at the [cynkra/cynkraweb GitHub repository](https://github.com/cynkra/cynkraweb/),
+the URLs might change, requiring updates on our end as well.
 
 ### Local preview
 
