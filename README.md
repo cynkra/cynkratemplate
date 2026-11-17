@@ -62,9 +62,10 @@ via email or another mean of communication of their choice.
 
 The `rcc` workflow skips the checks for pull requests
 that only touch documentation,
-and turns the `rcc` status green right away.
+and the `rcc` check turns green
+as soon as the job that classifies the changes has finished.
 The workflow itself still runs,
-so the status is always reported,
+so the check is always reported,
 also for pull requests from forks.
 
 A pull request counts as documentation-only
@@ -77,7 +78,7 @@ and the workflows themselves,
 triggers the full checks.
 A path nobody thought of therefore costs one superfluous check run,
 which is visible in the pull request,
-rather than a green status for code that was never checked.
+rather than a green check for code that was never checked.
 
 The defaults come from a survey of the top-level entries
 of 64 packages across cynkra, r-lib, r-dbi, tidyverse, igraph, duckdb,
@@ -86,6 +87,8 @@ and cover `index.md`, `cran-comments.md`,
 `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.vscode/`, and `data-raw/`
 in addition to the usual prose files.
 
+The same applies to merge-queue runs:
+a queued group whose changes are all documentation is not checked either.
 Pushes, scheduled runs, and manual runs always check everything.
 The package is verified,
 and the website is deployed,
