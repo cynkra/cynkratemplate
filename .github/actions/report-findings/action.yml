@@ -1,0 +1,72 @@
+name: "Report the findings"
+description: >
+  Report what the fixing steps before changed in the working tree, instead of committing it:
+  as a patch in the job summary, and as the artifact `changes-patch` (`changes-patch-<name>` with a name),
+  which `file-findings` files as an issue.
+  Uploads nothing where nothing changed.
+
+inputs:
+  name:
+    description: "Suffix of the artifact, to tell apart the jobs of one run."
+    required: false
+    default: ""
+  paths:
+    description: "Only report changes under this path."
+    required: false
+    default: "."
+  fail:
+    description: "`true` fails the step when there is something to report."
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Write the patch
+      id: patch
+      env:
+        PATHS: ${{ inputs.paths }}
+        FAIL: ${{ inputs.fail }}
+      run: |
+        ## -- Write the patch --
+        set -euo pipefail
+
+        # roxygen2 records its own version in DESCRIPTION, and CI runs a development
+        # roxygen2, so that change alone is not the repository's to make.
+        # It used to be most of what CI committed.
+        # ponytail: when roxygen2 also changes another field, such as `Collate`, the stamp rides along.
+        stamp='^(Config/roxygen2/version|RoxygenNote):'
+        if [ -f DESCRIPTION ] && ! git diff --quiet HEAD -- DESCRIPTION &&
+          diff -q <(git show HEAD:DESCRIPTION | grep -vE "${stamp}") <(grep -vE "${stamp}" DESCRIPTION) > /dev/null; then
+          git checkout HEAD -- DESCRIPTION
+        fi
+
+        # `add -A` so that new files, such as a new snapshot or Rd file, are in the patch.
+        patch="${RUNNER_TEMP}/changes-patch/changes.patch"
+        mkdir -p "$(dirname "${patch}")"
+        git add -A -- "${PATHS}"
+        git diff --cached --binary HEAD -- "${PATHS}" > "${patch}"
+
+        if [ ! -s "${patch}" ]; then
+          echo "Nothing to report."
+          rm "${patch}"
+          exit 0
+        fi
+
+        echo "::warning title=Findings::CI would have changed $(git diff --cached --stat HEAD -- "${PATHS}" | tail -n 1), the job summary has the patch."
+        {
+          printf '## Changes CI would have made\n\n'
+          printf '<details>\n\n%s\n' '````diff'
+          head -c 100000 "${patch}"
+          printf '\n%s\n\n</details>\n' '````'
+        } >> "${GITHUB_STEP_SUMMARY}"
+        [ "${FAIL}" != "true" ]
+      shell: bash
+
+    - name: Upload the patch
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: changes-patch${{ inputs.name && format('-{0}', inputs.name) || '' }}
+        path: ${{ runner.temp }}/changes-patch/
+        if-no-files-found: ignore
