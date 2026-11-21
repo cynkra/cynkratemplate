@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+
+# Self-test for `delete-branch.sh`, run as the first step of the action.
+# A guard that wrongly lets a deletion through loses a branch, so it is worth the second this takes.
+# It runs the script against a local bare repository, with a stand-in for `gh` on the PATH.
+
+set -euo pipefail
+
+dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+script="${dir}/delete-branch.sh"
+
+tmp=$(mktemp -d)
+trap 'rm -rf "${tmp}"' EXIT
+
+export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com
+export GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+
+# The stand-in answers the script's calls from the FAKE_* variables; an empty answer fails.
+# A `head=` query has to carry the owner and the URL-encoded branch, FAKE_URI.
+mkdir "${tmp}/bin"
+cat >"${tmp}/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+case "$2" in
+  */pulls\?*head=*) [[ "$2" == *"&head=o:${FAKE_URI}" ]] || exit 1 ;;
+esac
+case "$2" in
+  repos/o/r) out=${FAKE_REPO-false - -} ;;
+  */pulls/*) out=${FAKE_PULL} ;;
+  repos/o/r/pulls\?*head=*) out=${FAKE_OPEN_HEAD-0} ;;
+  repos/up/r/pulls\?*head=*) out=${FAKE_OPEN_PARENT-0} ;;
+  repos/root/r/pulls\?*head=*) out=${FAKE_OPEN_SOURCE-0} ;;
+  */pulls\?*base=*) out=${FAKE_OPEN_BASE-0} ;;
+  */branches/*) out=${FAKE_PROTECTED} ;;
+esac
+[ -n "${out}" ] || exit 1
+printf '%s\n' "${out}"
+EOF
+chmod +x "${tmp}/bin/gh"
+export PATH="${tmp}/bin:${PATH}"
+export REMOTE="${tmp}/remote.git" REPO=o/r GITHUB_STEP_SUMMARY=""
+
+git init -q --bare -b main "${REMOTE}"
+git init -q -b main "${tmp}/work"
+work() { git -C "${tmp}/work" "$@"; }
+work commit -q --allow-empty -m one
+one=$(work rev-parse HEAD)
+work commit -q --allow-empty -m two
+two=$(work rev-parse HEAD)
+
+# Sets up the remote: the default branch DEFAULT (main), `<branch>` at `<tip>`, and pull request 1's head at `<head>`.
+setup() { # <branch> <tip> <head>
+  local default=${DEFAULT:-main}
+  rm -rf "${REMOTE}"
+  git init -q --bare -b "${default}" "${REMOTE}"
+  work push -q "${REMOTE}" "${one}:refs/heads/${default}" "$3:refs/pull/1/head"
+  if [ "$1" != "${default}" ] && git check-ref-format "refs/heads/$1"; then
+    work push -q "${REMOTE}" "$2:refs/heads/$1"
+  fi
+}
+
+failures=0
+
+expect() { # <want status> <branch> <tip> <head> <pull> <protected> [<pr>]
+  local want=$1 branch=$2 tip=$3 head=$4 pull=$5 protected=$6 pr=${7-1}
+  setup "${branch}" "${tip}" "${head}"
+  local got=0
+  FAKE_URI=$(jq -rn --arg b "${branch}" '$b | @uri') FAKE_PULL=${pull} FAKE_PROTECTED=${protected} "${script}" "${branch}" "${pr}" >"${tmp}/out" 2>&1 || got=$?
+  # A usage error reads nothing, so only a refusal has to leave the branch in place.
+  local kept=yes want_kept=yes
+  git --git-dir="${REMOTE}" rev-parse -q --verify "refs/heads/${branch}" >/dev/null 2>&1 || kept=no
+  case "${want}" in
+    0) want_kept=no ;;
+    2) want_kept=${kept} ;;
+  esac
+  local label="${branch} tip=${tip:0:7} head=${head:0:7} pull='${pull}' protected='${protected}' pr=${pr}"
+  if [ "${got}" = "${want}" ] && [ "${kept}" = "${want_kept}" ]; then
+    echo "ok       exit ${got}, kept ${kept} <- ${label}: $(tail -n 1 "${tmp}/out")"
+  else
+    echo "NOT OK   want exit ${want}, got ${got}, kept ${kept} <- ${label}" >&2
+    failures=$((failures + 1))
+  fi
+}
+
+closed=$'closed\tfeature\to/r'
+
+# Deleted: a closed pull request's head, unmoved, also where the name only resembles a reserved one
+expect 0 feature "${two}" "${two}" "${closed}" false
+for b in mainline my-main dev version-x; do
+  expect 0 "${b}" "${two}" "${two}" "closed"$'\t'"${b}"$'\t'"o/r" false
+done
+expect 0 claude/x "${two}" "${two}" $'closed\tclaude/x\to/r' false
+
+# Moved after the pull request closed, or never its head
+expect 1 feature "${two}" "${one}" "${closed}" false
+
+# Open, or a state that cannot be read
+expect 1 feature "${two}" "${two}" $'open\tfeature\to/r' false
+expect 1 feature "${two}" "${two}" "" false
+
+# The pull request's head is another branch, or a fork's
+expect 1 feature "${two}" "${two}" $'closed\tother\to/r' false
+expect 1 feature "${two}" "${two}" $'closed\tfeature\tfork/r' false
+expect 1 feature "${two}" "${two}" $'closed\tfeature\t' false
+
+# Protected, or protection that cannot be read
+expect 1 feature "${two}" "${two}" "${closed}" true
+expect 1 feature "${two}" "${two}" "${closed}" ""
+
+# An open pull request has the branch as its head or its base, or that cannot be ruled out
+FAKE_OPEN_HEAD=1 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_OPEN_HEAD="" expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_OPEN_BASE=2 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_OPEN_BASE="" expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_OPEN_HEAD=null expect 1 feature "${two}" "${two}" "${closed}" false
+
+# A fork: an open pull request in its parent, or in the root of its fork network, has the branch as its head,
+# or that cannot be ruled out
+fork=$'true up/r up/r'
+forkfork=$'true up/r root/r'
+FAKE_REPO=${fork} expect 0 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${fork} FAKE_OPEN_PARENT=1 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${fork} FAKE_OPEN_PARENT="" expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${fork} FAKE_OPEN_PARENT=null expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${forkfork} expect 0 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${forkfork} FAKE_OPEN_SOURCE=1 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${forkfork} FAKE_OPEN_SOURCE="" expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${forkfork} FAKE_OPEN_PARENT=1 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=$'true - -' expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=$'true up/r -' expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=$'null - -' expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO="" expect 1 feature "${two}" "${two}" "${closed}" false
+
+# The default branch, under a name that is not otherwise reserved
+DEFAULT=trunk expect 1 trunk "${one}" "${one}" $'closed\ttrunk\to/r' false
+DEFAULT=trunk expect 0 feature "${two}" "${two}" "${closed}" false
+
+# Reserved names, in any letter case, whatever the pull request says
+for b in main Main master main-dev main-green master-x cran cran-0.1.0 CRAN-1.0 release release-1.0 Release/2 docs docs-dev \
+  gh-pages GH-Pages upstream-main archive/old Archive/old v2.0-cyanoptera v1.4-andium-build; do
+  expect 1 "${b}" "${one}" "${one}" "closed"$'\t'"${b}"$'\t'"o/r" false
+done
+
+# A pull request with no head ref
+expect 1 feature "${two}" "${two}" "${closed}" false 2
+
+# Usage errors
+expect 2 -x "${two}" "${two}" "${closed}" false
+expect 2 "a..b" "${two}" "${two}" "${closed}" false
+expect 2 feature "${two}" "${two}" "${closed}" false 0
+expect 2 feature "${two}" "${two}" "${closed}" false "1; true"
+
+if [ "${failures}" -ne 0 ]; then
+  echo "${failures} test(s) failed." >&2
+  exit 1
+fi
+
+echo "All tests passed."
