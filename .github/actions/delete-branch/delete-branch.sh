@@ -9,7 +9,8 @@
 #   - a branch that does not exist, or a pull request with no head ref;
 #   - a pull request that is not closed, whose head is another branch or a fork, or whose state cannot be read;
 #   - a branch whose tip is not the pull request's head, that is, one that moved after the pull request closed;
-#   - a branch that an open pull request has as its head or its base, or where either cannot be ruled out.
+#   - a branch that an open pull request has as its head or its base, or, where REPO is a fork, that an open pull request
+#     in its parent has as its head, or where any of these cannot be ruled out.
 # The deletion is leased on the tip read, so a branch that moves after the checks is kept as well.
 # The lease covers the tip only: a pull request reopened or opened between the reads and the push is closed by the deletion,
 # its commits staying under its `refs/pull/<n>/head`.
@@ -18,6 +19,7 @@
 #   <branch>  the branch's name without `refs/heads/`
 #   <pr>      the pull request's number
 # Anything else is a usage error, exit 2, before anything is read.
+# It needs bash 4 or later, for `${var,,}`.
 #
 # Environment variables:
 #   GH_TOKEN  token with contents:read and pull-requests:read on REPO, for `gh`
@@ -93,6 +95,21 @@ for side in head base; do
     *) refuse "an open pull request has it as its ${side}" ;;
   esac
 done
+
+# A fork's branch can also be the head of a pull request in its parent.
+parent=$(gh api "repos/${REPO}" --jq '.parent.full_name // "-"') || parent=''
+case "${parent}" in
+  -) ;;
+  '' | *[!A-Za-z0-9._/-]*) refuse "whether ${REPO} is a fork could not be read" ;;
+  *)
+    open=$(gh api "repos/${parent}/pulls?state=open&head=${REPO%%/*}:${uri}" --jq length) || open=''
+    case "${open}" in
+      0) ;;
+      '' | *[!0-9]*) refuse "whether an open pull request in ${parent} has it as its head could not be read" ;;
+      *) refuse "an open pull request in ${parent} has it as its head" ;;
+    esac
+    ;;
+esac
 
 protected=$(gh api "repos/${REPO}/branches/${uri}" --jq .protected) || protected=''
 case "${protected}" in

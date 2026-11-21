@@ -16,13 +16,19 @@ export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com
 export GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
-# The stand-in answers the script's calls from FAKE_PULL, FAKE_OPEN_HEAD, FAKE_OPEN_BASE and FAKE_PROTECTED; an empty answer fails.
+# The stand-in answers the script's calls from the FAKE_* variables; an empty answer fails.
+# A `head=` query has to carry the owner and the URL-encoded branch, FAKE_URI.
 mkdir "${tmp}/bin"
 cat >"${tmp}/bin/gh" <<'EOF'
 #!/usr/bin/env bash
 case "$2" in
+  */pulls\?*head=*) [[ "$2" == *"&head=o:${FAKE_URI}" ]] || exit 1 ;;
+esac
+case "$2" in
+  repos/o/r) out=${FAKE_PARENT--} ;;
   */pulls/*) out=${FAKE_PULL} ;;
-  */pulls\?*head=*) out=${FAKE_OPEN_HEAD-0} ;;
+  repos/o/r/pulls\?*head=*) out=${FAKE_OPEN_HEAD-0} ;;
+  */pulls\?*head=*) out=${FAKE_OPEN_PARENT-0} ;;
   */pulls\?*base=*) out=${FAKE_OPEN_BASE-0} ;;
   */branches/*) out=${FAKE_PROTECTED} ;;
 esac
@@ -41,12 +47,13 @@ one=$(work rev-parse HEAD)
 work commit -q --allow-empty -m two
 two=$(work rev-parse HEAD)
 
-# Sets up the remote: `<branch>` at `<tip>`, and pull request 1's head at `<head>`.
+# Sets up the remote: the default branch DEFAULT (main), `<branch>` at `<tip>`, and pull request 1's head at `<head>`.
 setup() { # <branch> <tip> <head>
+  local default=${DEFAULT:-main}
   rm -rf "${REMOTE}"
-  git init -q --bare -b main "${REMOTE}"
-  work push -q "${REMOTE}" "${one}:refs/heads/main" "$3:refs/pull/1/head"
-  if [ "$1" != main ] && git check-ref-format "refs/heads/$1"; then
+  git init -q --bare -b "${default}" "${REMOTE}"
+  work push -q "${REMOTE}" "${one}:refs/heads/${default}" "$3:refs/pull/1/head"
+  if [ "$1" != "${default}" ] && git check-ref-format "refs/heads/$1"; then
     work push -q "${REMOTE}" "$2:refs/heads/$1"
   fi
 }
@@ -57,7 +64,7 @@ expect() { # <want status> <branch> <tip> <head> <pull> <protected> [<pr>]
   local want=$1 branch=$2 tip=$3 head=$4 pull=$5 protected=$6 pr=${7-1}
   setup "${branch}" "${tip}" "${head}"
   local got=0
-  FAKE_PULL=${pull} FAKE_PROTECTED=${protected} "${script}" "${branch}" "${pr}" >"${tmp}/out" 2>&1 || got=$?
+  FAKE_URI=$(jq -rn --arg b "${branch}" '$b | @uri') FAKE_PULL=${pull} FAKE_PROTECTED=${protected} "${script}" "${branch}" "${pr}" >"${tmp}/out" 2>&1 || got=$?
   # A usage error reads nothing, so only a refusal has to leave the branch in place.
   local kept=yes want_kept=yes
   git --git-dir="${REMOTE}" rev-parse -q --verify "refs/heads/${branch}" >/dev/null 2>&1 || kept=no
@@ -104,6 +111,18 @@ FAKE_OPEN_HEAD=1 expect 1 feature "${two}" "${two}" "${closed}" false
 FAKE_OPEN_HEAD="" expect 1 feature "${two}" "${two}" "${closed}" false
 FAKE_OPEN_BASE=2 expect 1 feature "${two}" "${two}" "${closed}" false
 FAKE_OPEN_BASE="" expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_OPEN_HEAD=null expect 1 feature "${two}" "${two}" "${closed}" false
+
+# A fork: an open pull request in its parent has the branch as its head, or that cannot be ruled out
+FAKE_PARENT=up/r expect 0 feature "${two}" "${two}" "${closed}" false
+FAKE_PARENT=up/r FAKE_OPEN_PARENT=1 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_PARENT=up/r FAKE_OPEN_PARENT="" expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_PARENT=up/r FAKE_OPEN_PARENT=null expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_PARENT="" expect 1 feature "${two}" "${two}" "${closed}" false
+
+# The default branch, under a name that is not otherwise reserved
+DEFAULT=trunk expect 1 trunk "${one}" "${one}" $'closed\ttrunk\to/r' false
+DEFAULT=trunk expect 0 feature "${two}" "${two}" "${closed}" false
 
 # Reserved names, in any letter case, whatever the pull request says
 for b in main Main master main-dev main-green master-x cran cran-0.1.0 CRAN-1.0 release release-1.0 Release/2 docs docs-dev \
