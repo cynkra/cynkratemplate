@@ -453,7 +453,7 @@ jobs:
           ref: ${{ inputs.ref || github.ref }}
 
       - name: Download the shard plan
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: revdepx-plan
           path: ${{ runner.temp }}/plan
@@ -664,13 +664,13 @@ jobs:
         shell: Rscript {0}
 
       - name: Download the shard plan
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: revdepx-plan
           path: ${{ runner.temp }}/plan
 
       - name: Download the package binary
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: revdepx-pkg
           path: ${{ runner.temp }}/pkg
@@ -678,7 +678,7 @@ jobs:
       # The baseline lives on an earlier run of either workflow; absence is
       # not an error, the shard just records drift for nothing.
       - name: Download the baseline results
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         if: needs.plan.outputs.baseline_run != '0'
         continue-on-error: true
         with:
@@ -690,7 +690,7 @@ jobs:
       # Only when the universe job could not push but could save: the image
       # travelled as an artifact instead, and shard-prep.sh docker-loads it.
       - name: Download the universe image artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         if: needs.universe.outputs.saved == 'true'
         continue-on-error: true
         with:
@@ -904,7 +904,7 @@ jobs:
         shell: Rscript {0}
 
       - name: Download the shard plan
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: revdepx-plan
           path: ${{ runner.temp }}/plan
@@ -913,14 +913,14 @@ jobs:
       # worth a report: the collector reconciles against the plan and names
       # every package it never heard about, which is what `retry-run` needs.
       - name: Download the results of all shards
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           pattern: revdepx-results-*
           path: ${{ runner.temp }}/results
 
       - name: Download the report of the run being retried
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         if: env.REVDEPX_RETRY_RUN != ''
         continue-on-error: true
         with:

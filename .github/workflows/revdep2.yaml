@@ -561,13 +561,13 @@ jobs:
             revdep2-pak-
 
       - name: Download the shard plan
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: revdep2-plan
           path: ${{ runner.temp }}/plan
 
       - name: Download the package binary
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: revdep2-pkg
           path: ${{ runner.temp }}/pkg
@@ -577,7 +577,7 @@ jobs:
       # `needs`, so it is always there -- unless the preflight could not pack
       # one, which is a slower shard, not a broken one.
       - name: Download this run's preflight library
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           name: revdep2-lib
@@ -586,7 +586,7 @@ jobs:
       # The baseline lives on an earlier run; absence is not an error, the
       # shard just checks the CRAN version fresh.
       - name: Download the baseline results
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         if: needs.plan.outputs.baseline_run != '0'
         continue-on-error: true
         with:
@@ -812,7 +812,7 @@ jobs:
         shell: Rscript {0}
 
       - name: Download the shard plan
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: revdep2-plan
           path: ${{ runner.temp }}/plan
@@ -821,14 +821,14 @@ jobs:
       # worth a report: the collector reconciles against the plan and names
       # every package it never heard about, which is what `retry-run` needs.
       - name: Download the results of all shards
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           pattern: revdep2-results-*
           path: ${{ runner.temp }}/results
 
       - name: Download the report of the run being retried
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         if: env.REVDEP2_RETRY_RUN != ''
         continue-on-error: true
         with:
