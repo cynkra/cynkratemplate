@@ -472,8 +472,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           state: ${{ job.status }}
-          # The commit the tarball was built from, see status-sha
-          sha: ${{ steps.status-sha.outputs.sha }}
+          # The commit the tarball was built from, see status-sha; `inputs.ref`
+          # if the job failed before that step
+          sha: ${{ steps.status-sha.outputs.sha || inputs.ref }}
 
       - name: Update status for rcc (Copilot)
         # Update status directly when triggered by Copilot or bots, since they can't dispatch workflows
@@ -482,7 +483,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           state: ${{ job.status }}
-          sha: ${{ inputs.ref }}
+          # As for the final status above
+          sha: ${{ steps.status-sha.outputs.sha || inputs.ref }}
 
   rcc-smoke-check-matrix:
     runs-on: ubuntu-26.04
