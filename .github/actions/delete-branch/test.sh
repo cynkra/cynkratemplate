@@ -16,12 +16,14 @@ export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com
 export GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
-# The stand-in answers the two calls the script makes from FAKE_PULL and FAKE_PROTECTED; an empty answer fails.
+# The stand-in answers the script's calls from FAKE_PULL, FAKE_OPEN_HEAD, FAKE_OPEN_BASE and FAKE_PROTECTED; an empty answer fails.
 mkdir "${tmp}/bin"
 cat >"${tmp}/bin/gh" <<'EOF'
 #!/usr/bin/env bash
 case "$2" in
   */pulls/*) out=${FAKE_PULL} ;;
+  */pulls\?*head=*) out=${FAKE_OPEN_HEAD-0} ;;
+  */pulls\?*base=*) out=${FAKE_OPEN_BASE-0} ;;
   */branches/*) out=${FAKE_PROTECTED} ;;
 esac
 [ -n "${out}" ] || exit 1
@@ -55,7 +57,7 @@ expect() { # <want status> <branch> <tip> <head> <pull> <protected> [<pr>]
   local want=$1 branch=$2 tip=$3 head=$4 pull=$5 protected=$6 pr=${7-1}
   setup "${branch}" "${tip}" "${head}"
   local got=0
-  FAKE_PULL=${pull} FAKE_PROTECTED=${protected} "${script}" "${branch}" "${pr}" >/dev/null 2>&1 || got=$?
+  FAKE_PULL=${pull} FAKE_PROTECTED=${protected} "${script}" "${branch}" "${pr}" >"${tmp}/out" 2>&1 || got=$?
   # A usage error reads nothing, so only a refusal has to leave the branch in place.
   local kept=yes want_kept=yes
   git --git-dir="${REMOTE}" rev-parse -q --verify "refs/heads/${branch}" >/dev/null 2>&1 || kept=no
@@ -65,7 +67,7 @@ expect() { # <want status> <branch> <tip> <head> <pull> <protected> [<pr>]
   esac
   local label="${branch} tip=${tip:0:7} head=${head:0:7} pull='${pull}' protected='${protected}' pr=${pr}"
   if [ "${got}" = "${want}" ] && [ "${kept}" = "${want_kept}" ]; then
-    echo "ok       exit ${got}, kept ${kept} <- ${label}"
+    echo "ok       exit ${got}, kept ${kept} <- ${label}: $(tail -n 1 "${tmp}/out")"
   else
     echo "NOT OK   want exit ${want}, got ${got}, kept ${kept} <- ${label}" >&2
     failures=$((failures + 1))
@@ -74,8 +76,11 @@ expect() { # <want status> <branch> <tip> <head> <pull> <protected> [<pr>]
 
 closed=$'closed\tfeature\to/r'
 
-# Deleted: a closed pull request's head, unmoved
+# Deleted: a closed pull request's head, unmoved, also where the name only resembles a reserved one
 expect 0 feature "${two}" "${two}" "${closed}" false
+for b in mainline my-main dev version-x; do
+  expect 0 "${b}" "${two}" "${two}" "closed"$'\t'"${b}"$'\t'"o/r" false
+done
 expect 0 claude/x "${two}" "${two}" $'closed\tclaude/x\to/r' false
 
 # Moved after the pull request closed, or never its head
@@ -94,8 +99,15 @@ expect 1 feature "${two}" "${two}" $'closed\tfeature\t' false
 expect 1 feature "${two}" "${two}" "${closed}" true
 expect 1 feature "${two}" "${two}" "${closed}" ""
 
-# Reserved names, whatever the pull request says
-for b in main docs docs-dev cran-0.1.0 release release-1.0 upstream-main gh-pages archive/old; do
+# An open pull request has the branch as its head or its base, or that cannot be ruled out
+FAKE_OPEN_HEAD=1 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_OPEN_HEAD="" expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_OPEN_BASE=2 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_OPEN_BASE="" expect 1 feature "${two}" "${two}" "${closed}" false
+
+# Reserved names, in any letter case, whatever the pull request says
+for b in main Main master main-dev main-green master-x cran cran-0.1.0 CRAN-1.0 release release-1.0 Release/2 docs docs-dev \
+  gh-pages GH-Pages upstream-main archive/old Archive/old v2.0-cyanoptera v1.4-andium-build; do
   expect 1 "${b}" "${one}" "${one}" "closed"$'\t'"${b}"$'\t'"o/r" false
 done
 

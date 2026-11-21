@@ -38,7 +38,7 @@ jobs:
 
     name: "Delete a closed pull request's head branch"
 
-    timeout-minutes: 5
+    timeout-minutes: 10 # a checkout, the self-test, four API calls and a push; no runs measured yet
 
     steps:
       # For the remote and its credentials only: the tips are read with `git ls-remote`, and the deletion pushes no objects.
