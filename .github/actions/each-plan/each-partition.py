@@ -2,8 +2,8 @@
 """Partition a commit range into contiguous, cost-balanced `each-rcc` shards.
 
 Reads `<sha> <invalidated-objects>` lines, oldest first -- what
-`scripts/each-cost.py batch` produces -- and writes the shard list
-`scripts/each-plan.sh` turns into a matrix.
+the `batch` form of the package's cost estimator produces -- and writes the
+shard list `each-plan.sh` turns into a matrix.
 
 Two passes, and they optimise different things.
 
@@ -29,8 +29,8 @@ because neither axis is monotone in `B`:
     At `P` slots, `P` legs finish in one wave and `P + 1` legs take two, so one
     extra leg can nearly *double* the wall clock. Plans are therefore ranked by
     `makespan()`, which models that throttling, and not by their longest leg.
-  * **Runner cost** usually rises with more legs, but not always: a commit that
-    invalidates the whole unity build already pays `FULL`, so a cut placed just
+  * **Runner cost** usually rises with more legs, but not always: a commit heavy
+    enough to be capped at `FULL` already pays it, so a cut placed just
     before one is free but for the job setup. More legs can genuinely be cheaper
     than fewer, and a plan rejected on cost says nothing about the next one.
 
@@ -51,8 +51,8 @@ The cost model per leg:
     estimate_minutes = SETUP + build_minutes
 
 The first commit of a leg pays FULL rather than its own weight: it starts on an
-empty ccache, so it rebuilds all of `sources.mk` no matter how little it
-changed. `build_minutes` is what `scripts/each-shard.sh` measures itself
+empty ccache, so it rebuilds every object no matter how little it
+changed. `build_minutes` is what `each-shard.sh` measures itself
 against (its deadline starts after setup); `estimate_minutes` is the job's wall
 clock.
 """
@@ -69,11 +69,11 @@ def parse_args(argv):
     p.add_argument("--setup", type=float, default=5.0,
                    help="per-leg checkout, R and dependency install")
     p.add_argument("--full", type=float, default=40.0,
-                   help="a build on an empty ccache -- all of sources.mk")
+                   help="a build on an empty ccache -- every object")
     p.add_argument("--floor", type=float, default=6.0,
                    help="per-commit link, install, check and gates")
     p.add_argument("--object-seconds", type=float, default=9.7,
-                   help="marginal cost of recompiling one unity object")
+                   help="marginal cost of recompiling one object")
     p.add_argument("--max-shards", type=int, default=250)
     p.add_argument("--max-parallel", type=int, default=20)
     p.add_argument("--split-factor", type=float, default=1.5,

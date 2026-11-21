@@ -2,21 +2,24 @@
 # Dispatch one more `each-rcc` run when this one left planned commits undecided.
 #
 # A leg stops at its own deadline and defers the commits it did not reach
-# (scripts/each-shard.sh), the planner defers the oldest commits past
+# (each-shard.sh), the planner defers the oldest commits past
 # MAX_SHARDS legs, and a leg that dies leaves its in-flight commit undecided.
 # So the run's last job asks for one more pass on the branch, which plans
 # whatever the verdict store still lacks when it starts. When it dispatches, and
-# why a chain of follow-ups ends, is stated once, in "The follow-up run" of
-# handbook/operations/ci/per-commit/legs/README.md; this header holds the
-# mechanism.
+# why a chain of follow-ups ends: it dispatches only when commits it set out to
+# decide remain and it decided at least one of them, so a run that makes no
+# progress ends the chain. This header holds the mechanism.
+#
+# Served by the `each-follow-up` action of cynkra/cynkratemplate; it reads the
+# store through the package's rcc-decided.sh and rcc-lib.sh, in EACH_SCRIPTS.
 #
 # What the run set out to decide is what its plan put in a shard: the commits
 # that had no record when the plan was made (`planned_without_verdict`), and the
 # ones planned despite a record (`replanned_despite_verdict`: a forced run's,
 # and a `retry-<S>-dev` tip). One of the first kind is decided once the store
 # holds a record for it, read the way the planner reads it
-# (scripts/rcc-decided.sh); one of the second kind only once its record names
-# this run, which takes the records themselves (scripts/rcc-lib.sh), fetched
+# (rcc-decided.sh); one of the second kind only once its record names
+# this run, which takes the records themselves (rcc-lib.sh), fetched
 # only when the plan has such a commit. Commit statuses decide nothing here.
 #
 # What remains is what a follow-up can still decide, which it never does by
@@ -28,7 +31,7 @@
 # The follow-up gets this run's inputs without `force`, plus `follow-up-of`,
 # this run's id, and `follow-up-head`, the commit the plan was made from. The
 # planner forces a retry tip again unless it equals that head
-# (scripts/each-plan.sh), so the head is left out when the tip remains.
+# (each-plan.sh), so the head is left out when the tip remains.
 #
 # The order is load-bearing. The store is read before the branch's tip is
 # checked, and the waiting runs are listed right before the dispatch, so what is
@@ -40,7 +43,8 @@
 # ends the job quietly; any other refusal fails it.
 #
 # Usage:
-#   GH_TOKEN=<token> PLAN=plan.json RUN_ID=<id> scripts/each-follow-up.sh
+#   GH_TOKEN=<token> PLAN=plan.json RUN_ID=<id> \
+#     .github/actions/each-follow-up/each-follow-up.sh
 #
 # Run it in a clone whose `origin` is the repository the run belongs to: the
 # branch's tip is read from there, and `gh api` takes the repository from it.
@@ -51,7 +55,10 @@
 #                       Actions; required unless RCC_REMOTE is set)
 #   RCC_REMOTE        - the store's remote URL, overriding GITHUB_REPOSITORY;
 #                       how the test points this at a local repository
-#   RCC_READ_DIR      - where scripts/rcc-decided.sh caches its clone of the
+#   EACH_SCRIPTS      - the package's directory holding rcc-decided.sh and
+#                       rcc-lib.sh, absolute or relative to the working
+#                       directory (default: scripts)
+#   RCC_READ_DIR      - where rcc-decided.sh caches its clone of the
 #                       store (default: $RUNNER_TEMP/rcc-read, else /tmp/rcc-read)
 #   PLAN              - this run's plan file, which names the branch and the
 #                       commit it was planned from (default: plan.json)
@@ -61,7 +68,7 @@
 #   WORKFLOW          - the workflow file to dispatch (default: each.yaml)
 #   DRY_RUN           - if non-empty, print the dispatch instead of sending it
 #   EACH_DECIDED_FILE - offline hook: read decided commits from this file, one
-#                       SHA per line, instead of scripts/rcc-decided.sh; the
+#                       SHA per line, instead of rcc-decided.sh; the
 #                       records of replanned commits still come from the store
 
 set -euo pipefail
@@ -72,7 +79,11 @@ export RUN_ID
 INPUTS="${INPUTS:-}"
 WORKFLOW="${WORKFLOW:-each.yaml}"
 
-here="$(cd "$(dirname "$0")" && pwd)"
+EACH_SCRIPTS="${EACH_SCRIPTS:-scripts}"
+case "${EACH_SCRIPTS}" in
+  /*) here="${EACH_SCRIPTS}" ;;
+  *) here="$(pwd)/${EACH_SCRIPTS}" ;;
+esac
 workdir="$(mktemp -d)"
 trap 'rm -rf "${workdir}"' EXIT
 
@@ -128,7 +139,7 @@ replanned="$(wc -l < "${workdir}/replanned" | tr -d ' ')"
 rejudged=0
 retry_left=0
 if [ "${replanned}" -gt 0 ]; then
-  # shellcheck source=rcc-lib.sh
+  # shellcheck source=/dev/null
   . "${here}/rcc-lib.sh"
   records="${workdir}/records"
   (rcc_clone_init "${records}")

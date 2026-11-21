@@ -5,72 +5,82 @@
 # `<S>-green..HEAD` with no verdict on the `rcc2` branch, elsewhere the
 # first-parent history on or after $SINCE without one -- and
 # partitions them into contiguous, cost-balanced shards (see
-# `scripts/each-partition.py`, which also decides how many shards are worth
-# paying for).
-# One shard becomes one matrix leg in `.github/workflows/each.yaml`, and one
+# `each-partition.py` beside this file, which also decides how many shards are
+# worth paying for).
+# One shard becomes one matrix leg in the package's `each.yaml`, and one
 # leg builds its whole slice sequentially in a single job (see
-# `scripts/each-shard.sh`). Shards are numbered along the history -- shard 1 is
+# the `each-shard` action). Shards are numbered along the history -- shard 1 is
 # the oldest slice, shard N the branch tip -- and emitted in that same order,
 # so the leg holding the oldest slice is the one queued first.
 #
 # Why shards instead of one dispatch per commit:
-#   * a leg pays the ~4 min R/dependency setup once for ~20 commits, not once
+#   * a leg pays the R/dependency setup once for all its commits, not once
 #     per commit;
 #   * consecutive commits in a leg share the runner's local ccache, where a
-#     typical adjacent vendor commit is ~98% cached (plan/superseded/vendoring-loop.md, A.2);
+#     typical vendor commit is almost all hits;
 #   * the whole batch is one workflow run: one thing to cancel, one set of logs.
 #
 # "Undecided" is read from the **verdict store**, not from commit statuses: a
 # commit has been decided when the `rcc2` branch carries a record for it, and the
-# whole scan is one tree-only fetch (`scripts/rcc-decided.sh`). Statuses are a
+# whole scan is one tree-only fetch (the package's `rcc-decided.sh`). Statuses are a
 # display surface on the commit list and decide nothing here -- which is what
 # removes the reconciliation between two stores that used to answer this same
 # question differently: no GraphQL scan, no `pending` state to age out, and
 # nothing that has to be true about the status API for a plan to be correct.
 #
-# Usage:
-#   GH_TOKEN=<token> scripts/each-plan.sh
+# Served by the `each-plan` action of cynkra/cynkratemplate. It runs in the
+# package's checkout and reads two things from the package (README.md of the
+# `each-shard` action has the whole contract):
+#   * `series-lib.sh`, sourced, for `series_seed_of` (the seed of an rc strand)
+#     and `series_cost_estimator` (the command that weighs a commit);
+#   * `rcc-decided.sh`, which lists the commits the verdict store has decided.
 #
-# Local testing example (prints the plan, writes no outputs):
-#   git checkout v1.5-variegata-dev
-#   GH_TOKEN=$(gh auth token) OUT=/tmp/plan.json scripts/each-plan.sh
+# Usage:
+#   GH_TOKEN=<token> .github/actions/each-plan/each-plan.sh
+#
+# Local testing example (prints the plan, writes no outputs), in the package:
+#   git checkout main-dev
+#   GH_TOKEN=$(gh auth token) OUT=/tmp/plan.json <template>/.github/actions/each-plan/each-plan.sh
 #
 # Environment variables:
 #   GH_TOKEN            - token with contents:read (required)
+#   EACH_SCRIPTS        - the package's directory holding series-lib.sh and
+#                         rcc-decided.sh, absolute or relative to the checkout
+#                         (default: scripts)
 #   SINCE               - earliest commit date to consider (default: 2026-01-01)
 #   OUT                 - plan file to write (default: plan.json)
 #   FORCE               - if non-empty, ignore existing verdicts and replan all
 #                         (a `retry-<S>-dev` branch replans its tip that way
 #                         without this, which is the whole point of it)
 #   FOLLOW_UP_OF        - the run that dispatched this one to finish what it
-#                         left undecided (scripts/each-follow-up.sh); logged
+#                         left undecided (each-follow-up.sh); logged
 #   FOLLOW_UP_HEAD      - the commit that run planned from, sent only once
 #                         that run has judged its `retry-<S>-dev` tip again; a
 #                         tip equal to it is not replanned a second time
 #   SHARD_BUDGET_MINUTES- build-time target per leg, excluding job setup
 #                         (default: 300; the GitHub job limit is 360, and
-#                         scripts/each-shard.sh stops at its own deadline rather
+#                         each-shard.sh stops at its own deadline rather
 #                         than being killed)
 #   MAX_SHARDS          - matrix legs to emit (default: 250; GitHub generates at
 #                         most 256 jobs per matrix)
-#   MAX_PARALLEL        - legs to run concurrently (default: 8)
+#   MAX_PARALLEL        - legs to run concurrently (default: 20, the same as
+#                         each-partition.py)
 #   MAX_COMMITS         - hard cap on commits considered (default: 0 = no cap)
 #   SPLIT_FACTOR        - runner-minutes the plan may cost, as a multiple of the
 #                         fewest-legs plan, to shorten wall clock
 #                         (default: 1.5; 1.0 disables rebalancing)
 #   SETUP_MINUTES       - per-leg checkout, R and dependency install (default: 5)
-#   FULL_BUILD_MINUTES  - a build on an empty ccache (default: 40)
+#   FULL_BUILD_MINUTES  - a build on an empty ccache, every object compiled
+#                         (default: 40)
 #   FLOOR_MINUTES       - per-commit floor: link, install, R CMD check, gates
 #                         (default: 6)
-#   OBJECT_SECONDS      - marginal cost of recompiling one unity object
-#                         (default: 9.7)
+#   OBJECT_SECONDS      - marginal cost of recompiling one object, of those the
+#                         package's estimator counts (default: 9.7)
 #
-# The four constants are fitted to the 29 commits of runs 30406932093
-# (main-fwd-dev, 24 commits over two legs) and 30422580063
-# (v1.5-variegata-fwd-dev, 5 commits, one leg), RMSE 1.3 min over the 26 warm
-# builds; see handbook/operations/ci/per-commit/planning/README.md. Every leg still records
-# duration_seconds per commit, in the record it publishes and in its
-# `each-logs-*` artifact, so the fit can be redone from a wider range at any
+# The four constants are the package's to measure, and its `each.yaml` passes
+# them; the defaults are one package's fit and mean nothing for another.
+# Every leg records duration_seconds per commit, in the record it publishes and
+# in its `each-logs-*` artifact, so the fit can be redone from real legs at any
 # time.
 
 set -euo pipefail
@@ -82,7 +92,7 @@ FOLLOW_UP_OF="${FOLLOW_UP_OF:-}"
 FOLLOW_UP_HEAD="${FOLLOW_UP_HEAD:-}"
 SHARD_BUDGET_MINUTES="${SHARD_BUDGET_MINUTES:-300}"
 MAX_SHARDS="${MAX_SHARDS:-250}"
-MAX_PARALLEL="${MAX_PARALLEL:-8}"
+MAX_PARALLEL="${MAX_PARALLEL:-20}"
 MAX_COMMITS="${MAX_COMMITS:-0}"
 SPLIT_FACTOR="${SPLIT_FACTOR:-1.5}"
 SETUP_MINUTES="${SETUP_MINUTES:-5}"
@@ -91,8 +101,23 @@ FLOOR_MINUTES="${FLOOR_MINUTES:-6}"
 OBJECT_SECONDS="${OBJECT_SECONDS:-9.7}"
 
 here="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=series-lib.sh
-. "${here}/series-lib.sh"
+EACH_SCRIPTS="${EACH_SCRIPTS:-scripts}"
+case "${EACH_SCRIPTS}" in
+  /*) scripts="${EACH_SCRIPTS}" ;;
+  *) scripts="$(pwd)/${EACH_SCRIPTS}" ;;
+esac
+# shellcheck source=/dev/null
+. "${scripts}/series-lib.sh"
+# The two names the planner takes from it, checked here rather than where they
+# are first used, so a package that lacks one fails before anything is read.
+# shellcheck disable=SC2154  # assigned by series-lib.sh
+if ! declare -F series_seed_of > /dev/null \
+    || ! declare -p series_cost_estimator > /dev/null 2>&1; then
+  echo "::error::${scripts}/series-lib.sh must define series_seed_of and series_cost_estimator" >&2
+  exit 1
+fi
+# shellcheck disable=SC2154  # assigned by series-lib.sh, checked above
+cost_estimator=("${series_cost_estimator[@]}")
 workdir="$(mktemp -d)"
 trap 'rm -rf "${workdir}"' EXIT
 
@@ -133,7 +158,7 @@ case "${branch}" in
     # `retry-<S>-dev` asks for one commit of series `<S>` to be judged again on
     # its own SHA -- the alternative is amending it, which re-mints every
     # descendant and throws away the runs that decided them. See
-    # .claude/skills/series-loop/SKILL.md.
+    # the package's series tooling.
     #
     # It is the series' own branch name with a prefix, so stripping the prefix
     # anchors the scan on `<S>-green`, the ref that already marks how far the
@@ -146,7 +171,7 @@ case "${branch}" in
       retry-*) series="${series#retry-}"; retry=1 ;;
     esac
     # An rc strand has no green: it is derived from its source series commit for
-    # commit (.claude/skills/series-rc/SKILL.md), so its world is everything above
+    # commit, so its world is everything above
     # its own seed, and without that bound the scan would reach into `main`.
     if [ -z "${retry}" ] && [ "${series%-rc}" != "${series}" ]; then
       rc_seed="$(series_seed_of HEAD)"
@@ -222,7 +247,7 @@ echo "Commits in range: ${total}"
 # Every commit the `rcc2` branch holds a record for, in one tree-only fetch. A
 # reachable store that says nothing about a commit is the answer "undecided";
 # a store that cannot be reached is not an answer at all, and
-# scripts/rcc-decided.sh exits non-zero for it rather than reporting an empty
+# rcc-decided.sh exits non-zero for it rather than reporting an empty
 # one, which under `set -e` stops the plan instead of replanning the world.
 if [ -n "${EACH_DECIDED_FILE:-}" ]; then
   # Offline hook for testing the planner without a remote: one SHA per line.
@@ -231,7 +256,7 @@ if [ -n "${EACH_DECIDED_FILE:-}" ]; then
 elif [ "${total}" -eq 0 ]; then
   : > "${workdir}/decided"
 else
-  "${here}/rcc-decided.sh" > "${workdir}/decided"
+  "${scripts}/rcc-decided.sh" > "${workdir}/decided"
 fi
 echo "Verdicts on the rcc2 branch: $(wc -l < "${workdir}/decided" | tr -d ' ')"
 
@@ -250,7 +275,7 @@ echo "Verdicts on the rcc2 branch: $(wc -l < "${workdir}/decided" | tr -d ' ')"
 #
 # A follow-up leaves the tip to the ordinary rule when FOLLOW_UP_HEAD is the tip:
 # the run before judged that very commit again already, and the follow-up
-# (scripts/each-follow-up.sh) sends the head only then. A tip that moved since,
+# (each-follow-up.sh) sends the head only then. A tip that moved since,
 # or one the run before deferred, is forced as on any push.
 retry_tip=""
 if [ -n "${retry}" ] && [ "${FOLLOW_UP_HEAD}" != "$(git rev-parse HEAD)" ]; then
@@ -272,7 +297,7 @@ awk -v force="${FORCE}" -v retry_tip="${retry_tip}" '
 awk '$2 !~ /^skip:/ { print $1 }' "${workdir}/decisions" > "${workdir}/todo"
 
 # The commits that are in the plan *despite* already carrying a verdict -- a
-# forced replan, or the tip of a retry branch. scripts/each-shard.sh skips a
+# forced replan, or the tip of a retry branch. each-shard.sh skips a
 # decided commit so that re-running a leg that died costs only what was lost,
 # and this is the list that tells it which decisions are the point of the run
 # rather than work already done. Carried in the plan rather than agreed on
@@ -286,20 +311,21 @@ echo "Already decided: ${skipped}"
 echo "To build: ${todo}"
 
 # ------------------------------------------------------------------ weigh ----
-# Cost per commit = fixed floor (link + install + R CMD check) plus the unity
-# objects the commit invalidates, which the estimator scripts/series-config.sh
-# names (scripts/each-cost.py here) derives from the include graph without
-# building anything.
+# Cost per commit = fixed floor (link + install + R CMD check) plus the objects
+# the commit invalidates, as counted by the estimator the package's
+# series-lib.sh names in `series_cost_estimator`: a command with a `map` and a
+# `batch` form, which may read the include graph or answer a constant weight.
+# The changed paths are collected and passed on either way.
 if [ "${todo}" -gt 0 ]; then
-  echo "Building the unity-object reach map..."
-  "${series_cost_estimator[@]}" map . > "${workdir}/cost-map.json"
+  echo "Building the cost map..."
+  "${cost_estimator[@]}" map . > "${workdir}/cost-map.json"
 
   while IFS= read -r sha; do
     files="$(git diff --name-only "${sha}^" "${sha}" -- 2>/dev/null | tr '\n' ' ' || true)"
     printf '%s %s\n' "${sha}" "${files}"
   done < "${workdir}/todo" > "${workdir}/changed"
 
-  "${series_cost_estimator[@]}" batch "${workdir}/cost-map.json" \
+  "${cost_estimator[@]}" batch "${workdir}/cost-map.json" \
     < "${workdir}/changed" > "${workdir}/objects"
 else
   : > "${workdir}/objects"
@@ -309,7 +335,7 @@ fi
 # Greedy contiguous fill for the fewest legs under the deadline, then a rerun of
 # that fill at shorter deadlines, keeping whichever plan finishes soonest at
 # MAX_PARALLEL legs at a time and costs at most SPLIT_FACTOR times the runner
-# minutes of the fewest-legs plan. See scripts/each-partition.py.
+# minutes of the fewest-legs plan. See each-partition.py.
 python3 "${here}/each-partition.py" \
   --budget "${SHARD_BUDGET_MINUTES}" \
   --setup "${SETUP_MINUTES}" \
@@ -360,7 +386,7 @@ fi
 
 # The planned commits the store had no record for when the plan was made, which
 # leaves out the ones replanned despite a verdict. It is what the run set out to
-# decide, and scripts/each-follow-up.sh measures the run's progress against it
+# decide, and each-follow-up.sh measures the run's progress against it
 # from the same store, together with `head`, the commit the plan was made from.
 jq -r '.[].commits[].sha' "${workdir}/shards.final.json" > "${workdir}/planned"
 without_verdict="$(grep -cvxF -f "${workdir}/decided" "${workdir}/planned" || true)"

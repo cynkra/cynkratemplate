@@ -2,24 +2,26 @@
 # Build one shard of an `each-rcc` plan: many commits, one job, one workspace.
 #
 # Walks its slice of `plan.json` oldest-first, and for every commit resets the
-# workspace to it, runs `scripts/rcc-one.sh`, and writes the `rcc` commit-status
-# -- which is a display surface: `scripts/rcc-logs.sh` and the repair skills read
-# the record on the `rcc2` branch, and nothing decides from the status.
+# workspace to it, runs the package's `rcc-one.sh`, and writes the `rcc`
+# commit-status -- which is a display surface: the package's tools read the
+# record on the `rcc2` branch, and nothing decides from the status.
+#
+# Served by the `each-shard` action of cynkra/cynkratemplate; the package keeps
+# the scripts this one calls, in EACH_SCRIPTS (README.md beside this file).
 #
 # Why the reuse works even though every commit starts from a clean tree:
 # `R CMD build` copies the package and `R CMD check` compiles from the copy, so
 # object timestamps never survive a commit anyway. The mechanism that does
 # survive is **ccache**, which is content-addressed and lives on the runner's
-# local disk for the whole job. A typical adjacent vendor commit recompiles only
-# the handful of unity objects it invalidates -- ~98% hits, measured in
-# plan/superseded/vendoring-loop.md, Appendix A.2. That is the whole point of putting
+# local disk for the whole job. A typical vendor commit recompiles only the
+# handful of objects it invalidates. That is the whole point of putting
 # consecutive commits in one job.
 #
 # Stopping is graceful, not fatal. The leg stops at its own deadline and reports
 # what it did not reach, rather than being killed at GitHub's 6-hour job limit
 # mid-commit. Progress is durable per commit (the status), so the next run simply
 # replans whatever is left; nothing is checkpointed. That next run is normally
-# the follow-up this run dispatches for itself (scripts/each-follow-up.sh).
+# the follow-up this run dispatches for itself (each-follow-up.sh).
 #
 # Two consequences of "durable per commit" are load-bearing when a leg dies for
 # reasons of its own -- a lost runner, a cancellation, a platform hiccup:
@@ -29,7 +31,7 @@
 #     decided -- up to five hours of work to redo, on a cold cache. A commit the
 #     verdict store already holds a record for is therefore skipped here, which
 #     makes "Re-run failed jobs" cost only what was actually lost. The store is
-#     what the planner selects from too (scripts/rcc-decided.sh), so the two
+#     what the planner selects from too (rcc-decided.sh), so the two
 #     cannot disagree about what "decided" means.
 #     Not every decided commit, though: a forced replan and the tip of a
 #     `retry-<S>-dev` branch are in the plan *because* they already have a
@@ -37,19 +39,24 @@
 #     names them in `replanned_despite_verdict`, so the leg reads the intent
 #     from the plan rather than trying to re-derive it.
 #   * The leg *publishes as it goes*. Every verdict is pushed to the `rcc2` branch
-#     the moment it exists (scripts/rcc-publish.sh), so a leg that dies takes
+#     the moment it exists (rcc-publish.sh), so a leg that dies takes
 #     nothing with it but the commit it was in the middle of. The artifact is
 #     the backstop for the push itself failing, and is what a firing reads
-#     anyway (.claude/skills/series-loop/SKILL.md stage 2) -- which is why each.yaml
+#     anyway -- which is why the calling workflow
 #     names it per run *attempt*: a resumed leg's index covers only what it
 #     rebuilt, so overwriting would delete the previous attempt's copy of
 #     anything that attempt decided but could not publish.
 #
 # Usage:
 #   SHARD=1 PLAN=plan.json LOG_DIR=/tmp/each-logs GH_TOKEN=<token> \
-#     scripts/each-shard.sh
+#     .github/actions/each-shard/each-shard.sh
+#
+# Run it from the package's checkout, which the loop resets to every commit.
 #
 # Environment variables:
+#   EACH_SCRIPTS      - the package's directory holding rcc-one.sh,
+#                       rcc-decided.sh, rcc-publish.sh and rcc-run-fields.jq,
+#                       absolute or relative to the checkout (default: scripts)
 #   GH_TOKEN          - token with statuses:write and contents:write
 #                       (required unless DRY_RUN)
 #   SHARD             - shard number from plan.json; 1 is the oldest slice of
@@ -84,35 +91,21 @@ SUMMARY_MAX_BYTES="${SUMMARY_MAX_BYTES:-900000}"
 FORCE="${FORCE:-}"
 NO_PUBLISH="${NO_PUBLISH:-}"
 
-# Helpers resolve from `here`, and the loop below resets the workspace to each
-# commit it builds -- so every commit is checked by the harness *it carries*. That
-# is the intent, not a bug: we are vendoring, so a commit is either solid, or
-# broken and the next loop run fixes it, or broken-but-green and the mandatory
-# rebase before a release catches it either way. The run-level scripts use the tip
-# (each-plan.sh) -- a different question.
-here="$(cd "$(dirname "$0")" && pwd)"
-
-# This file is one of the ones that reset wipes, and bash reads a script
-# incrementally, by byte offset: crossing a commit that changed *this* script
-# lets the running shell resume at a stale offset in whatever content replaced
-# it. That is undefined behaviour, and it is independent of the choice above --
-# nothing about walking commits with the harness they carry requires executing
-# the walker out of the tree being walked.
+# Helpers resolve from the package's EACH_SCRIPTS, inside the workspace, and the
+# loop below resets the workspace to each commit it builds -- so every commit is
+# checked by the harness *it carries*. That is the intent, not a bug: we are
+# vendoring, so a commit is either solid, or broken and the next loop run fixes
+# it, or broken-but-green and the mandatory rebase before a release catches it
+# either way. The run-level scripts use the tip (each-plan.sh) -- a different
+# question.
 #
-# So run from a copy taken before the first reset. `here` survives the re-exec,
-# so the helpers still resolve from the workspace and every commit is still
-# checked by the harness it carries. The copy lives outside the workspace rather
-# than in a `.gitignore`d directory inside it, because `.gitignore` comes from
-# the commit under test: an in-tree staging directory is untracked and unignored
-# at every commit older than the entry, and `rcc-one.sh`'s `clean` gate fails on
-# it -- exactly in the rewind case this protects.
-if [ -z "${EACH_SHARD_HERE:-}" ]; then
-  staged="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/each-shard"
-  mkdir -p "${staged}"
-  cp "${here}/$(basename "$0")" "${staged}/each-shard.sh"
-  EACH_SHARD_HERE="${here}" exec bash "${staged}/each-shard.sh" "$@"
-fi
-here="${EACH_SHARD_HERE}"
+# This file itself is not among them: the runner fetches it with the action,
+# outside the workspace, so the reset never rewrites the script bash is reading.
+EACH_SCRIPTS="${EACH_SCRIPTS:-scripts}"
+case "${EACH_SCRIPTS}" in
+  /*) here="${EACH_SCRIPTS}" ;;
+  *) here="$(pwd)/${EACH_SCRIPTS}" ;;
+esac
 
 started="$(date -u +%s)"
 deadline=$(( started + DEADLINE_MINUTES * 60 ))
@@ -155,7 +148,7 @@ fi
 # ------------------------------------------------------------- status sink --
 # Point the status at *this leg's* job rather than the whole run, so clicking
 # through from a commit lands on the log that decided it. The URL still contains
-# /actions/runs/<id>/, which is what scripts/rcc-logs.sh parses out.
+# /actions/runs/<id>/, which is what a sweep of the runs parses out.
 job_url="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-}/actions/runs/${GITHUB_RUN_ID:-0}"
 if [ -n "${GITHUB_RUN_ID:-}" ] && [ -n "${RUNNER_NAME:-}" ]; then
   # A runner executes one job at a time, so its name identifies this leg
@@ -182,7 +175,7 @@ set_status() {
 }
 
 # What the verdict store already holds, read once. The same source the planner
-# selects from (scripts/rcc-decided.sh), so "decided" means the same thing in
+# selects from (rcc-decided.sh), so "decided" means the same thing in
 # both places -- a record on the `rcc2` branch, not a commit status, which is a
 # display surface and in particular carries the `pending` a killed leg leaves
 # behind.
@@ -203,7 +196,7 @@ decided() { grep -qxF -- "$1" "${decided_file}"; }
 # --------------------------------------------------------------- publisher ----
 # The run object, once. Every record this leg writes carries it, so the
 # hand-run backstop does not have to reconstruct one; the projection is shared
-# (scripts/rcc-run-fields.jq) so both writers agree byte for byte. A failure
+# (rcc-run-fields.jq) so both writers agree byte for byte. A failure
 # here is not worth aborting a five-hour leg over -- fall back to what the
 # environment already tells us, and let the reader see a thinner run object.
 run_json='{}'
@@ -249,16 +242,16 @@ write_record() { # <sha> <state> <duration> <exit-code> <failed-stages-json>
 }
 
 # One commit's verdict, staged in the shape of the branch and handed to the one
-# writer every producer goes through (scripts/rcc-publish.sh).
+# writer every producer goes through (rcc-publish.sh).
 #
 # A verdict that is *not* a failure lists the log for removal rather than staging
 # one: there is nothing to compare against, so any log the branch still holds
 # belongs to a verdict this record overturns -- which is what a retry
-# (.claude/skills/series-loop/SKILL.md) leaves behind.
+# leaves behind.
 #
 # Never fatal: the artifact remains, and it is what a firing reads, so the worst
 # a failed publish costs is that the store does not learn this verdict until
-# `scripts/rcc-logs.sh` is run by hand.
+# a sweep of the runs is run by hand.
 publish_record() { # <sha> <state>
   local sha="$1" state="$2" stage="${workdir}/publish"
   [ -n "${NO_PUBLISH}" ] && return 0
@@ -310,7 +303,7 @@ emit_excerpt() {
 }
 
 # One excerpt per failed stage, in the order the stages ran. `outcomes.tsv` is
-# written by scripts/rcc-one.sh; a stage with a log but no verdict in it is the
+# written by rcc-one.sh; a stage with a log but no verdict in it is the
 # one the `timeout` killed, and it is the one worth showing.
 write_excerpts() {
   local sha="$1" dir="$2" fallback="$3"
@@ -383,9 +376,10 @@ for sha in "${commits[@]}"; do
   echo "::group::${sha}  $(git log -1 --format=%s "${sha}" | cut -c1-72)"
   commit_started="$(date -u +%s)"
 
-  # A full reset per commit. `R CMD build` runs ./cleanup, which tars up
-  # src/duckdb and deletes it; leaving that behind would poison the next
-  # commit's configure step. Cleaning is cheap and makes every commit's verdict
+  # A full reset per commit. A build leaves objects in src/ that are only as
+  # fresh as their mtimes, and a package's ./cleanup may move vendored sources
+  # away; either would poison the next commit. Cleaning is cheap and makes
+  # every commit's verdict
   # identical to one from a fresh checkout -- ccache, which lives outside the
   # workspace, carries the reuse.
   if ! git checkout --force --detach "${sha}"; then
@@ -427,7 +421,7 @@ for sha in "${commits[@]}"; do
   # time they left, which says nothing about the commit, so it stays undecided,
   # as the deadline check above leaves the commits it never starts, and the
   # next run builds it. The leg's first commit had the whole budget, so its kill
-  # is a verdict and is recorded (scripts/series-check.sh calls it REPAIR).
+  # is a verdict and is recorded.
   if [ "${rc}" -eq 124 ] && [ "${built}" -gt 0 ]; then
     echo "::endgroup::"
     echo "${sha}: killed at the leg deadline after ${last_duration}s; leaving it undecided."
@@ -503,7 +497,7 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
       cat "${excerpts}"
       if [ "${excerpts_omitted}" -gt 0 ]; then
         echo "${excerpts_omitted} further excerpt(s) omitted to keep this summary under" \
-             "${SUMMARY_MAX_BYTES} bytes; the full logs are on the \`rcc\` branch."
+             "${SUMMARY_MAX_BYTES} bytes; the full logs are on the \`rcc2\` branch."
         echo
       fi
     fi

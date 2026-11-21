@@ -1,0 +1,102 @@
+name: "Build one shard of the per-commit checks"
+description: >
+  Walk one shard of the `each-plan` artifact oldest first, in one workspace:
+  reset the checkout to each commit, run the package's `rcc-one.sh` under the leg's deadline,
+  publish the verdict to the `rcc2` branch through the package's `rcc-publish.sh`, and set the `rcc` commit status.
+  Runs `each-shard.sh` beside this file in the package's checkout, which must be a full clone (`fetch-depth: 0`),
+  after the caller has installed R, the package's dependencies and the formatting tools.
+  Points ccache outside the workspace first and sizes it for a whole shard, since the walk wipes the workspace per commit.
+  Uploads the leg's records and logs as `each-logs-<shard>-<attempt>`, also when the build step fails.
+  README.md beside this file states what the package provides.
+
+inputs:
+  shard:
+    description: The shard number, `matrix.shard` of the plan's matrix; 1 is the oldest slice.
+    required: true
+  token:
+    description: A token with `contents:write` and `statuses:write`.
+    required: false
+    default: ${{ github.token }}
+  scripts-dir:
+    description: >
+      The package's directory holding `rcc-one.sh`, `rcc-decided.sh`, `rcc-publish.sh` and `rcc-run-fields.jq`,
+      relative to the checkout; read from each commit as it is built.
+    required: false
+    default: scripts
+  deadline-minutes:
+    description: Stop starting new commits past this many minutes; the plan's `shard-budget-minutes`.
+    required: false
+    default: "300"
+  summary-tail:
+    description: >
+      Trailing lines of every failed stage quoted into the job summary;
+      empty for the script's default (50), `0` to leave the excerpts out.
+    required: false
+    default: ""
+  ccache-max-size:
+    description: The size of the leg's local ccache.
+    required: false
+    default: 8G
+  ccache-hash-dir:
+    description: >
+      ccache's `hash_dir` setting; `false` lets a build from another directory, such as the install
+      `R CMD build` makes for the vignettes, hit the cache. Empty leaves ccache's default.
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/download-artifact@v8
+      with:
+        name: each-plan
+        path: ${{ runner.temp }}/plan
+
+    # Not custom/after-install, whose ccache setup is for one commit:
+    # this job keeps one large local cache for all of its commits.
+    - name: Point ccache outside the workspace and size it for a whole shard
+      # each-shard.sh wipes the workspace between commits, and hendrikmuhs/ccache-action has historically kept the cache inside it.
+      # This is the cache that carries reuse from one commit to the next, so losing it would turn every commit into a cold build.
+      env:
+        MAX_SIZE: ${{ inputs.ccache-max-size }}
+        HASH_DIR: ${{ inputs.ccache-hash-dir }}
+      run: |
+        export CCACHE_DIR="${RUNNER_TEMP}/ccache"
+        mkdir -p "${CCACHE_DIR}"
+        echo "CCACHE_DIR=${CCACHE_DIR}" | tee -a "${GITHUB_ENV}"
+        ccache --set-config=max_size="${MAX_SIZE}"
+        if [ -n "${HASH_DIR}" ]; then
+          ccache --set-config=hash_dir="${HASH_DIR}"
+        fi
+        ccache --zero-stats
+        ccache --show-config | grep -E 'cache_dir|max_size|hash_dir'
+      shell: bash
+
+    - name: Build the shard
+      # The walker sits beside this file, outside the workspace, so resetting the workspace never touches it.
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        EACH_SCRIPTS: ${{ inputs.scripts-dir }}
+        SHARD: ${{ inputs.shard }}
+        PLAN: ${{ runner.temp }}/plan/plan.json
+        LOG_DIR: ${{ runner.temp }}/each-logs
+        DEADLINE_MINUTES: ${{ inputs.deadline-minutes }}
+        SUMMARY_TAIL: ${{ inputs.summary-tail }}
+        # Outside the workspace, which each-shard.sh wipes per commit:
+        # the cached blobless clones of the `rcc2` branch that the per-commit publish and the resume check go through.
+        RCC_DIR: ${{ runner.temp }}/rcc-publish
+        RCC_READ_DIR: ${{ runner.temp }}/rcc-read
+      run: bash "${{ github.action_path }}/each-shard.sh"
+      shell: bash
+
+    # One record and one log per commit the leg decided, in the bytes it published to `rcc2`.
+    # Named per *attempt*, and therefore not overwritten: a re-run of a leg resumes, so its index covers only
+    # the commits it rebuilt, and overwriting would delete the one copy of anything the previous attempt
+    # decided but could not publish. Read every `each-logs-*` of a run, not just the newest.
+    - uses: actions/upload-artifact@v7
+      if: always()
+      with:
+        name: each-logs-${{ inputs.shard }}-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/each-logs
+        if-no-files-found: ignore
+        retention-days: 14

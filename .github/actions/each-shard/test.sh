@@ -1,11 +1,10 @@
 #!/bin/bash
-# Check scripts/each-shard.sh's deadline rule offline: a stub stands in for
-# scripts/rcc-one.sh, and the kill is real, by the leg's own `timeout`.
+# Check each-shard.sh's deadline rule offline: a stub stands in for the
+# package's rcc-one.sh, and the kill is real, by the leg's own `timeout`.
 #
 # A commit the leg deadline kills is a verdict only when it is the first the
 # leg built, which had the whole budget; one cut short after others is deferred
-# with no record, so the next run builds it again
-# (handbook/operations/ci/per-commit/README.md). Two legs run side by side
+# with no record, so the next run builds it again. Two legs run side by side
 # under DEADLINE_MINUTES=1, the shortest deadline the shard takes, so the test
 # runs for about a minute. Two things are checked.
 #
@@ -17,13 +16,13 @@
 #      nothing published, its status left `pending`. The rest of the leg is
 #      deferred unstarted.
 #
-# The stubs come in through EACH_SHARD_HERE, where the shard resolves its
-# helpers (rcc-one.sh, rcc-decided.sh, rcc-publish.sh), and `gh` is stubbed on
+# The stubs come in through EACH_SCRIPTS, where the shard resolves the
+# package's helpers (rcc-one.sh, rcc-decided.sh, rcc-publish.sh), and `gh` is stubbed on
 # PATH for the statuses. Every commit of the fixture names what its stub run
 # does in a file called `stub`.
 #
 # Usage:
-#   scripts/each-shard-test.sh
+#   .github/actions/each-shard/test.sh
 #
 # Environment variables:
 #   KEEP - if non-empty, do not delete the scratch directory
@@ -129,7 +128,7 @@ leg() { # <shard>
   git clone -q "$FIX" "$ws"
   (
     cd "$ws"
-    PATH="$STUBS/bin:$PATH" EACH_SHARD_HERE="$STUBS" STUB_LOG="$SCRATCH/stub-$1.log" \
+    PATH="$STUBS/bin:$PATH" EACH_SCRIPTS="$STUBS" STUB_LOG="$SCRATCH/stub-$1.log" \
       SHARD="$1" PLAN="$SCRATCH/plan.json" LOG_DIR="$SCRATCH/logs$1" DEADLINE_MINUTES=1 \
       GITHUB_STEP_SUMMARY="$SCRATCH/summary-$1.md" \
       bash "$HERE/each-shard.sh"

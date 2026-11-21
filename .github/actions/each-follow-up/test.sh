@@ -1,7 +1,11 @@
 #!/bin/bash
-# Check scripts/each-follow-up.sh, offline, against a synthetic branch, a
+# Check each-follow-up.sh, offline, against a synthetic branch, a
 # synthetic store and a stand-in for `gh api` built here, and the part of
-# scripts/each-plan.sh it relies on: no network, no fixtures on disk.
+# ../each-plan/each-plan.sh it relies on: no network, no fixtures on disk.
+#
+# The store is read through a package's own rcc-decided.sh and rcc-lib.sh, and
+# the planner sources its series-lib.sh, so the test runs against a package's
+# scripts directory, named in EACH_SCRIPTS; without one it is skipped.
 #
 # The claim the script makes is that a run dispatches one follow-up exactly
 # when the follow-up can decide something the run left undecided and the run
@@ -32,14 +36,22 @@
 #      lists the commits it deferred past the shard cap.
 #
 # Usage:
-#   scripts/each-follow-up-test.sh
+#   EACH_SCRIPTS=<package>/scripts .github/actions/each-follow-up/test.sh
 #
 # Environment variables:
-#   KEEP - if non-empty, do not delete the scratch directory
+#   EACH_SCRIPTS - a package's scripts directory (required, else skipped)
+#   KEEP         - if non-empty, do not delete the scratch directory
 
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
+PLANNER=$(cd "$HERE/../each-plan" && pwd)/each-plan.sh
+if [ -z "${EACH_SCRIPTS:-}" ]; then
+  echo "skipped: EACH_SCRIPTS names no package scripts directory"
+  exit 0
+fi
+EACH_SCRIPTS=$(cd "$EACH_SCRIPTS" && pwd)
+export EACH_SCRIPTS
 SCRATCH=$(mktemp -d)
 [ -n "${KEEP:-}" ] || trap 'rm -rf "$SCRATCH"' EXIT
 [ -z "${KEEP:-}" ] || echo "scratch: $SCRATCH"
@@ -76,7 +88,8 @@ mkdir -p "$FAKE" "$SCRATCH/bin"
 git init -q -b x-dev "$BUILD"
 cd "$BUILD"
 git config commit.gpgsign false
-# The planner's cost estimator reads the unity objects from here; none is fine.
+# A cost estimator that reads a unity build's objects reads them from here;
+# none is fine, and one that answers a constant weight ignores it.
 mkdir -p src/include
 echo 'SOURCES=' > src/include/sources.mk
 c() { echo "$1" > "$1.txt"; git add -A; git commit -qm "$1"; git rev-parse HEAD; }
@@ -308,7 +321,7 @@ git -C "$WORK" checkout -q -b retry-x-dev origin/retry-x-dev
 printf '%s\n' "$C3" "$C5" > "$SCRATCH/decided"
 planner() { # [VAR=value ...] -> the plan, as the follow-up reads it
   (cd "$WORK" && env OUT="$SCRATCH/each-plan.json" EACH_DECIDED_FILE="$SCRATCH/decided" SINCE=2000-01-01 "$@" \
-    "$HERE/each-plan.sh" > "$SCRATCH/each-plan.log" 2>&1) || { cat "$SCRATCH/each-plan.log"; return 1; }
+    "$PLANNER" > "$SCRATCH/each-plan.log" 2>&1) || { cat "$SCRATCH/each-plan.log"; return 1; }
   jq -c '{retry_tip, replanned_despite_verdict, planned_without_verdict,
           planned: [.shards[].commits[].sha | .[0:7]], deferred_shas: (.deferred_shas | map(.[0:7])), commits_deferred}' \
     "$SCRATCH/each-plan.json"
