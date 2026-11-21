@@ -69,7 +69,7 @@ jobs:
       # for the run) -- add it here and re-run. See the note in the PR for the
       # audit -> block workflow.
       - name: Harden runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2
+        uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c # v2.23.0
         with:
           egress-policy: block
           allowed-endpoints: >
