@@ -150,7 +150,7 @@ jobs:
           package: ${{ matrix.package }}
       - name: Upload check results
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.package }}-results
           path: revdep/${{ matrix.package }}

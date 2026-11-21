@@ -291,7 +291,7 @@ jobs:
         shell: bash
 
       - name: Upload the shard plan
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: steps.plan.outputs.shards != '0'
         with:
           name: revdepx-plan
@@ -404,7 +404,7 @@ jobs:
         with:
           base-image: ${{ needs.base.outputs.image }}
       - name: Upload the package binary
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: revdepx-pkg
           path: ${{ runner.temp }}/pkg
@@ -512,7 +512,7 @@ jobs:
         id: precommit
         uses: cynkra/cynkratemplate/.github/actions/revdepx-record-precommit@main
       - name: Publish the pre-commit state (survives a dying runner)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: revdepx-universe-precommit
           path: ${{ runner.temp }}/universe-out/pre-commit-state.txt
@@ -535,7 +535,7 @@ jobs:
         id: publish
         uses: cynkra/cynkratemplate/.github/actions/revdepx-publish-universe@main
       - name: Upload the universe image artifact (registry fallback only)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: steps.publish.outputs.saved == 'true'
         with:
           name: revdepx-universe-image
@@ -550,7 +550,7 @@ jobs:
         shell: bash
 
       - name: Upload the universe build report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: revdepx-universe-report
@@ -776,7 +776,7 @@ jobs:
         shell: bash
 
       - name: Upload the shard results (1 of 3)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: revdepx-results-${{ matrix.shard }}-${{ github.run_attempt }}
@@ -798,7 +798,7 @@ jobs:
         shell: bash
 
       - name: Upload the shard results (2 of 3)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: revdepx-results-${{ matrix.shard }}-${{ github.run_attempt }}
@@ -833,7 +833,7 @@ jobs:
       # results the other shards uploaded in the first attempt; the collector
       # reads every attempt and lets the later one win per package.
       - name: Upload the shard results
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: revdepx-results-${{ matrix.shard }}-${{ github.run_attempt }}
@@ -946,7 +946,7 @@ jobs:
         shell: bash
 
       - name: Upload the report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: revdepx-report
@@ -975,7 +975,7 @@ jobs:
           workflow: revdep4
 
       - name: Upload the new baseline
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: revdepx-baseline
@@ -988,7 +988,7 @@ jobs:
       # downloads it to calibrate its cost model, and should not have to
       # fetch a report to do so.
       - name: Upload the measured timings
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: revdepx-timings
