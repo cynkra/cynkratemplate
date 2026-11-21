@@ -101,7 +101,7 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/style@main
 
       - name: Suggest
-        uses: reviewdog/action-suggester@2558ba17e65a9039e73764a73009fc05fef28a46 # v1
+        uses: reviewdog/action-suggester@fd22a83b1ebc13fd8aee5d57b06793fce6f20fb9 # v1.27.1
         with:
           level: error
           fail_level: error
