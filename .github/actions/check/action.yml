@@ -1,19 +1,54 @@
 name: "Actions to check an R package"
 description: >
   Run `R CMD check`, show the test output, and attach the check directory to the run where it failed.
+  Checks the source tarball at `tarball`, as the `build-tarball` action built it, or else the checkout.
 inputs:
   results:
     description: Slug for check results
     required: true
+  tarball:
+    description: >
+      Path of the source tarball to check, instead of building one from the checkout.
+      The step fails when it is given and no file is there.
+    required: false
+    default: ""
 
 runs:
   using: "composite"
   steps:
     - uses: r-lib/actions/check-r-package@v2
+      if: inputs.tarball == ''
       with:
         # Fails on R 3.6 on Windows, remove when this job is removed?
         args: 'c("--no-manual", "--as-cran", "--no-multiarch")'
         error-on: ${{ env.RCMDCHECK_ERROR_ON || '"note"' }}
+
+    # `check-r-package` always builds from a directory, so the tarball is
+    # checked with the same `rcmdcheck()` call and the same settings it makes.
+    - name: Check the source tarball
+      if: inputs.tarball != ''
+      env:
+        TARBALL: ${{ inputs.tarball }}
+        # An R expression, as for `check-r-package` above.
+        ERROR_ON: ${{ env.RCMDCHECK_ERROR_ON || '"note"' }}
+      run: |
+        ## -- Check the source tarball --
+        options(crayon.enabled = TRUE)
+        tarball <- Sys.getenv("TARBALL")
+        if (!file.exists(tarball) || dir.exists(tarball)) {
+          cat("::error title=No source tarball::Nothing to check at ", tarball, "\n", sep = "")
+          quit(status = 1)
+        }
+        cat("LOGNAME=", Sys.info()[["user"]], "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)
+        if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false")
+        if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false")
+        rcmdcheck::rcmdcheck(
+          tarball,
+          args = c("--no-manual", "--as-cran", "--no-multiarch"),
+          error_on = eval(parse(text = Sys.getenv("ERROR_ON"))),
+          check_dir = "check"
+        )
+      shell: Rscript {0}
 
     - name: Show test output
       if: always()
