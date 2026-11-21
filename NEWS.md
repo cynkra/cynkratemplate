@@ -1,5 +1,20 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9037
+
+## Features
+
+### ci
+
+- Build the source tarball once per check run, check that file, and upload it (#162).
+
+## Continuous integration
+
+- Skip checks for documentation-only pull requests (#101).
+
+- Check pull requests against release branches (#163).
+
+
 # cynkratemplate 0.0.2.9036
 
 ## Features

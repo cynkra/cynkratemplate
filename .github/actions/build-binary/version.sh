@@ -12,8 +12,8 @@ if [ -f NEWS.md ] && grep -qF "NEWS.md is maintained by https://fledge.cynkra.co
   exit 0
 fi
 
-# Only a development version: a release, or a release candidate on a
-# `cran-*` branch, keeps the version it declares.
+# Only a development version: a release, or a release candidate,
+# keeps the version it declares.
 dev=$(printf '%s' "${version}" | sed -nE 's/^[0-9]+[.-][0-9]+[.-][0-9]+[.-]([0-9]+)$/\1/p')
 if [ -z "${dev}" ] || [ "${dev}" -lt 9000 ]; then
   echo "Not a development version, keeping it."
