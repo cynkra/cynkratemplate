@@ -10,7 +10,7 @@
 #   - a pull request that is not closed, whose head is another branch or a fork, or whose state cannot be read;
 #   - a branch whose tip is not the pull request's head, that is, one that moved after the pull request closed;
 #   - a branch that an open pull request has as its head or its base, or, where REPO is a fork, that an open pull request
-#     in its parent has as its head, or where any of these cannot be ruled out.
+#     in its parent or in the root of its fork network has as its head, or where any of these cannot be ruled out.
 # The deletion is leased on the tip read, so a branch that moves after the checks is kept as well.
 # The lease covers the tip only: a pull request reopened or opened between the reads and the push is closed by the deletion,
 # its commits staying under its `refs/pull/<n>/head`.
@@ -96,20 +96,24 @@ for side in head base; do
   esac
 done
 
-# A fork's branch can also be the head of a pull request in its parent.
-parent=$(gh api "repos/${REPO}" --jq '.parent.full_name // "-"') || parent=''
-case "${parent}" in
-  -) ;;
-  '' | *[!A-Za-z0-9._/-]*) refuse "whether ${REPO} is a fork could not be read" ;;
-  *)
-    open=$(gh api "repos/${parent}/pulls?state=open&head=${REPO%%/*}:${uri}" --jq length) || open=''
-    case "${open}" in
-      0) ;;
-      '' | *[!0-9]*) refuse "whether an open pull request in ${parent} has it as its head could not be read" ;;
-      *) refuse "an open pull request in ${parent} has it as its head" ;;
-    esac
-    ;;
+# A fork's branch can also be the head of a pull request in its parent, or in the root of its fork network.
+fork=$(gh api "repos/${REPO}" --jq '[(.fork | tostring), (.parent.full_name // "-"), (.source.full_name // "-")] | join(" ")') ||
+  fork=''
+read -r is_fork parent source <<<"${fork}" || true
+case "${is_fork:-}:${parent:-}:${source:-}" in
+  false:*) upstreams=() ;;
+  true:-:* | true:*:- | true::* | true:*:) refuse "the parent of the fork ${REPO} could not be read" ;;
+  true:*) upstreams=("${parent}") && [ "${source}" = "${parent}" ] || upstreams+=("${source}") ;;
+  *) refuse "whether ${REPO} is a fork could not be read" ;;
 esac
+for upstream in "${upstreams[@]}"; do
+  open=$(gh api "repos/${upstream}/pulls?state=open&head=${REPO%%/*}:${uri}" --jq length) || open=''
+  case "${open}" in
+    0) ;;
+    '' | *[!0-9]*) refuse "whether an open pull request in ${upstream} has it as its head could not be read" ;;
+    *) refuse "an open pull request in ${upstream} has it as its head" ;;
+  esac
+done
 
 protected=$(gh api "repos/${REPO}/branches/${uri}" --jq .protected) || protected=''
 case "${protected}" in

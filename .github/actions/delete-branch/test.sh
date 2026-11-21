@@ -25,10 +25,11 @@ case "$2" in
   */pulls\?*head=*) [[ "$2" == *"&head=o:${FAKE_URI}" ]] || exit 1 ;;
 esac
 case "$2" in
-  repos/o/r) out=${FAKE_PARENT--} ;;
+  repos/o/r) out=${FAKE_REPO-false - -} ;;
   */pulls/*) out=${FAKE_PULL} ;;
   repos/o/r/pulls\?*head=*) out=${FAKE_OPEN_HEAD-0} ;;
-  */pulls\?*head=*) out=${FAKE_OPEN_PARENT-0} ;;
+  repos/up/r/pulls\?*head=*) out=${FAKE_OPEN_PARENT-0} ;;
+  repos/root/r/pulls\?*head=*) out=${FAKE_OPEN_SOURCE-0} ;;
   */pulls\?*base=*) out=${FAKE_OPEN_BASE-0} ;;
   */branches/*) out=${FAKE_PROTECTED} ;;
 esac
@@ -113,12 +114,22 @@ FAKE_OPEN_BASE=2 expect 1 feature "${two}" "${two}" "${closed}" false
 FAKE_OPEN_BASE="" expect 1 feature "${two}" "${two}" "${closed}" false
 FAKE_OPEN_HEAD=null expect 1 feature "${two}" "${two}" "${closed}" false
 
-# A fork: an open pull request in its parent has the branch as its head, or that cannot be ruled out
-FAKE_PARENT=up/r expect 0 feature "${two}" "${two}" "${closed}" false
-FAKE_PARENT=up/r FAKE_OPEN_PARENT=1 expect 1 feature "${two}" "${two}" "${closed}" false
-FAKE_PARENT=up/r FAKE_OPEN_PARENT="" expect 1 feature "${two}" "${two}" "${closed}" false
-FAKE_PARENT=up/r FAKE_OPEN_PARENT=null expect 1 feature "${two}" "${two}" "${closed}" false
-FAKE_PARENT="" expect 1 feature "${two}" "${two}" "${closed}" false
+# A fork: an open pull request in its parent, or in the root of its fork network, has the branch as its head,
+# or that cannot be ruled out
+fork=$'true up/r up/r'
+forkfork=$'true up/r root/r'
+FAKE_REPO=${fork} expect 0 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${fork} FAKE_OPEN_PARENT=1 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${fork} FAKE_OPEN_PARENT="" expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${fork} FAKE_OPEN_PARENT=null expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${forkfork} expect 0 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${forkfork} FAKE_OPEN_SOURCE=1 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${forkfork} FAKE_OPEN_SOURCE="" expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=${forkfork} FAKE_OPEN_PARENT=1 expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=$'true - -' expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=$'true up/r -' expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO=$'null - -' expect 1 feature "${two}" "${two}" "${closed}" false
+FAKE_REPO="" expect 1 feature "${two}" "${two}" "${closed}" false
 
 # The default branch, under a name that is not otherwise reserved
 DEFAULT=trunk expect 1 trunk "${one}" "${one}" $'closed\ttrunk\to/r' false
