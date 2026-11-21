@@ -1,5 +1,12 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9038
+
+### Continuous integration
+
+- Call the shared tarball actions at [@main](https://github.com/main)
+  ([\#167](https://github.com/cynkra/cynkratemplate/issues/167)).
+
 ## cynkratemplate 0.0.2.9037
 
 ### Features
