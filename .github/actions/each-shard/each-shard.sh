@@ -388,10 +388,10 @@ for sha in "${commits[@]}"; do
     skipped=$(( skipped + 1 ))
     continue
   fi
-  # `-e .ccache`: the leg's own cache lives outside the workspace (the action
-  # points CCACHE_DIR there), but the install action's ccache-action keeps its
-  # cache in `.ccache` here and saves it in a post step, which a wiped
-  # directory would leave with nothing to save.
+  # `-e .ccache` is a harmless safeguard: the leg's own cache lives outside the
+  # workspace (the action points CCACHE_DIR there), and the install action
+  # removes `.ccache`, but a cache some other setup step left at the old
+  # in-workspace default is kept rather than wiped with every commit.
   git clean -qfdx -e .ccache
 
   set_status "${sha}" "pending"
