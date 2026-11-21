@@ -389,7 +389,7 @@ jobs:
       # requirements) are small next to the universe's, but caching them is
       # one step.
       - name: Cache the pak package cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/pak-cache
           key: revdepx-pak-build-${{ hashFiles('DESCRIPTION') }}
@@ -479,7 +479,7 @@ jobs:
       # cache under the plan's hash hands the next build a warm start even
       # when the image itself cannot be reused.
       - name: Cache the pak package cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/pak-cache
           key: revdepx-pak-${{ needs.plan.outputs.plan_hash }}

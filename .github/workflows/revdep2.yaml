@@ -289,7 +289,7 @@ jobs:
       # cache under the plan's hash hands the shards a warm start.
       - name: Cache the pak package cache
         if: steps.plan.outputs.shards != '0' && inputs.dry-run != true
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/R/pkgcache
           key: revdep2-pak-${{ steps.plan.outputs.plan_hash }}
@@ -553,7 +553,7 @@ jobs:
         shell: Rscript {0}
 
       - name: Restore the pak package cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ~/.cache/R/pkgcache
           key: revdep2-pak-${{ needs.plan.outputs.plan_hash }}
