@@ -17,22 +17,35 @@ runs:
         BASE_IMAGE: ${{ inputs.base-image }}
       run: |
         set -eu
-        mkdir -p "${RUNNER_TEMP}/pkg" "${RUNNER_TEMP}/pak-cache"
+        mkdir -p "${RUNNER_TEMP}/pkg" "${RUNNER_TEMP}/pak-cache" \
+          "${RUNNER_TEMP}/ccache"
         # The scripts come from beside this action, not from the workspace.
+        # CCACHE_MAXSIZE is a budget, not an estimate: a repository gets
+        # 10 GB of Actions cache in total and the universe job's pak cache
+        # already spends more than two of them, so a compiler cache that
+        # grew without a ceiling would evict the very thing it shares the
+        # budget with. ccache compresses what it stores; raise this if the
+        # statistics in the build summary start reporting evictions.
         docker run --rm \
           -v "$(cd -- "${{ github.action_path }}/../revdepx" && pwd -P):/revdepx/scripts:ro" \
           -v "${GITHUB_WORKSPACE}:/revdepx/src" \
           -v "${RUNNER_TEMP}/pkg:/revdepx/pkg-out" \
           -v "${RUNNER_TEMP}/pak-cache:/root/.cache/R/pkgcache" \
+          -v "${RUNNER_TEMP}/ccache:/revdepx/ccache" \
           -w /revdepx/src \
           -e REVDEPX_BUILD_DEPS=1 \
           -e PKG_SYSREQS=true \
           -e OUT_DIR=/revdepx/pkg-out \
+          -e CCACHE_DIR=/revdepx/ccache \
+          -e CCACHE_MAXSIZE=2G \
           -e GITHUB_SHA \
           "${BASE_IMAGE}" \
           Rscript /revdepx/scripts/build.R
         # Root in the container wrote the pak cache, and its 600 lock
         # files defeat the cache post-step's tar ("Permission denied",
-        # save skipped). Hand the tree back to the runner user.
-        sudo chown -R "$(id -u):$(id -g)" "${RUNNER_TEMP}/pak-cache" || true
+        # save skipped). Hand the tree back to the runner user. The
+        # compiler cache is root-written for the same reason and needs the
+        # same handover.
+        sudo chown -R "$(id -u):$(id -g)" \
+          "${RUNNER_TEMP}/pak-cache" "${RUNNER_TEMP}/ccache" || true
       shell: bash

@@ -396,6 +396,25 @@ jobs:
           restore-keys: |
             revdepx-pak-build-
 
+      # The compiler cache, which is what keeps this job from recompiling the
+      # whole vendored engine every run. Everything in it was produced by the
+      # base image's toolchain, so the key carries that image's ref, whose tag
+      # is the R version and the hash of base-image.sh: a change to either is
+      # a different compiler, and ccache would miss on every object
+      # regardless. The ref stands in for hashFiles() because base-image.sh
+      # is served with the kit's actions and is not in this workspace. The run
+      # id makes the key unique, because actions/cache never overwrites a key
+      # that already exists and the cache would otherwise be saved once and
+      # never again; restore-keys then takes the newest cache the same
+      # toolchain left behind.
+      - name: Cache the compiler cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: revdepx-ccache-${{ needs.base.outputs.image }}-${{ github.run_id }}
+          restore-keys: |
+            revdepx-ccache-${{ needs.base.outputs.image }}-
+
       # Inside the base container, because the binary must load under the
       # container's R (the pinned oldrel), and a binary built by the runner's
       # newer R would not.
