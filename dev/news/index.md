@@ -1,5 +1,12 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9036
+
+### Features
+
+- Ship the cynkra favicon as a template asset (cynkra/indiedown#9,
+  [\#158](https://github.com/cynkra/cynkratemplate/issues/158)).
+
 ## cynkratemplate 0.0.2.9035
 
 ### Chore
