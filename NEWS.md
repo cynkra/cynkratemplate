@@ -11,7 +11,7 @@
 ## Shared CI kit
 
 - The workflows are a shared kit for cynkra packages: every script lives in a composite action under `.github/actions/`, served from this repository at `@main` instead of being copied into each repository (#120, #121, #149).
-- R CMD check runs on Ubuntu 26.04, adds Linux arm64 and Windows arm64 checks, builds a binary package in every check job, computes coverage in every smoke test and reports it on pull requests, runs all smoke-test checks even when one fails, and says what failed (#88, #97, #99, #115, #141, #142, #146, #152).
+- R CMD check runs on Ubuntu 26.04, adds Linux arm64 and Windows arm64 checks, builds a binary package in every check job, computes coverage in every smoke test and reports it on pull requests, runs all smoke-test checks even when one fails, and says what failed (#88, #97, #99, #115, #141, #142, #146, #152). The source tarball is built once per check run, and that file is checked and uploaded (#162). Checks are skipped for documentation-only pull requests (#101) and run for pull requests against release branches (#163).
 - CI renders `README.md` and `index.md` by default; set `Config/cynkra/render-readme: false` to opt out (#118, #136, #153).
 - Pushes to `cran-*` branches check all R versions and run R-hub checks (#82, #145).
 - New sharded reverse-dependency workflows `revdep2` and `revdep4`, with checks compiled through ccache (#113, #150).
@@ -20,6 +20,20 @@
 - Every job has a `timeout-minutes` bound (#144).
 - fledge pushes the version bump to the default branch wherever that is allowed, and `fledge.yaml` is shared with the fledge repository (#86, #117).
 - Archived CRAN packages are installed from where they still live (#112).
+
+# cynkratemplate 0.0.2.9037
+
+## Features
+
+### ci
+
+- Build the source tarball once per check run, check that file, and upload it (#162).
+
+## Continuous integration
+
+- Skip checks for documentation-only pull requests (#101).
+
+- Check pull requests against release branches (#163).
 
 
 # cynkratemplate 0.0.2.9036

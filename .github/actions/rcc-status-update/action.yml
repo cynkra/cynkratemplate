@@ -61,7 +61,8 @@ runs:
         sha=""
 
         if [ "${RUN_STATUS}" = "completed" ]; then
-          if [ "${RUN_CONCLUSION}" = "success" ]; then
+          # `skipped`: `rcc` skipped all its jobs on purpose, for a fork's pull request against a release branch
+          if [ "${RUN_CONCLUSION}" = "success" ] || [ "${RUN_CONCLUSION}" = "skipped" ]; then
             state="success"
           else
             state="failure"
