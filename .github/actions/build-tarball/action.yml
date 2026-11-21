@@ -1,9 +1,11 @@
 name: "Build the source tarball once, and verify it"
 description: >
   Build the source tarball from a copy of the commit `ref`, outside the checkout, which it never changes,
-  with `pkgbuild::build()`, as `rcmdcheck()` builds it,
-  recompress it, with zopfli (`pigz -11`) on a push or a dispatch and `pigz -9` otherwise, and verify the result: `gzip -t` passes, and it unpacks to the very tar stream
-  that `R CMD build` wrote.
+  with `pkgbuild::build()`, as `rcmdcheck()` builds it.
+  Only with `recompress: true`, for the tarball a CRAN submission takes,
+  recompress it with zopfli (`pigz -11 -n`) and verify the result: `gzip -t` passes, and it unpacks to the very tar stream
+  that `R CMD build` wrote; if either fails, the step fails.
+  Otherwise pigz is not installed, and the tarball is exactly the file `pkgbuild::build()` wrote.
   The file is named `<package>_<version>.tar.gz`, from `Package:` and `Version:` in `DESCRIPTION`,
   and lands in a directory under `RUNNER_TEMP`, outside the checkout.
 
@@ -13,7 +15,11 @@ description: >
   The job that builds it checks it, then uploads it unchanged with
   `actions/upload-artifact` and `archive: false`, so that the artifact is named after the file
   and its digest is the file's SHA-256; the other jobs download it by `name`.
-  The CRAN submission takes this artifact.
+  It also writes the sidecar `<package>_<version>.tar.gz.json`, a single line of JSON with
+  `name`, `sha256`, `commit`, `recompressed` (`true` or `false`) and `compression` (`pigz -11 -n` or `R CMD build`),
+  which the job uploads as a second artifact of that name, also with `archive: false`.
+  The CRAN submission takes the tarball artifact from a run dispatched with `cran-submission: true`,
+  and checks against the sidecar that it is recompressed and that its SHA-256 matches.
 
 inputs:
   ref:
@@ -22,6 +28,12 @@ inputs:
       only its committed files are built.
     required: false
     default: HEAD
+  recompress:
+    description: >
+      `true` to recompress the tarball with `pigz -11 -n` and verify it, for a CRAN submission;
+      `false` to keep the file as built.
+    required: false
+    default: "false"
 
 outputs:
   name:
@@ -36,13 +48,20 @@ outputs:
   commit:
     description: The commit the tarball was built from, `ref` resolved to a sha.
     value: ${{ steps.build.outputs.commit }}
+  recompressed:
+    description: "`true` if the tarball was recompressed with `pigz -11 -n` and verified, `false` if it is as built."
+    value: ${{ steps.build.outputs.recompressed }}
+  metadata:
+    description: The path of the sidecar `<name>.json`, which records `name`, `sha256`, `commit`, `recompressed` and `compression`.
+    value: ${{ steps.build.outputs.metadata }}
 
 runs:
   using: "composite"
   steps:
-    - name: Build, recompress and verify the source tarball
+    - name: Build the source tarball, and recompress and verify it if asked
       id: build
       env:
         REF: ${{ inputs.ref }}
+        RECOMPRESS: ${{ inputs.recompress }}
       run: bash "${{ github.action_path }}/build.sh"
       shell: bash
