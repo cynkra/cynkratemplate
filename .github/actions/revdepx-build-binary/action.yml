@@ -26,6 +26,10 @@ runs:
         # grew without a ceiling would evict the very thing it shares the
         # budget with. ccache compresses what it stores; raise this if the
         # statistics in the build summary start reporting evictions.
+        # CCACHE_NOHASHDIR and CCACHE_SLOPPINESS as in
+        # .github/actions/install/action.yml, which says why: R CMD INSTALL
+        # compiles in a fresh temporary directory, and with `-g` ccache hashes
+        # that directory into every key, so without them nothing ever hits.
         docker run --rm \
           -v "$(cd -- "${{ github.action_path }}/../revdepx" && pwd -P):/revdepx/scripts:ro" \
           -v "${GITHUB_WORKSPACE}:/revdepx/src" \
@@ -38,6 +42,8 @@ runs:
           -e OUT_DIR=/revdepx/pkg-out \
           -e CCACHE_DIR=/revdepx/ccache \
           -e CCACHE_MAXSIZE=2G \
+          -e CCACHE_NOHASHDIR=true \
+          -e CCACHE_SLOPPINESS=locale,time_macros \
           -e GITHUB_SHA \
           "${BASE_IMAGE}" \
           Rscript /revdepx/scripts/build.R

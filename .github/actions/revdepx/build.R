@@ -213,6 +213,19 @@ inform("Binary: ", binary)
 # What the cache actually did, in the log and in the run summary: a hit rate
 # is the only way to notice that a key stopped matching and every run has
 # quietly gone back to compiling the engine from scratch.
+#
+# Objects no build used in three days are evicted first: every run saves its
+# own cache entry under a run-id key, so this keeps each saved entry down to
+# what recent builds needed instead of growing to CCACHE_MAXSIZE with stale
+# objects.
+if (use_ccache) {
+  system2(
+    "ccache",
+    c("--evict-older-than", "3d"),
+    stdout = FALSE,
+    stderr = FALSE
+  )
+}
 ccache_summary <- if (use_ccache) ccache_stats() else character()
 
 append_summary(c(
