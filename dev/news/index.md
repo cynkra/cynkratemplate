@@ -1,5 +1,23 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9037
+
+### Features
+
+#### ci
+
+- Build the source tarball once per check run, check that file, and
+  upload it
+  ([\#162](https://github.com/cynkra/cynkratemplate/issues/162)).
+
+### Continuous integration
+
+- Skip checks for documentation-only pull requests
+  ([\#101](https://github.com/cynkra/cynkratemplate/issues/101)).
+
+- Check pull requests against release branches
+  ([\#163](https://github.com/cynkra/cynkratemplate/issues/163)).
+
 ## cynkratemplate 0.0.2.9036
 
 ### Features
