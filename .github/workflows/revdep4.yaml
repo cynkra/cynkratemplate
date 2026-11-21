@@ -257,7 +257,7 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/revdep-scripts@main
 
       - name: Check out the ref under test
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.ref }}
 
@@ -325,7 +325,7 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/revdep-scripts@main
 
       - name: Check out the ref under test
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.ref }}
 
@@ -374,7 +374,7 @@ jobs:
 
     steps:
       - name: Check out the ref under test
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.ref }}
 
@@ -448,7 +448,7 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/revdep-scripts@main
 
       - name: Check out the ref under test
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.ref }}
 
@@ -644,7 +644,7 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/revdep-scripts@main
 
       - name: Check out the ref under test
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.ref }}
 
@@ -878,7 +878,7 @@ jobs:
         uses: cynkra/cynkratemplate/.github/actions/revdep-scripts@main
 
       - name: Check out the ref under test
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.ref }}
 
