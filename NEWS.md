@@ -1,5 +1,12 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9038
+
+## Continuous integration
+
+- Call the shared tarball actions at @main (#167).
+
+
 # cynkratemplate 0.0.2.9037
 
 ## Features
