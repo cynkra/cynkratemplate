@@ -208,15 +208,6 @@ jobs:
         with:
           name: ubuntu-26.04-rrelease-smoke
 
-      # The one source tarball of the run, built on R-release from the commit
-      # as pushed, before the steps below change the working tree. Every
-      # `R CMD check` of the run checks this file, and this job uploads it
-      # after its check, for the CRAN submission to take.
-      - name: Build the source tarball
-        id: tarball
-        continue-on-error: true
-        uses: cynkra/cynkratemplate/.github/actions/build-tarball@claude/shared-tarball
-
       # From here on, every step is marked `continue-on-error: true` so that a
       # failing check doesn't hide the results of all the checks that follow.
       # The "Summarize checks" step at the end fails the job if any of them
@@ -286,6 +277,26 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # The one source tarball of the run, built on R-release after the
+      # generating steps and the commit-back, from the tree the final status is
+      # posted on: the commit-back commit if there is one, else the commit as
+      # pushed. The check below, the upload guard and the other jobs thus all
+      # refer to the same commit. A run that pushed a commit-back commit uploads
+      # nothing (see the guard below), and rcc-full and rcc-suggests build from
+      # their checkout of that commit instead.
+      - name: Record whether the tree matches its commit
+        id: tree
+        run: |
+          if [ -z "$(git status --porcelain --untracked-files=all)" ]; then
+            echo "clean=true" >> "${GITHUB_OUTPUT}"
+          fi
+        shell: bash
+
+      - name: Build the source tarball
+        id: tarball
+        continue-on-error: true
+        uses: cynkra/cynkratemplate/.github/actions/build-tarball@claude/shared-tarball
+
       - name: Run R CMD check
         id: check
         continue-on-error: true
@@ -297,8 +308,10 @@ jobs:
       # The only upload of the tarball in the run: the raw file, unchanged since
       # the check above, as the artifact `<package>_<version>.tar.gz`, whose
       # digest is the file's SHA-256. The other jobs download it from here.
-      # A run dispatched with `ref` checks a commit other than the one the run
-      # is of, so its tarball must not be taken for that commit.
+      # A run dispatched with `ref`, or one that pushed a commit-back commit,
+      # checks a commit other than the one the run is of, so its tarball must
+      # not be taken for that commit. Neither may a tree with changes that no
+      # commit holds, as left by a foreign pull request or a failed commit-back.
       - name: Verify that the check left the source tarball unchanged
         id: tarball-unchanged
         continue-on-error: true
@@ -307,9 +320,13 @@ jobs:
           TARBALL: ${{ steps.tarball.outputs.path }}
           SHA256: ${{ steps.tarball.outputs.sha256 }}
           COMMIT: ${{ steps.tarball.outputs.commit }}
+          CLEAN: ${{ steps.tree.outputs.clean }}
         run: |
           printf '%s  %s\n' "${SHA256}" "${TARBALL}" | sha256sum -c -
-          if [ "${COMMIT}" = "${GITHUB_SHA}" ]; then
+          if [ "${CLEAN}" != "true" ]; then
+            echo "::notice title=Source tarball not uploaded::It was built from a tree with uncommitted changes."
+            echo "upload=false" >> "${GITHUB_OUTPUT}"
+          elif [ "${COMMIT}" = "${GITHUB_SHA}" ]; then
             echo "upload=true" >> "${GITHUB_OUTPUT}"
           else
             echo "::notice title=Source tarball not uploaded::It was built from ${COMMIT}, and this run is of ${GITHUB_SHA}."
@@ -414,13 +431,13 @@ jobs:
           # stays here because only this workflow can read `steps.<id>.outcome`.
           checks: |
             Collect the R versions into a matrix|R versions matrix|${{ steps.versions-matrix.outcome }}
-            Build the source tarball|Source tarball|${{ steps.tarball.outcome }}
             Collect the suggested dependencies into a matrix|Suggested dependencies matrix|${{ steps.dep-suggests-matrix.outcome }}
             Style the R sources|Style|${{ steps.style.outcome }}
             Update the testthat snapshots|Snapshots|${{ steps.snapshots.outcome }}
             Roxygenize the documentation|Roxygenize|${{ steps.roxygenize.outcome }}
             Re-render the README|README|${{ steps.render-readme.outcome }}
             Commit and push the generated changes|Commit|${{ steps.commit.outcome }}
+            Build the source tarball|Source tarball|${{ steps.tarball.outcome }}
             Run R CMD check|R CMD check|${{ steps.check.outcome }}
             Verify that the check left the source tarball unchanged|Tarball unchanged|${{ steps.tarball-unchanged.outcome }}
             Upload the source tarball|Tarball upload|${{ steps.tarball-upload.outcome }}

@@ -7,8 +7,8 @@ description: >
   The file is named `<package>_<version>.tar.gz`, from `Package:` and `Version:` in `DESCRIPTION`,
   and lands in a directory under `RUNNER_TEMP`, outside the checkout.
 
-  Call this once per run, on R-release, before the steps that change the working tree,
-  so that the tarball holds the commit as pushed.
+  Call this once per run, on R-release, after the steps that change the working tree have committed their changes,
+  so that the tarball holds the commit the run's status is reported on.
   Every `R CMD check` of the run checks this file, passed as `tarball` to the `check` action.
   The job that builds it checks it, then uploads it unchanged with
   `actions/upload-artifact` and `archive: false`, so that the artifact is named after the file

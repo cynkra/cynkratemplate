@@ -19,8 +19,8 @@ rm -rf "${out}" "${work}"
 mkdir -p "${out}" "${work}"
 
 # Built from a copy of the working tree, so that nothing the build does reaches
-# the checkout: pkgbuild deletes `inst/doc` and runs `bootstrap.R`, and the steps
-# after this one commit or report whatever changed in the checkout.
+# the checkout: pkgbuild deletes `inst/doc` and runs `bootstrap.R`, and the job
+# reports whatever changed in the checkout.
 # The copy holds what the earlier steps of the job left there, as the check of
 # the checkout did, but not `.git`.
 copy="${RUNNER_TEMP}/tarball-src/${package}"
