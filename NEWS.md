@@ -1,5 +1,12 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9036
+
+## Features
+
+- Ship the cynkra favicon as a template asset (cynkra/indiedown#9, #158).
+
+
 # cynkratemplate 0.0.2.9035
 
 ## Chore
