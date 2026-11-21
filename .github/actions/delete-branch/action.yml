@@ -1,0 +1,36 @@
+name: "Delete the head branch of a closed pull request"
+description: >
+  Delete `branch` from the checkout's `origin` only where pull request `pr` of this repository is closed, merged or not,
+  has `branch` as its head, and the branch's tip is still that head.
+  It refuses the default branch, protected branches, and the long-lived names listed in `delete-branch.sh`'s header,
+  and leases the deletion on the tip it read.
+  The job needs a checkout of the repository, for the remote and its credentials,
+  and `contents: write` and `pull-requests: read`.
+
+inputs:
+  branch:
+    description: "The branch to delete, without `refs/heads/`."
+    required: true
+  pr:
+    description: "The number of the closed pull request whose head is the branch's tip."
+    required: true
+  token:
+    description: "Token that reads the pull request and the branch's protection."
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # A guard that wrongly lets a deletion through loses a branch, so the script tests itself first.
+    - name: Test the guards
+      run: bash "${{ github.action_path }}/test.sh"
+      shell: bash
+
+    # The inputs reach the script as environment variables, never spliced into the command.
+    - name: Delete the branch
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        BRANCH: ${{ inputs.branch }}
+        PR: ${{ inputs.pr }}
+      run: bash "${{ github.action_path }}/delete-branch.sh" "${BRANCH}" "${PR}"
+      shell: bash
