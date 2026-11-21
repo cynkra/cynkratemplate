@@ -98,14 +98,19 @@ jobs:
       statuses: write
 
     outputs:
-      docs-only: ${{ steps.docs-only.outputs.docs-only }}
+      # "false" when the classifier did not run, so all checks run
+      docs-only: ${{ steps.docs-only.outputs.docs-only || 'false' }}
 
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
 
+      # A manual run with `ref` set to an older tag or release branch
+      # checks out a tree that predates the classifier;
+      # without this guard the job would fail and skip every check.
       - id: docs-only
+        if: hashFiles('.github/workflows/docs-only/action.yml') != ''
         uses: ./.github/workflows/docs-only
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
