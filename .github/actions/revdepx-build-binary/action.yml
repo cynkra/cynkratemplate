@@ -25,7 +25,7 @@ runs:
         # already spends more than two of them, so a compiler cache that
         # grew without a ceiling would evict the very thing it shares the
         # budget with. ccache compresses what it stores; raise this if the
-        # statistics in the build summary start reporting evictions.
+        # cache size in the build summary's statistics nears the 2G limit.
         # CCACHE_NOHASHDIR and CCACHE_SLOPPINESS as in
         # .github/actions/install/action.yml, which says why: R CMD INSTALL
         # compiles in a fresh temporary directory, and with `-g` ccache hashes
