@@ -46,6 +46,11 @@ A workflow step cannot see `github.action_path`,
 so a job that runs one of these scripts from a step of its own first calls the `revdep-scripts` action,
 which exports the three directories as `REVDEP2_DIR`, `REVDEP4_DIR` and `REVDEPX_DIR`.
 
+The per-commit checks are three actions, `each-plan`, `each-shard` and `each-follow-up`,
+each with its script beside its `action.yml`; the test of `each-follow-up` runs the planner of `each-plan` as well.
+They serve a workflow, `each.yaml`, that stays in each package that wants per-commit checks.
+`each-shard/README.md` states what the package provides and carries a reference `each.yaml`.
+
 ## Testing a change to an action
 
 Because every caller says `@main`,

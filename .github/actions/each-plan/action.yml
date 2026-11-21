@@ -6,7 +6,8 @@ description: >
   The package provides, in `scripts-dir`, `series-lib.sh` (sourced, for `series_seed_of` and `series_cost_estimator`)
   and `rcc-decided.sh`; the `each-shard` action's README has the whole contract.
   Uploads the plan as the artifact `each-plan`, which the `each-shard` and `each-follow-up` actions download.
-  Empty inputs fall back to the script's defaults.
+  The scan start and the four cost constants are required, and the step fails naming any that is empty;
+  other empty inputs fall back to the script's defaults.
 
 inputs:
   token:
@@ -14,13 +15,14 @@ inputs:
     required: false
     default: ${{ github.token }}
   scripts-dir:
-    description: The package's directory holding `series-lib.sh` and `rcc-decided.sh`, relative to the checkout.
+    description: >
+      The package's directory holding `series-lib.sh` and `rcc-decided.sh`,
+      relative to the workspace root, where the package must be checked out (a checkout with `path:` is not supported).
     required: false
     default: scripts
   since:
-    description: Earliest commit date to consider off a series branch (ISO 8601; script default 2026-01-01).
-    required: false
-    default: ""
+    description: Earliest commit date to consider (ISO 8601), the package's own choice.
+    required: true
   shard-budget-minutes:
     description: Build-time target per shard, excluding setup (script default 300; the GitHub job limit is 360).
     required: false
@@ -52,21 +54,19 @@ inputs:
     required: false
     default: ""
   setup-minutes:
-    description: Cost model, per-leg checkout, R and dependency install, in minutes.
-    required: false
-    default: ""
+    description: Cost model, per-leg checkout, R and dependency install, in minutes; the package's own fit.
+    required: true
   full-build-minutes:
-    description: Cost model, a commit built on an empty ccache, in minutes.
-    required: false
-    default: ""
+    description: Cost model, a commit built on an empty ccache, in minutes; the package's own fit.
+    required: true
   floor-minutes:
-    description: Cost model, the per-commit floor (install, gates, check), in minutes.
-    required: false
-    default: ""
+    description: Cost model, the per-commit floor (install, gates, check), in minutes; the package's own fit.
+    required: true
   object-seconds:
-    description: Cost model, marginal cost of recompiling one object the package's estimator counts, in seconds.
-    required: false
-    default: ""
+    description: >
+      Cost model, marginal cost of recompiling one object the package's estimator counts, in seconds;
+      the package's own fit.
+    required: true
 
 outputs:
   matrix:

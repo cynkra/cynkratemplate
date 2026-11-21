@@ -20,7 +20,8 @@ inputs:
   scripts-dir:
     description: >
       The package's directory holding `rcc-one.sh`, `rcc-decided.sh`, `rcc-publish.sh` and `rcc-run-fields.jq`,
-      relative to the checkout; read from each commit as it is built.
+      relative to the workspace root, where the package must be checked out (a checkout with `path:` is not supported);
+      read from each commit as it is built.
     required: false
     default: scripts
   deadline-minutes:

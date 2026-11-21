@@ -47,7 +47,9 @@
 #   EACH_SCRIPTS        - the package's directory holding series-lib.sh and
 #                         rcc-decided.sh, absolute or relative to the checkout
 #                         (default: scripts)
-#   SINCE               - earliest commit date to consider (default: 2026-01-01)
+#   SINCE               - earliest commit date to consider (required; the
+#                         package's own choice, such as when it began
+#                         recording verdicts)
 #   OUT                 - plan file to write (default: plan.json)
 #   FORCE               - if non-empty, ignore existing verdicts and replan all
 #                         (a `retry-<S>-dev` branch replans its tip that way
@@ -69,23 +71,32 @@
 #   SPLIT_FACTOR        - runner-minutes the plan may cost, as a multiple of the
 #                         fewest-legs plan, to shorten wall clock
 #                         (default: 1.5; 1.0 disables rebalancing)
-#   SETUP_MINUTES       - per-leg checkout, R and dependency install (default: 5)
+#   SETUP_MINUTES       - per-leg checkout, R and dependency install (required)
 #   FULL_BUILD_MINUTES  - a build on an empty ccache, every object compiled
-#                         (default: 40)
+#                         (required)
 #   FLOOR_MINUTES       - per-commit floor: link, install, R CMD check, gates
-#                         (default: 6)
+#                         (required)
 #   OBJECT_SECONDS      - marginal cost of recompiling one object, of those the
-#                         package's estimator counts (default: 9.7)
+#                         package's estimator counts (required)
 #
 # The four constants are the package's to measure, and its `each.yaml` passes
-# them; the defaults are one package's fit and mean nothing for another.
-# Every leg records duration_seconds per commit, in the record it publishes and
-# in its `each-logs-*` artifact, so the fit can be redone from real legs at any
-# time.
+# them; there are no defaults, since one package's fit means nothing for
+# another. Every leg records duration_seconds per commit, in the record it
+# publishes and in its `each-logs-*` artifact, so the fit can be made, and
+# redone, from real legs at any time.
 
 set -euo pipefail
 
-SINCE="${SINCE:-2026-01-01}"
+# Required, and checked before anything is read: a default here would be one
+# package's numbers planning another's commits.
+missing=""
+for var in SINCE SETUP_MINUTES FULL_BUILD_MINUTES FLOOR_MINUTES OBJECT_SECONDS; do
+  [ -n "${!var:-}" ] || missing="${missing} ${var}"
+done
+if [ -n "${missing}" ]; then
+  echo "::error::each-plan needs${missing}: the package's own scan start and cost model (README.md of the each-shard action)" >&2
+  exit 1
+fi
 OUT="${OUT:-plan.json}"
 FORCE="${FORCE:-}"
 FOLLOW_UP_OF="${FOLLOW_UP_OF:-}"
@@ -95,10 +106,6 @@ MAX_SHARDS="${MAX_SHARDS:-250}"
 MAX_PARALLEL="${MAX_PARALLEL:-20}"
 MAX_COMMITS="${MAX_COMMITS:-0}"
 SPLIT_FACTOR="${SPLIT_FACTOR:-1.5}"
-SETUP_MINUTES="${SETUP_MINUTES:-5}"
-FULL_BUILD_MINUTES="${FULL_BUILD_MINUTES:-40}"
-FLOOR_MINUTES="${FLOOR_MINUTES:-6}"
-OBJECT_SECONDS="${OBJECT_SECONDS:-9.7}"
 
 here="$(cd "$(dirname "$0")" && pwd)"
 EACH_SCRIPTS="${EACH_SCRIPTS:-scripts}"

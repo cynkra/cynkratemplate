@@ -17,7 +17,9 @@ since it only pays off there; the template ships no such workflow.
 
 ## What the package provides
 
-The scripts here run in the package's checkout and call scripts of the package's own, in `scripts-dir` (default `scripts`):
+The scripts here run in the package's checkout and call scripts of the package's own, in `scripts-dir` (default `scripts`).
+`scripts-dir` is relative to the workspace root, so the package is checked out there; a checkout with `path:` is not supported.
+The scripts are:
 
 - `rcc-one.sh` runs the package's gates on the checked-out commit and exits non-zero for a failure.
   It writes one `<stage>\t<success|failure>` line per gate to `$EACH_STAGE_DIR/outcomes.tsv`,
@@ -34,9 +36,14 @@ The scripts here run in the package's checkout and call scripts of the package's
   A package with an include graph worth reading derives them from it;
   another answers the same number for every commit.
 
-What the package measures, it passes as inputs:
-the four cost constants of `each-plan` (`setup-minutes`, `full-build-minutes`, `floor-minutes`, `object-seconds`),
-and `ccache-hash-dir` of `each-shard` where a vignette build installs from a temporary directory.
+What the package decides or measures, it passes as inputs.
+`each-plan` requires `since`, the earliest commit date it scans, and the four cost constants
+(`setup-minutes`, `full-build-minutes`, `floor-minutes`, `object-seconds`), and fails naming any that is empty,
+since one package's numbers would plan another's commits wrongly.
+To fit them, start from rough guesses, run a few legs,
+and fit the constants to the `duration_seconds` each record carries (in the `rcc2` records and the `each-logs-*` artifacts),
+against the objects the package's estimator counted for each commit.
+`each-shard` takes `ccache-hash-dir: false` where a vignette build installs from a temporary directory.
 Anything the gates need beyond R, the package's dependencies and the formatting tools,
 such as system packages or an environment variable `rcc-one.sh` reads,
 is set up by the package's `each.yaml` before `each-shard`.
@@ -143,6 +150,8 @@ jobs:
     if: github.repository == '<owner>/<repo>'
     runs-on: ubuntu-26.04
 
+    timeout-minutes: 15 # a full clone, the cost map and the partition; no runs measured yet
+
     name: "Plan per-commit rcc builds"
 
     outputs:
@@ -172,11 +181,12 @@ jobs:
           force: ${{ inputs.force || false }}
           follow-up-of: ${{ inputs.follow-up-of }}
           follow-up-head: ${{ inputs.follow-up-head }}
-          # The package's cost model, measured on its own legs.
-          setup-minutes: "5"
-          full-build-minutes: "40"
-          floor-minutes: "6"
-          object-seconds: "9.7"
+          # The package's cost model, fitted to its own legs (see the README of the each-shard action);
+          # the plan fails naming any of them that is empty, so set the repository variables first.
+          setup-minutes: ${{ vars.EACH_RCC_SETUP_MINUTES }}
+          full-build-minutes: ${{ vars.EACH_RCC_FULL_BUILD_MINUTES }}
+          floor-minutes: ${{ vars.EACH_RCC_FLOOR_MINUTES }}
+          object-seconds: ${{ vars.EACH_RCC_OBJECT_SECONDS }}
 
   build:
     needs:
@@ -247,7 +257,7 @@ jobs:
 
     runs-on: ubuntu-26.04
 
-    timeout-minutes: 10
+    timeout-minutes: 10 # a sparse checkout, a store read and two API calls; no runs measured yet
 
     name: "Follow up on undecided commits"
 
@@ -262,12 +272,15 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
+          # Must hold `scripts-dir` of the each-follow-up action, `scripts` by default.
           sparse-checkout: scripts
           filter: blob:none
 
       - uses: cynkra/cynkratemplate/.github/actions/each-follow-up@main
         with:
           inputs: ${{ toJSON(inputs) }}
+          # The file of this workflow: the dispatch target, also when it is reached through `workflow_call`.
+          workflow: each.yaml
 ```
 
 ## Testing

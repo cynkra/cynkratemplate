@@ -18,11 +18,15 @@ inputs:
     required: false
     default: ""
   workflow:
-    description: The workflow file to dispatch; empty for the calling workflow, read from `github.workflow_ref`.
+    description: >
+      The workflow file to dispatch, by its file name under `.github/workflows/`.
+      Name it explicitly when it is not `each.yaml`; under `workflow_call` the running workflow is the caller's.
     required: false
-    default: ""
+    default: each.yaml
   scripts-dir:
-    description: The package's directory holding `rcc-decided.sh` and `rcc-lib.sh`, relative to the checkout.
+    description: >
+      The package's directory holding `rcc-decided.sh` and `rcc-lib.sh`, relative to the workspace root;
+      the caller's sparse checkout must include it.
     required: false
     default: scripts
 
@@ -40,13 +44,7 @@ runs:
         EACH_SCRIPTS: ${{ inputs.scripts-dir }}
         PLAN: ${{ runner.temp }}/plan/plan.json
         INPUTS: ${{ inputs.inputs }}
-        WORKFLOW_INPUT: ${{ inputs.workflow }}
+        WORKFLOW: ${{ inputs.workflow || 'each.yaml' }}
         RCC_READ_DIR: ${{ runner.temp }}/rcc-read
-      run: |
-        workflow="${WORKFLOW_INPUT}"
-        if [ -z "${workflow}" ]; then
-          workflow="${GITHUB_WORKFLOW_REF%@*}"
-          workflow="${workflow##*/}"
-        fi
-        WORKFLOW="${workflow}" bash "${{ github.action_path }}/each-follow-up.sh"
+      run: bash "${{ github.action_path }}/each-follow-up.sh"
       shell: bash

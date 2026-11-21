@@ -320,7 +320,8 @@ git -C "$WORK" fetch -q origin
 git -C "$WORK" checkout -q -b retry-x-dev origin/retry-x-dev
 printf '%s\n' "$C3" "$C5" > "$SCRATCH/decided"
 planner() { # [VAR=value ...] -> the plan, as the follow-up reads it
-  (cd "$WORK" && env OUT="$SCRATCH/each-plan.json" EACH_DECIDED_FILE="$SCRATCH/decided" SINCE=2000-01-01 "$@" \
+  (cd "$WORK" && env OUT="$SCRATCH/each-plan.json" EACH_DECIDED_FILE="$SCRATCH/decided" SINCE=2000-01-01 \
+    SETUP_MINUTES=5 FULL_BUILD_MINUTES=40 FLOOR_MINUTES=6 OBJECT_SECONDS=9.7 "$@" \
     "$PLANNER" > "$SCRATCH/each-plan.log" 2>&1) || { cat "$SCRATCH/each-plan.log"; return 1; }
   jq -c '{retry_tip, replanned_despite_verdict, planned_without_verdict,
           planned: [.shards[].commits[].sha | .[0:7]], deferred_shas: (.deferred_shas | map(.[0:7])), commits_deferred}' \

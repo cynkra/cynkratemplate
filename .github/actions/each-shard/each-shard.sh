@@ -388,9 +388,10 @@ for sha in "${commits[@]}"; do
     skipped=$(( skipped + 1 ))
     continue
   fi
-  # `-e .ccache` is belt and braces: the workflow pins CCACHE_DIR outside the
-  # workspace, but hendrikmuhs/ccache-action has historically defaulted it to
-  # `.ccache` here, and wiping the cache every commit would defeat the shard.
+  # `-e .ccache`: the leg's own cache lives outside the workspace (the action
+  # points CCACHE_DIR there), but the install action's ccache-action keeps its
+  # cache in `.ccache` here and saves it in a post step, which a wiped
+  # directory would leave with nothing to save.
   git clean -qfdx -e .ccache
 
   set_status "${sha}" "pending"
