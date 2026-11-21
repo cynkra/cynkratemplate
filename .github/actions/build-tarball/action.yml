@@ -1,19 +1,27 @@
 name: "Build the source tarball once, and verify it"
 description: >
-  Build the source tarball from a copy of the checkout, which it never changes,
+  Build the source tarball from a copy of the commit `ref`, outside the checkout, which it never changes,
   with `pkgbuild::build()`, as `rcmdcheck()` builds it,
   recompress it, with zopfli (`pigz -11`) on a push or a dispatch and `pigz -9` otherwise, and verify the result: `gzip -t` passes, and it unpacks to the very tar stream
   that `R CMD build` wrote.
   The file is named `<package>_<version>.tar.gz`, from `Package:` and `Version:` in `DESCRIPTION`,
   and lands in a directory under `RUNNER_TEMP`, outside the checkout.
 
-  Call this once per run, on R-release, after the steps that change the working tree have committed their changes,
-  so that the tarball holds the commit the run's status is reported on.
+  Call this once per run, on R-release, with `ref` set to the commit the run's status is reported on,
+  so that the tarball holds exactly that commit's files, and nothing else the job left in the checkout.
   Every `R CMD check` of the run checks this file, passed as `tarball` to the `check` action.
   The job that builds it checks it, then uploads it unchanged with
   `actions/upload-artifact` and `archive: false`, so that the artifact is named after the file
   and its digest is the file's SHA-256; the other jobs download it by `name`.
   The CRAN submission takes this artifact.
+
+inputs:
+  ref:
+    description: >
+      The commit to build, as a sha or a ref that the checkout can resolve;
+      only its committed files are built.
+    required: false
+    default: HEAD
 
 outputs:
   name:
@@ -26,7 +34,7 @@ outputs:
     description: The SHA-256 of the tarball.
     value: ${{ steps.build.outputs.sha256 }}
   commit:
-    description: The commit checked out when the tarball was built.
+    description: The commit the tarball was built from, `ref` resolved to a sha.
     value: ${{ steps.build.outputs.commit }}
 
 runs:
@@ -34,5 +42,7 @@ runs:
   steps:
     - name: Build, recompress and verify the source tarball
       id: build
+      env:
+        REF: ${{ inputs.ref }}
       run: bash "${{ github.action_path }}/build.sh"
       shell: bash
