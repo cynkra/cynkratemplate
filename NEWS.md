@@ -1,5 +1,18 @@
 <!-- NEWS.md is maintained by https://fledge.cynkra.com, contributors should not edit this file -->
 
+# cynkratemplate 0.0.2.9039
+
+## Features
+
+### ci
+
+- Delete a PR's head branch once the PR is closed (#169).
+
+## Continuous integration
+
+- Move the common actions to their latest major versions (#171).
+
+
 # cynkratemplate 0.0.2.9038
 
 ## Continuous integration
