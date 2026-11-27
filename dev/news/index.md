@@ -1,5 +1,29 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9040
+
+### Features
+
+#### ci
+
+- Serve the per-commit check scripts as actions
+  ([\#170](https://github.com/cynkra/cynkratemplate/issues/170)).
+
+### Chore
+
+- Auto-update from GitHub Actions.
+
+  Run:
+  <https://github.com/cynkra/cynkratemplate/actions/runs/45921624058>
+
+### Continuous integration
+
+- Accept snapshots even when the package masks base functions
+  ([\#174](https://github.com/cynkra/cynkratemplate/issues/174)).
+
+- Remove reverse dependencies recursively before checking
+  ([\#173](https://github.com/cynkra/cynkratemplate/issues/173)).
+
 ## cynkratemplate 0.0.2.9039
 
 ### Features
