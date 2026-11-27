@@ -117,6 +117,7 @@ runs:
       shell: bash
 
     - name: Reset Git changes
+      if: always()
       run: |
         git reset -- tests/testthat/_snaps
         git clean -f -- ':(glob)tests/testthat/_snaps/**/*.new.*'
