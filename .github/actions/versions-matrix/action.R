@@ -21,9 +21,21 @@ with_retries <- function(f, what, waits = c(5, 10, 20)) {
   NULL
 }
 
+# The body of `url` as raw bytes, so that every attempt is bounded:
+# 15 seconds to connect, 60 for the whole transfer.
+# An HTTP error status is an error too, so that it is retried.
+fetch <- function(url) {
+  handle <- curl::new_handle(
+    connecttimeout = 15,
+    timeout = 60,
+    failonerror = TRUE
+  )
+  curl::curl_fetch_memory(url, handle = handle)$content
+}
+
 # Minor versions ("4.5") of every R release, from the release tags in svn.
 versions_from_svn <- function() {
-  tags <- xml2::read_html("https://svn.r-project.org/R/tags/")
+  tags <- xml2::read_html(fetch("https://svn.r-project.org/R/tags/"))
 
   bullets <-
     tags |>
@@ -31,26 +43,37 @@ versions_from_svn <- function() {
     xml2::xml_text()
 
   version_bullets <- grep("^R-([0-9]+-[0-9]+-[0-9]+)/$", bullets, value = TRUE)
-  unique(gsub("^R-([0-9]+)-([0-9]+)-[0-9]+/$", "\\1.\\2", version_bullets))
+  versions <- unique(gsub("^R-([0-9]+)-([0-9]+)-[0-9]+/$", "\\1.\\2", version_bullets))
+  if (length(versions) == 0) {
+    stop("Found no R release tags on svn.r-project.org.")
+  }
+  versions
 }
 
-# The same minor versions from the r-hub rversions API, which lists every release with its three-component version as "semver".
-# It also lists the releases before 1.0, which svn has no tags for and which never reach the five newest.
+# The same minor versions from the r-hub rversions API,
+# which lists every release with its three-component version as "semver".
+# It also lists the releases before 1.0, which svn has no tags for
+# and which never reach the five newest.
 versions_from_rversions <- function() {
-  releases <- jsonlite::fromJSON("https://api.r-hub.io/rversions/r-versions")
+  json <- rawToChar(fetch("https://api.r-hub.io/rversions/r-versions"))
+  releases <- jsonlite::fromJSON(json)
   semver <- grep("^[0-9]+[.][0-9]+[.][0-9]+$", releases$semver, value = TRUE)
-  unique(gsub("^([0-9]+)[.]([0-9]+)[.][0-9]+$", "\\1.\\2", semver))
+  versions <- unique(gsub("^([0-9]+)[.]([0-9]+)[.][0-9]+$", "\\1.\\2", semver))
+  if (length(versions) == 0) {
+    stop("Found no R releases in the api.r-hub.io response.")
+  }
+  versions
 }
 
 versions <- with_retries(versions_from_svn, "the R release tags from svn.r-project.org")
 if (is.null(versions)) {
-  message("svn.r-project.org stayed unreachable, falling back to the r-hub rversions API.")
+  message("svn.r-project.org gave no R releases, falling back to the r-hub rversions API.")
   versions <- with_retries(versions_from_rversions, "the R releases from api.r-hub.io")
   if (is.null(versions)) {
     stop("Could not read the R releases from svn.r-project.org or api.r-hub.io.")
   }
   # A workflow command on stdout, so that the run's summary shows the fallback.
-  cat("::warning::Used the R releases from api.r-hub.io, because svn.r-project.org was unreachable.\n")
+  cat("::warning::Used the R releases from api.r-hub.io, because svn.r-project.org gave none.\n")
 }
 
 r_release <- head(sort(as.package_version(versions), decreasing = TRUE), 5)
