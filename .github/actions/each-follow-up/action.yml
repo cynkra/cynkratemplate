@@ -1,0 +1,50 @@
+name: "Dispatch a follow-up of the per-commit checks"
+description: >
+  Dispatch the calling workflow once more on the planned branch when this run left commits undecided
+  that a follow-up can still decide, and this run decided at least one of what it set out to, so that a chain of follow-ups ends.
+  The follow-up gets this run's inputs without `force`, plus `follow-up-of` and `follow-up-head`,
+  which the calling workflow passes on to the `each-plan` action.
+  Runs `each-follow-up.sh` beside this file in a clone of the package whose `origin` is the run's repository;
+  a sparse checkout of `scripts-dir` at `github.sha` is enough, and lets a branch that moved since reach the script's "moved" exit.
+  Downloads the `each-plan` artifact. Needs `actions:write` to dispatch and to list the runs waiting on the branch.
+
+inputs:
+  token:
+    description: A token with `contents:read` and `actions:write`.
+    required: false
+    default: ${{ github.token }}
+  inputs:
+    description: This run's inputs, as `toJSON(inputs)`, passed on to the follow-up.
+    required: false
+    default: ""
+  workflow:
+    description: >
+      The workflow file to dispatch, by its file name under `.github/workflows/`.
+      Name it explicitly when it is not `each.yaml`; under `workflow_call` the running workflow is the caller's.
+    required: false
+    default: each.yaml
+  scripts-dir:
+    description: >
+      The package's directory holding `rcc-decided.sh` and `rcc-lib.sh`, relative to the workspace root;
+      the caller's sparse checkout must include it.
+    required: false
+    default: scripts
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/download-artifact@v8
+      with:
+        name: each-plan
+        path: ${{ runner.temp }}/plan
+
+    - name: Dispatch a follow-up run if commits remain undecided
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        EACH_SCRIPTS: ${{ inputs.scripts-dir }}
+        PLAN: ${{ runner.temp }}/plan/plan.json
+        INPUTS: ${{ inputs.inputs }}
+        WORKFLOW: ${{ inputs.workflow || 'each.yaml' }}
+        RCC_READ_DIR: ${{ runner.temp }}/rcc-read
+      run: bash "${{ github.action_path }}/each-follow-up.sh"
+      shell: bash

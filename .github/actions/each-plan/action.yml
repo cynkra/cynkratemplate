@@ -1,0 +1,121 @@
+name: "Plan the per-commit check shards"
+description: >
+  Select the commits of the checked-out branch that the verdict store on the `rcc2` branch has no record for,
+  oldest first, and partition them into contiguous, cost-balanced shards, one matrix leg each.
+  Runs `each-plan.sh` beside this file in the package's checkout, which must be a full clone (`fetch-depth: 0`).
+  The package provides, in `scripts-dir`, `series-lib.sh` (sourced, for `series_seed_of` and `series_cost_estimator`)
+  and `rcc-decided.sh`; the `each-shard` action's README has the whole contract.
+  Uploads the plan as the artifact `each-plan`, which the `each-shard` and `each-follow-up` actions download.
+  The scan start and the four cost constants are required, and the step fails naming any that is empty;
+  other empty inputs fall back to the script's defaults.
+
+inputs:
+  token:
+    description: A token with `contents:read`.
+    required: false
+    default: ${{ github.token }}
+  scripts-dir:
+    description: >
+      The package's directory holding `series-lib.sh` and `rcc-decided.sh`,
+      relative to the workspace root, where the package must be checked out (a checkout with `path:` is not supported).
+    required: false
+    default: scripts
+  since:
+    description: Earliest commit date to consider (ISO 8601), the package's own choice.
+    required: true
+  shard-budget-minutes:
+    description: Build-time target per shard, excluding setup (script default 300; the GitHub job limit is 360).
+    required: false
+    default: ""
+  max-parallel:
+    description: Shards to build concurrently (script default 20).
+    required: false
+    default: ""
+  max-commits:
+    description: Cap on commits considered, newest kept (script default 0, no cap).
+    required: false
+    default: ""
+  split-factor:
+    description: >
+      Runner minutes the plan may cost, relative to the fewest-shards plan, to shorten wall clock
+      (script default 1.5; 1.0 never rebalances).
+    required: false
+    default: ""
+  force:
+    description: "`true` to rebuild commits that already have a verdict."
+    required: false
+    default: "false"
+  follow-up-of:
+    description: The run this one follows up, set by that run through the `each-follow-up` action.
+    required: false
+    default: ""
+  follow-up-head:
+    description: The commit the followed-up run planned from; a retry tip equal to it is not replanned.
+    required: false
+    default: ""
+  setup-minutes:
+    description: Cost model, per-leg checkout, R and dependency install, in minutes; the package's own fit.
+    required: true
+  full-build-minutes:
+    description: Cost model, a commit built on an empty ccache, in minutes; the package's own fit.
+    required: true
+  floor-minutes:
+    description: Cost model, the per-commit floor (install, gates, check), in minutes; the package's own fit.
+    required: true
+  object-seconds:
+    description: >
+      Cost model, marginal cost of recompiling one object the package's estimator counts, in seconds;
+      the package's own fit.
+    required: true
+
+outputs:
+  matrix:
+    description: The shard matrix, as JSON, for `strategy.matrix`.
+    value: ${{ steps.plan.outputs.matrix }}
+  shards:
+    description: The number of shards; `0` when nothing is to be built.
+    value: ${{ steps.plan.outputs.shards }}
+  commits:
+    description: The number of commits planned.
+    value: ${{ steps.plan.outputs.commits }}
+  deferred:
+    description: The number of commits deferred past the matrix cap.
+    value: ${{ steps.plan.outputs.deferred }}
+  max_parallel:
+    description: The shards to run concurrently, for `strategy.max-parallel`.
+    value: ${{ steps.plan.outputs.max_parallel }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: plan
+      name: Plan shards
+      # The planner sits beside this file and runs in the workspace, so it reads the package's branch and scripts.
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        EACH_SCRIPTS: ${{ inputs.scripts-dir }}
+        SINCE: ${{ inputs.since }}
+        SHARD_BUDGET_MINUTES: ${{ inputs.shard-budget-minutes }}
+        MAX_PARALLEL: ${{ inputs.max-parallel }}
+        MAX_COMMITS: ${{ inputs.max-commits }}
+        SPLIT_FACTOR: ${{ inputs.split-factor }}
+        FORCE: ${{ inputs.force == 'true' && '1' || '' }}
+        FOLLOW_UP_OF: ${{ inputs.follow-up-of }}
+        FOLLOW_UP_HEAD: ${{ inputs.follow-up-head }}
+        SETUP_MINUTES: ${{ inputs.setup-minutes }}
+        FULL_BUILD_MINUTES: ${{ inputs.full-build-minutes }}
+        FLOOR_MINUTES: ${{ inputs.floor-minutes }}
+        OBJECT_SECONDS: ${{ inputs.object-seconds }}
+        OUT: ${{ runner.temp }}/plan.json
+      run: bash "${{ github.action_path }}/each-plan.sh"
+      shell: bash
+
+    # `overwrite` because an artifact name has to be unique within a *run*, not within an attempt:
+    # without it, "Re-run all jobs" fails right here, on the `each-plan` the first attempt already uploaded.
+    - uses: actions/upload-artifact@v7
+      if: steps.plan.outputs.shards != '0'
+      with:
+        name: each-plan
+        path: ${{ runner.temp }}/plan.json
+        retention-days: 7
+        overwrite: true
