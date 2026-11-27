@@ -82,7 +82,7 @@ on:
         options:
           - strong
           - most
-        default: strong
+        default: most
       depth:
         description: "Levels of reverse dependencies: 1 = direct, 2 = also revdeps of revdeps, ..., 'all' = the full transitive closure"
         type: string
@@ -127,7 +127,7 @@ name: revdep2
 # deep -- go into the run's own title, where the run list and every link to it
 # carry them. "Was that depth 2 or the whole closure?" is otherwise only
 # answerable by reading the plan job's log.
-run-name: "revdep2 ${{ inputs.packages && format('({0})', inputs.packages) || format('({0}, depth {1})', inputs.which || 'strong', inputs.depth || '1') }}${{ inputs['retry-run'] && format(', retry of {0}', inputs['retry-run']) || '' }}${{ inputs['dry-run'] && ', dry run' || '' }}"
+run-name: "revdep2 ${{ inputs.packages && format('({0})', inputs.packages) || format('({0}, depth {1})', inputs.which || 'most', inputs.depth || '1') }}${{ inputs['retry-run'] && format(', retry of {0}', inputs['retry-run']) || '' }}${{ inputs['dry-run'] && ', dry run' || '' }}"
 
 # Read-only by default; every job opts back into what it actually needs.
 # Note that for a pull request from a fork GitHub caps the token at read-only
@@ -144,7 +144,7 @@ concurrency:
 
 env:
   REVDEP2_PACKAGES: ${{ inputs.packages || '' }}
-  REVDEP2_WHICH: ${{ inputs.which || 'strong' }}
+  REVDEP2_WHICH: ${{ inputs.which || 'most' }}
   REVDEP2_DEPTH: ${{ inputs.depth || '1' }}
   REVDEP2_RETRY_RUN: ${{ inputs.retry-run || '' }}
   REVDEP2_PART: ${{ inputs.part || '' }}

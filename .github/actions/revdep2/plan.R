@@ -32,8 +32,8 @@
 #   REVDEP2_PACKAGES        - explicit packages to check (comma/space separated;
 #                             default: all reverse dependencies), or the word
 #                             `broken` to take them from the committed report
-#   REVDEP2_WHICH           - "strong" (default) or "most" (adds Suggests/
-#                             Enhances dependents)
+#   REVDEP2_WHICH           - "most" (default; adds Suggests/Enhances
+#                             dependents) or "strong"
 #   REVDEP2_RETRY_RUN       - run id of an earlier revdep2 run; check only the
 #                             packages that run could not declare ok
 #   REVDEP2_PART            - "i/G": check one G-th of the batch, for a revdep
@@ -94,7 +94,7 @@ source(file.path(
 
 out_path <- env_chr("OUT", "plan.json")
 which_input <- match.arg(
-  env_chr("REVDEP2_WHICH", "strong"),
+  env_chr("REVDEP2_WHICH", "most"),
   c("strong", "most")
 )
 depth_raw <- tolower(env_chr("REVDEP2_DEPTH", "1"))
