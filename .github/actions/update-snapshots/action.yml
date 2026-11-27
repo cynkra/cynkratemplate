@@ -8,6 +8,10 @@ inputs:
     description: "The base branch to create the pull request against."
     required: false
     default: "main"
+outputs:
+  pull-request-number:
+    description: "The number of the snapshot pull request the action opened, empty if it opened none."
+    value: ${{ steps.cpr.outputs.pull-request-number }}
 
 runs:
   using: "composite"
