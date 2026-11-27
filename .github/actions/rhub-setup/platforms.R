@@ -31,9 +31,11 @@ if (nzchar(requested)) {
   spec <- declared
   origin <- "`Config/gha/rhub-platforms` in DESCRIPTION"
 } else if (compiled) {
-  # No `nosuggests`: it installs no rmarkdown,
-  # so every package with an R Markdown vignette fails there.
-  # The `rcc-suggests` jobs in R-CMD-check.yaml check without each suggested package.
+  # No `nosuggests`: it installs no rmarkdown unless it is a VignetteBuilder,
+  # so a package with an R Markdown vignette fails there whatever its code does.
+  # The `rcc-suggests` jobs in R-CMD-check.yaml check without each suggested package in turn,
+  # except testthat, rmarkdown, rcmdcheck and their dependencies,
+  # but never without all of them at once.
   # Opt in with `Config/gha/rhub-platforms` or the `config` input.
   spec <- "gcc-asan clang-asan clang-ubsan valgrind rchk"
   origin <- "the default for a package with compiled code in src/"
