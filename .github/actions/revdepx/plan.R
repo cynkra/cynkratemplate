@@ -44,8 +44,8 @@
 #   REVDEPX_PACKAGES        - explicit packages to check (comma/space separated;
 #                             default: all reverse dependencies), or the word
 #                             `broken` to take them from the committed report
-#   REVDEPX_WHICH           - "strong" (default) or "most" (adds Suggests/
-#                             Enhances dependents)
+#   REVDEPX_WHICH           - "most" (default; adds Suggests/Enhances
+#                             dependents) or "strong"
 #   REVDEPX_WORKERS         - packages checked concurrently per shard
 #                             (default: 4)
 #   REVDEPX_R_VERSION       - the full R version the *containers* check under,
@@ -110,7 +110,7 @@ source(file.path(
 
 out_path <- env_chr("OUT", "plan.json")
 which_input <- match.arg(
-  env_chr("REVDEPX_WHICH", "strong"),
+  env_chr("REVDEPX_WHICH", "most"),
   c("strong", "most")
 )
 depth_raw <- tolower(env_chr("REVDEPX_DEPTH", "1"))

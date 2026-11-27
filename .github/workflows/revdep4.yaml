@@ -99,7 +99,7 @@ on:
         options:
           - strong
           - most
-        default: strong
+        default: most
       depth:
         description: "Levels of reverse dependencies: 1 = direct, 2 = also revdeps of revdeps, ..., 'all' = the full transitive closure"
         type: string
@@ -149,7 +149,7 @@ name: revdep4
 
 # GitHub does not show a run the inputs it was dispatched with, so the ones
 # that decide how much work the run is go into the run's own title.
-run-name: "revdep4 ${{ inputs.packages && format('({0})', inputs.packages) || format('({0}, depth {1})', inputs.which || 'strong', inputs.depth || '1') }}${{ inputs['retry-run'] && format(', retry of {0}', inputs['retry-run']) || '' }}${{ inputs['dry-run'] && ', dry run' || '' }}"
+run-name: "revdep4 ${{ inputs.packages && format('({0})', inputs.packages) || format('({0}, depth {1})', inputs.which || 'most', inputs.depth || '1') }}${{ inputs['retry-run'] && format(', retry of {0}', inputs['retry-run']) || '' }}${{ inputs['dry-run'] && ', dry run' || '' }}"
 
 # Read-only by default; every job opts back into what it actually needs.
 permissions:
@@ -174,7 +174,7 @@ concurrency:
 env:
   REVDEPX_ENGINE: queue
   REVDEPX_PACKAGES: ${{ inputs.packages || '' }}
-  REVDEPX_WHICH: ${{ inputs.which || 'strong' }}
+  REVDEPX_WHICH: ${{ inputs.which || 'most' }}
   REVDEPX_DEPTH: ${{ inputs.depth || '1' }}
   REVDEPX_RETRY_RUN: ${{ inputs.retry-run || '' }}
   REVDEPX_PART: ${{ inputs.part || '' }}
