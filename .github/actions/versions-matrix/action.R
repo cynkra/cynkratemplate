@@ -1,13 +1,57 @@
 # Determine active versions of R to test against
-tags <- xml2::read_html("https://svn.r-project.org/R/tags/")
 
-bullets <-
-  tags |>
-  xml2::xml_find_all("//li") |>
-  xml2::xml_text()
+# Runs `f()` up to four times, waiting 5, 10 and 20 seconds between attempts.
+# svn.r-project.org drops connections from GitHub runners now and then,
+# and a transient failure should not fail the whole check.
+with_retries <- function(f, what, waits = c(5, 10, 20)) {
+  for (attempt in seq_len(length(waits) + 1)) {
+    result <- tryCatch(f(), error = identity)
+    if (!inherits(result, "error")) {
+      return(result)
+    }
+    message(
+      "Attempt ", attempt, " to read ", what, " failed: ",
+      conditionMessage(result)
+    )
+    if (attempt <= length(waits)) {
+      message("Retrying in ", waits[[attempt]], " seconds.")
+      Sys.sleep(waits[[attempt]])
+    }
+  }
+  NULL
+}
 
-version_bullets <- grep("^R-([0-9]+-[0-9]+-[0-9]+)/$", bullets, value = TRUE)
-versions <- unique(gsub("^R-([0-9]+)-([0-9]+)-[0-9]+/$", "\\1.\\2", version_bullets))
+# Minor versions ("4.5") of every R release, from the release tags in svn.
+versions_from_svn <- function() {
+  tags <- xml2::read_html("https://svn.r-project.org/R/tags/")
+
+  bullets <-
+    tags |>
+    xml2::xml_find_all("//li") |>
+    xml2::xml_text()
+
+  version_bullets <- grep("^R-([0-9]+-[0-9]+-[0-9]+)/$", bullets, value = TRUE)
+  unique(gsub("^R-([0-9]+)-([0-9]+)-[0-9]+/$", "\\1.\\2", version_bullets))
+}
+
+# The same minor versions from the r-hub rversions API, which lists every release with its three-component version as "semver".
+# It also lists the releases before 1.0, which svn has no tags for and which never reach the five newest.
+versions_from_rversions <- function() {
+  releases <- jsonlite::fromJSON("https://api.r-hub.io/rversions/r-versions")
+  semver <- grep("^[0-9]+[.][0-9]+[.][0-9]+$", releases$semver, value = TRUE)
+  unique(gsub("^([0-9]+)[.]([0-9]+)[.][0-9]+$", "\\1.\\2", semver))
+}
+
+versions <- with_retries(versions_from_svn, "the R release tags from svn.r-project.org")
+if (is.null(versions)) {
+  message("svn.r-project.org stayed unreachable, falling back to the r-hub rversions API.")
+  versions <- with_retries(versions_from_rversions, "the R releases from api.r-hub.io")
+  if (is.null(versions)) {
+    stop("Could not read the R releases from svn.r-project.org or api.r-hub.io.")
+  }
+  # A workflow command on stdout, so that the run's summary shows the fallback.
+  cat("::warning::Used the R releases from api.r-hub.io, because svn.r-project.org was unreachable.\n")
+}
 
 r_release <- head(sort(as.package_version(versions), decreasing = TRUE), 5)
 
