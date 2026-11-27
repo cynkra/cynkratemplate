@@ -6,10 +6,10 @@
 #   * `REQUESTED`, the `config` input of the action;
 #   * `Config/gha/rhub-platforms` in DESCRIPTION, a comma- or space-separated
 #     list, or `none` to skip the checks;
-#   * the default: `nosuggests` for every package, plus `gcc-asan`,
-#     `clang-asan`, `clang-ubsan`, `valgrind` and `rchk` when `src/` holds
-#     sources to compile. rchk inspects the package's shared object and fails
-#     on a package without one, so it belongs to compiled code only.
+#   * the default: `gcc-asan`, `clang-asan`, `clang-ubsan`, `valgrind` and
+#     `rchk` when `src/` holds sources to compile, none otherwise.
+#     rchk inspects the package's shared object and fails on a package
+#     without one, so it belongs to compiled code only.
 
 requested <- trimws(Sys.getenv("REQUESTED"))
 # read.dcf(), not `grep`: a DCF value may wrap onto continuation lines.
@@ -31,10 +31,14 @@ if (nzchar(requested)) {
   spec <- declared
   origin <- "`Config/gha/rhub-platforms` in DESCRIPTION"
 } else if (compiled) {
-  spec <- "nosuggests gcc-asan clang-asan clang-ubsan valgrind rchk"
+  # No `nosuggests`: it installs no rmarkdown,
+  # so every package with an R Markdown vignette fails there.
+  # The `rcc-suggests` jobs in R-CMD-check.yaml check without each suggested package.
+  # Opt in with `Config/gha/rhub-platforms` or the `config` input.
+  spec <- "gcc-asan clang-asan clang-ubsan valgrind rchk"
   origin <- "the default for a package with compiled code in src/"
 } else {
-  spec <- "nosuggests"
+  spec <- ""
   origin <- "the default for a package without compiled code"
 }
 
