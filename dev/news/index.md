@@ -1,5 +1,19 @@
 # Changelog
 
+## cynkratemplate 0.0.2.9039
+
+### Features
+
+#### ci
+
+- Delete a PR’s head branch once the PR is closed
+  ([\#169](https://github.com/cynkra/cynkratemplate/issues/169)).
+
+### Continuous integration
+
+- Move the common actions to their latest major versions
+  ([\#171](https://github.com/cynkra/cynkratemplate/issues/171)).
+
 ## cynkratemplate 0.0.2.9038
 
 ### Continuous integration
