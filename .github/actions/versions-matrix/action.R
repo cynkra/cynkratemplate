@@ -1,5 +1,41 @@
 # Determine active versions of R to test against
 
+# The packages this script calls into.
+# A caller that has not been updated to install them still gets a working action:
+# the missing ones are installed here, with a warning in the run's summary.
+needed <- c("curl", "xml2", "jsonlite", "desc")
+missing <- needed[!vapply(needed, requireNamespace, logical(1), quietly = TRUE)]
+if (length(missing) > 0) {
+  cat(
+    "::warning::The versions-matrix action is installing the R packages ",
+    paste(missing, collapse = ", "),
+    ". Add ",
+    paste0("any::", missing, collapse = " "),
+    " to the packages that the setup step before it installs.\n",
+    sep = ""
+  )
+  tryCatch(
+    if (requireNamespace("pak", quietly = TRUE)) {
+      pak::pak(paste0("any::", missing))
+    } else {
+      install.packages(missing)
+    },
+    error = function(e) {
+      stop(
+        "Could not install the R packages ", paste(missing, collapse = ", "),
+        " that the versions-matrix action needs: ", conditionMessage(e)
+      )
+    }
+  )
+  still_missing <- missing[!vapply(missing, requireNamespace, logical(1), quietly = TRUE)]
+  if (length(still_missing) > 0) {
+    stop(
+      "Could not install the R packages ", paste(still_missing, collapse = ", "),
+      " that the versions-matrix action needs."
+    )
+  }
+}
+
 # Runs `f()` up to four times, waiting 5, 10 and 20 seconds between attempts.
 # svn.r-project.org drops connections from GitHub runners now and then,
 # and a transient failure should not fail the whole check.
