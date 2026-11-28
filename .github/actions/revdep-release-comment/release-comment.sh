@@ -25,6 +25,7 @@
 #   WORKFLOW            the workflow's name, part of the comment's marker
 #   REF                 the checked ref, `refs/heads/` or not; only a branch can match a pull request's head
 #   REPORT_COMMIT       the commit this run pushed its report as, empty where it pushed none
+#   REPORT_PARENT       the commit that report commit sits on, after the rebase
 #   WHICH, DEPTH, PART, PACKAGES
 #                       the dispatch's scope; runs of another scope get a comment of their own
 #   GITHUB_SERVER_URL, GITHUB_RUN_ID, GITHUB_STEP_SUMMARY
@@ -76,6 +77,8 @@ retry_of=$(jq -r '.retry_of // "0" | tostring' "$report/run.json")
 [[ $retry_of =~ ^[1-9][0-9]*$ ]] || retry_of=''
 report_commit=${REPORT_COMMIT:-}
 [[ $report_commit =~ ^[0-9a-f]{40}$ ]] || report_commit=''
+report_parent=${REPORT_PARENT:-}
+[[ $report_parent =~ ^[0-9a-f]{40}$ ]] || report_parent=''
 
 ref_shown=$(clean "$ref")
 if [ -z "$ref" ]; then
@@ -195,8 +198,13 @@ trap "rm -f '$errf' '$body'" EXIT
   echo "."
   if [ -n "$report_commit" ]; then
     echo
-    echo "This run committed its report to the branch as $report_commit."
+    if [ -n "$sha" ] && [ "$report_parent" != "$sha" ]; then
+      echo "This run committed its report to the branch as $report_commit, on top of ${report_parent:-a commit} that this run did not check."
+    else
+      echo "This run committed its report to the branch as $report_commit."
+    fi
   fi
+  # A head that is the report commit is covered by the line above, which warns where it sits on an unchecked commit.
   if [ -n "$sha" ] && [ -n "$head_sha" ] && [ "$head_sha" != "$sha" ] && [ "$head_sha" != "$report_commit" ]; then
     echo
     echo "The pull request's head is now $head_sha, which this run did not check."

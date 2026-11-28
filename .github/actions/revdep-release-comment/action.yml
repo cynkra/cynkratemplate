@@ -29,6 +29,10 @@ inputs:
     description: "The commit this run pushed its report as; empty where it pushed none."
     required: false
     default: ""
+  report-parent:
+    description: "The commit that report commit sits on, after the rebase; empty where it pushed none."
+    required: false
+    default: ""
   which:
     description: "The `which` the run was dispatched with."
     required: false
@@ -59,6 +63,7 @@ runs:
         WORKFLOW: ${{ inputs.workflow }}
         REF: ${{ inputs.ref }}
         REPORT_COMMIT: ${{ inputs.report-commit }}
+        REPORT_PARENT: ${{ inputs.report-parent }}
         WHICH: ${{ inputs.which }}
         DEPTH: ${{ inputs.depth }}
         PART: ${{ inputs.part }}

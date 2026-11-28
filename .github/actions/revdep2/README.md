@@ -784,6 +784,8 @@ the report is about *results*, a retry is about *coverage*.
 | The report cannot be pushed (protection, fork, race) | the step is `continue-on-error`; the run keeps its result |
 | The checked ref has no open release pull request | no comment; a `::notice::` says so |
 | The release pull request's head moved after the run started | the comment names the commit the run checked and the new head |
+| The report was committed, so the release pull request's head is the report commit | the comment names the report commit; it warns only where that commit sits on a commit the run did not check |
+| The report conflicts with newer `revdep/` changes on the branch | not pushed; a `::warning::` in the log says so, and the artifact has the report |
 | A revdep fails the same way under both versions | `ok` (no *new* problems), visible in the report's tables |
 | A revdep fails to *install* under both versions | `failed` — there is nothing to compare |
 | A check times out | `timeout` kills it at `max(floor, factor × its CRAN time)`; reported `timeout`, not `failed`, with the check step it died at |

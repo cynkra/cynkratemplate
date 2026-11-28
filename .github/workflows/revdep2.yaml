@@ -872,11 +872,17 @@ jobs:
           Rscript "${REVDEP2_DIR}/collect.R"
         shell: bash
 
+      # Without it the commit job is skipped; the report is still uploaded.
       - name: Record the checked commit
         id: checked
         if: steps.collect.outcome == 'success'
+        continue-on-error: true
         run: |
-          echo "sha=$(jq -r '.sha // empty' revdep/run.json)" >> "$GITHUB_OUTPUT"
+          sha=$(jq -r '.sha // empty' revdep/run.json || true)
+          if [ -z "${sha}" ]; then
+            echo "::notice::revdep/run.json names no checked commit; the report is not committed."
+          fi
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
         shell: bash
 
       - name: Upload the report
@@ -940,6 +946,7 @@ jobs:
 
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
+      parent: ${{ steps.commit.outputs.parent }}
 
     steps:
       # The commit the plan checked, so the report lands on top of the tree it
@@ -1028,6 +1035,7 @@ jobs:
           workflow: revdep2
           ref: ${{ inputs.ref || github.ref_name }}
           report-commit: ${{ needs.commit.outputs.sha }}
+          report-parent: ${{ needs.commit.outputs.parent }}
           which: ${{ env.REVDEP2_WHICH }}
           depth: ${{ env.REVDEP2_DEPTH }}
           part: ${{ env.REVDEP2_PART }}
