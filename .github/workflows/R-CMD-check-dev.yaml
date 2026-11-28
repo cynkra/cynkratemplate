@@ -150,7 +150,7 @@ jobs:
         with:
           cache-version: rcc-dev-${{ matrix.package }}-1
           needs: build, check
-          extra-packages: "any::rcmdcheck r-lib/remotes@f-618-universe"
+          extra-packages: "any::rcmdcheck any::jsonlite"
           token: ${{ secrets.GITHUB_TOKEN }}
 
       # Same runner and R version as the base job, so its binary fits.
@@ -160,13 +160,113 @@ jobs:
           name: ${{ needs.R-CMD-check-base.outputs.binary }}
 
       - name: Install dev version of ${{ matrix.package }}
-        env:
-          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # r-universe builds Linux binaries for ubuntu:latest, which now tracks
           # 26.04 "resolute" (it no longer publishes "noble"). This matches the
           # ubuntu-26.04 runner above.
-          remotes::install_runiverse("${{ matrix.package }}", linux_distro = "resolute")
+          distro <- "resolute"
+          package <- "${{ matrix.package }}"
+
+          # The canonical universe of a package, as the r-universe search reports it.
+          universe_for <- function(package) {
+            url <- paste0("https://r-universe.dev/api/search?q=package:", package)
+            results <- jsonlite::fromJSON(url, simplifyVector = FALSE)$results
+            if (length(results) == 0) {
+              stop("Package '", package, "' not found on r-universe", call. = FALSE)
+            }
+            results[[1]]$`_user`
+          }
+
+          # Install the development version of a package from a universe,
+          # as a binary for this runner where one is listed, else from source.
+          # Only the universe-wide repositories serve packages,
+          # a per-package URL such as https://<universe>.r-universe.dev/<package>/
+          # answers with 403.
+          install_from_universe <- function(package, universe) {
+            r_version <- sub("^([0-9]+[.][0-9]+).*$", "\\1", getRversion())
+            base <- paste0("https://", universe, ".r-universe.dev")
+            candidates <- c(
+              binary = paste0(
+                base, "/bin/linux/", distro, "-", R.version$arch, "/", r_version
+              ),
+              source = base
+            )
+
+            repo <- NULL
+            for (candidate in candidates) {
+              available <- utils::available.packages(repos = candidate)
+              if (package %in% rownames(available)) {
+                repo <- candidate
+                break
+              }
+            }
+            if (is.null(repo)) {
+              stop(
+                "Package '", package, "' not found in the r-universe repositories ",
+                paste(candidates, collapse = " and "),
+                call. = FALSE
+              )
+            }
+            version <- available[package, "Version"]
+            message("Installing ", package, " ", version, " from ", repo)
+
+            destdir <- tempfile("universe")
+            dir.create(destdir)
+            on.exit(unlink(destdir, recursive = TRUE), add = TRUE)
+            file <- utils::download.packages(
+              package,
+              destdir = destdir,
+              available = available,
+              repos = repo
+            )[, 2]
+            if (length(file) != 1 || !file.exists(file)) {
+              stop("Failed to download ", package, " from ", repo, call. = FALSE)
+            }
+
+            # The repository index carries no Remotes field, the DESCRIPTION does.
+            utils::untar(file, file.path(package, "DESCRIPTION"), exdir = destdir)
+            desc <- read.dcf(file.path(destdir, package, "DESCRIPTION"))
+            if ("Remotes" %in% colnames(desc)) {
+              remotes <- trimws(strsplit(desc[, "Remotes"], ",")[[1]])
+              remotes <- remotes[remotes != ""]
+              pattern <- "^(?:github::)?([^/:]+)/([^/@#]+)$"
+              for (remote in remotes) {
+                if (grepl(pattern, remote, perl = TRUE)) {
+                  install_from_universe(
+                    sub(pattern, "\\2", remote, perl = TRUE),
+                    sub(pattern, "\\1", remote, perl = TRUE)
+                  )
+                } else {
+                  message("Not installing remote ", remote, ", only org/pkg is supported")
+                }
+              }
+            }
+
+            # Missing dependencies come from the universe or the usual repositories,
+            # the package itself from the file downloaded from the universe.
+            deps <- tools::package_dependencies(
+              package,
+              db = available,
+              which = c("Depends", "Imports", "LinkingTo")
+            )[[1]]
+            missing <- setdiff(deps, c("R", rownames(utils::installed.packages())))
+            if (length(missing) > 0) {
+              utils::install.packages(missing, repos = c(universe = repo, getOption("repos")))
+            }
+            utils::install.packages(file, repos = NULL)
+
+            installed <- as.character(utils::packageVersion(package))
+            message(package, ": installed ", installed, ", universe ", version)
+            if (installed != version) {
+              stop(
+                "Installed ", package, " ", installed,
+                " differs from the universe's ", version,
+                call. = FALSE
+              )
+            }
+          }
+
+          install_from_universe(package, universe_for(package))
         shell: Rscript {0}
 
       - name: Session info

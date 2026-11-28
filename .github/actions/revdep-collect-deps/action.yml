@@ -20,7 +20,7 @@ runs:
         # no (rev)dependencies, paste0('"', character(0), '"') collapses to the
         # two-character string '""', so the naive construction emits
         # {"package":[""]} (one empty-string entry) instead of an empty array.
-        # That spawns a spurious matrix job that runs install_runiverse("") and
+        # That spawns a spurious matrix job that installs the dev version of "" and
         # fails. Emit an empty array so the dependent matrix job is skipped when
         # there are none.
         if (length(deps) == 0) {
