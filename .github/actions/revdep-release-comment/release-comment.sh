@@ -198,8 +198,8 @@ trap "rm -f '$errf' '$body'" EXIT
   echo "."
   if [ -n "$report_commit" ]; then
     echo
-    if [ -n "$sha" ] && [ "$report_parent" != "$sha" ]; then
-      echo "This run committed its report to the branch as $report_commit, on top of ${report_parent:-a commit} that this run did not check."
+    if [ -n "$sha" ] && [ -n "$report_parent" ] && [ "$report_parent" != "$sha" ]; then
+      echo "This run committed its report to the branch as $report_commit, on top of $report_parent, which this run did not check."
     else
       echo "This run committed its report to the branch as $report_commit."
     fi

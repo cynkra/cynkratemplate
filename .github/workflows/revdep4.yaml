@@ -1049,7 +1049,8 @@ jobs:
     steps:
       # The commit the plan checked, so the report lands on top of the tree it
       # describes; the action rebases onto the branch's tip before pushing,
-      # and a conflict with newer `revdep/` changes fails that step visibly.
+      # and a conflict with newer `revdep/` changes leaves it unpushed with a
+      # warning.
       - name: Check out the checked commit
         uses: actions/checkout@v7
         with:

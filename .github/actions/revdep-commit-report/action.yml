@@ -57,7 +57,7 @@ runs:
             exit 0
           fi
         else
-          REF="${REF_INPUT}"
+          REF="${REF_INPUT#refs/heads/}"
           if ! git ls-remote --exit-code origin "refs/heads/${REF}" > /dev/null 2>&1; then
             echo "::notice::${REF} is not a branch of this repository; the report stays in the artifact only."
             exit 0
@@ -99,6 +99,11 @@ runs:
         if ! git rebase "origin/${REF}"; then
           git rebase --abort || true
           echo "::warning::The report conflicts with newer revdep/ changes on ${REF}; not pushed. The artifact has it."
+          exit 0
+        fi
+        # The rebase drops the commit where the branch already has this report.
+        if [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/${REF}")" ]; then
+          echo "::notice::The report is unchanged on ${REF}; nothing to commit."
           exit 0
         fi
         git push origin "HEAD:refs/heads/${REF}"
