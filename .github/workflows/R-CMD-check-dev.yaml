@@ -167,15 +167,47 @@ jobs:
           distro <- "resolute"
           package <- "${{ matrix.package }}"
 
-          # The canonical universe of a package, as the r-universe search reports it.
-          universe_for <- function(package) {
+          search_results <- function(package) {
             url <- paste0("https://r-universe.dev/api/search?q=package:", package)
-            results <- jsonlite::fromJSON(url, simplifyVector = FALSE)$results
-            if (length(results) == 0) {
+            jsonlite::fromJSON(url, simplifyVector = FALSE)$results
+          }
+
+          # The canonical universe of a package: among the search results for exactly
+          # this package, the one r-universe indexes as canonical (`_indexed`),
+          # else the first one that is not the CRAN mirror.
+          universe_for <- function(package, results = search_results(package)) {
+            matches <- Filter(function(x) identical(x$Package, package), results)
+            universes <- unique(vapply(matches, function(x) x$`_user`, character(1)))
+            if (length(universes) == 0) {
               stop("Package '", package, "' not found on r-universe", call. = FALSE)
             }
-            results[[1]]$`_user`
+            universe <- universes[[1]]
+            if (length(universes) > 1) {
+              indexed <- vapply(
+                universes,
+                function(u) {
+                  url <- paste0("https://", u, ".r-universe.dev/api/packages/", package)
+                  info <- tryCatch(jsonlite::fromJSON(url), error = function(e) NULL)
+                  isTRUE(info$`_indexed`)
+                },
+                logical(1)
+              )
+              if (any(indexed)) {
+                universe <- universes[indexed][[1]]
+              } else if (any(universes != "cran")) {
+                universe <- universes[universes != "cran"][[1]]
+              }
+            }
+            message(
+              "Universe for ", package, ": ", universe,
+              " (candidates: ", paste(universes, collapse = ", "), ")"
+            )
+            universe
           }
+
+          # Packages already installed by install_from_universe(), to stop cycles
+          # through Remotes.
+          visited <- new.env()
 
           # Install the development version of a package from a universe,
           # as a binary for this runner where one is listed, else from source.
@@ -183,6 +215,10 @@ jobs:
           # a per-package URL such as https://<universe>.r-universe.dev/<package>/
           # answers with 403.
           install_from_universe <- function(package, universe) {
+            if (exists(package, envir = visited, inherits = FALSE)) {
+              return(invisible())
+            }
+            assign(package, TRUE, envir = visited)
             r_version <- sub("^([0-9]+[.][0-9]+).*$", "\\1", getRversion())
             base <- paste0("https://", universe, ".r-universe.dev")
             candidates <- c(
@@ -255,9 +291,12 @@ jobs:
             }
             utils::install.packages(file, repos = NULL)
 
-            installed <- as.character(utils::packageVersion(package))
+            installed <- utils::packageDescription(package, fields = "Version")
             message(package, ": installed ", installed, ", universe ", version)
-            if (installed != version) {
+            if (is.na(installed)) {
+              stop("Package ", package, " is not installed", call. = FALSE)
+            }
+            if (package_version(installed) != package_version(version)) {
               stop(
                 "Installed ", package, " ", installed,
                 " differs from the universe's ", version,
