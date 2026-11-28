@@ -1001,9 +1001,9 @@ jobs:
     # Only after a collect that finished, so the artifact is whole, and that
     # compared something: a run in which every shard died would otherwise
     # replace a good comment with a list of packages it never checked.
-    if: >-
-      needs.collect.result == 'success'
-      && needs.collect.outputs.compared != '0'
+    # `!cancelled()` replaces the implicit `success()`, which would also
+    # require every earlier job, so one red shard would skip the comment.
+    if: ${{ !cancelled() && needs.collect.result == 'success' && needs.collect.outputs.compared != '0' }}
 
     runs-on: ubuntu-26.04
 

@@ -649,23 +649,27 @@ Without a release pull request, the summary and the artifact are the results.
 `revdep/` in the repository is still the record of the last results, but the maintainer commits it, not the workflow.
 On a release branch, that happens with the first commit that goes there after the checks,
 which may be after the CRAN submission and before the release pull request is merged.
-Fetch the run's report into `revdep/`, then commit the generated files and nothing else,
-from the root of the package's repository, with a checkout of cynkra/cynkratemplate next to it
-(`<engine>` is `revdep2` for `revdep2`, `revdepx` for `revdep4`):
+Fetch the run's report artifact, copy it into `revdep/`, and commit the generated files and nothing else,
+from the root of the package's repository
+(the artifact is `revdep2-report` for `revdep2` and `revdepx-report` for `revdep4`):
 
 ```sh
-run=<run-id>
-rm -rf revdep/problems revdep/failures
-../cynkratemplate/.github/actions/<engine>/fetch.sh "$run"
-git add -A -- revdep ':!revdep/pkgs' ':!revdep/timings.json' ':!revdep/run.json'
+run=<run-id>; artifact=revdepx-report
+tmp=$(mktemp -d) && gh run download "$run" --name "$artifact" --dir "$tmp"
+rm -rf revdep/problems revdep/failures && mkdir -p revdep && cp -R "$tmp"/. revdep/
+for f in README.md problems.md failures.md cran.md manifest.json problems failures; do
+  if [ -e "revdep/$f" ] || [ -n "$(git ls-files -- "revdep/$f")" ]; then git add -A -- "revdep/$f"; fi
+done
 git status --short revdep
 git commit -m "chore: Update revdep report from run $run"
 ```
 
-The two directories go first because a package the run found fixed has no section in the artifact,
-and the download would leave its old one in place.
-Read `git status` before the commit: what is staged should be the report files,
-`manifest.json`, and the per-package sections, with the analysis beside them unchanged.
+The download goes to a fresh directory because `gh run download` refuses to overwrite existing files,
+and the artifact holds all of `revdep/`.
+The two directories are removed first because a package the run found fixed has no section in the artifact,
+and copying over them would leave its old one in place.
+Only the files the workflow used to commit are staged, removals included:
+`pkgs/`, the timings and `run.json` stay untracked, and the analysis beside the report is left as it is.
 
 `problems.md` and `failures.md` are *assembled* rather than written whole.
 Each package with a section has its own file —

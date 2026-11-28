@@ -579,8 +579,15 @@ not_ok <- sum(results_tbl != "ok")
 # comparison -- every shard dead, every package `missing`, a bad plan, a driver
 # bug that turned the whole set into `depfail` -- learnt nothing, and says so
 # out loud. The report is written and uploaded either way; it is never
-# committed.
-compared <- tally("ok") + tally("newly_broken")
+# committed. Only *this run's* comparisons count, not those a retry carries
+# over from the run it retries.
+compared <- sum(vapply(
+  entries,
+  function(e) {
+    !isTRUE(e$carried) && (e$result %in% c("ok", "newly_broken"))
+  },
+  logical(1)
+))
 set_output("compared", compared)
 if (compared == 0) {
   inform("No package produced a comparison; the report is written and uploaded")
