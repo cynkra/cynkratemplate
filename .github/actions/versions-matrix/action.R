@@ -14,12 +14,21 @@ if (length(missing) > 0) {
     " to the packages that the setup step before it installs.\n",
     sep = ""
   )
+  # The warnings raised while installing, such as "package 'x' is not available",
+  # which say why a package is still missing afterwards.
+  # They are collected, not muffled, so they still show when the installation succeeds.
+  install_warnings <- character()
   tryCatch(
-    if (requireNamespace("pak", quietly = TRUE)) {
-      pak::pak(paste0("any::", missing))
-    } else {
-      install.packages(missing)
-    },
+    withCallingHandlers(
+      if (requireNamespace("pak", quietly = TRUE)) {
+        pak::pak(paste0("any::", missing))
+      } else {
+        install.packages(missing)
+      },
+      warning = function(w) {
+        install_warnings <<- c(install_warnings, conditionMessage(w))
+      }
+    ),
     error = function(e) {
       stop(
         "Could not install the R packages ", paste(missing, collapse = ", "),
@@ -31,7 +40,10 @@ if (length(missing) > 0) {
   if (length(still_missing) > 0) {
     stop(
       "Could not install the R packages ", paste(still_missing, collapse = ", "),
-      " that the versions-matrix action needs."
+      " that the versions-matrix action needs.",
+      if (length(install_warnings) > 0) {
+        paste0(" The installation warned: ", paste(install_warnings, collapse = "; "))
+      }
     )
   }
 }
