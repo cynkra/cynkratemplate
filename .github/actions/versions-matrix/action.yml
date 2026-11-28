@@ -1,6 +1,9 @@
 name: "Actions to compute a matrix with all R and OS versions"
 description: >
   Compute the matrix of operating systems and R versions the full check runs over.
+  Needs the R packages curl, xml2, jsonlite and desc.
+  The caller should install them in its setup step;
+  the action installs any that are missing, with a warning in the run's summary.
 
 outputs:
   matrix:
