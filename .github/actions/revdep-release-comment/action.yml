@@ -9,7 +9,8 @@ description: >
   says the rest.
 
   The calling job needs `pull-requests: write`, and nothing else: it gets the
-  report as an artifact of the same run, not from a checkout.
+  report as an artifact of the same run, not from a checkout. The action
+  writes with the job's own token, as github-actions[bot].
 
 inputs:
   report:
@@ -22,7 +23,7 @@ inputs:
     description: "The workflow's name; part of the comment's marker."
     required: true
   ref:
-    description: "The checked ref. Only a branch can be a pull request's head."
+    description: "The checked ref, with or without `refs/heads/`. Only a branch can be a pull request's head."
     required: true
   which:
     description: "The `which` the run was dispatched with."
@@ -40,17 +41,14 @@ inputs:
     description: "The `packages` the run was dispatched with."
     required: false
     default: ""
-  gh-token:
-    description: "A token with `pull-requests: write`."
-    required: false
-    default: ${{ github.token }}
 
 runs:
   using: "composite"
   steps:
     - name: Point the release pull request at the run
       env:
-        GH_TOKEN: ${{ inputs.gh-token }}
+        # The job's own token: the comment is found as github-actions[bot]'s.
+        GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
         REPORT_DIR: ${{ inputs.report }}
         ARTIFACT: ${{ inputs.artifact }}

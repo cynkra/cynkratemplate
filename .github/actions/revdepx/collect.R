@@ -139,8 +139,10 @@ if (nzchar(retry_dir) && file.exists(file.path(retry_dir, "manifest.json"))) {
 }
 
 # A subset run -- `packages: broken`, an explicit list, a `part` -- reports
-# the whole record too. The committed manifest is the durable record of every
-# package the last full run checked, and writing this run's slice over it
+# the whole record too. The manifest in `revdep/`, last committed from a run's
+# artifact by the maintainer (the workflows commit nothing), is the durable
+# record of every package the last full run checked, and writing this run's
+# slice over it
 # would shrink 3435 rows to 204 (run 32260705703 did exactly that): the
 # repository would remember only what was just re-checked, and the next
 # `packages: broken` would select from an amnesiac record. So rows for

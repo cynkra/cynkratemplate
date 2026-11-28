@@ -646,6 +646,27 @@ while a run of another scope, such as `which: strong` or one `part`, gets a comm
 That job alone has `pull-requests: write`, and no workflow job has `contents: write` any more.
 Without a release pull request, the summary and the artifact are the results.
 
+`revdep/` in the repository is still the record of the last results, but the maintainer commits it, not the workflow.
+On a release branch, that happens with the first commit that goes there after the checks,
+which may be after the CRAN submission and before the release pull request is merged.
+Fetch the run's report into `revdep/`, then commit the generated files and nothing else,
+from the root of the package's repository, with a checkout of cynkra/cynkratemplate next to it
+(`<engine>` is `revdep2` for `revdep2`, `revdepx` for `revdep4`):
+
+```sh
+run=<run-id>
+rm -rf revdep/problems revdep/failures
+../cynkratemplate/.github/actions/<engine>/fetch.sh "$run"
+git add -A -- revdep ':!revdep/pkgs' ':!revdep/timings.json' ':!revdep/run.json'
+git status --short revdep
+git commit -m "chore: Update revdep report from run $run"
+```
+
+The two directories go first because a package the run found fixed has no section in the artifact,
+and the download would leave its old one in place.
+Read `git status` before the commit: what is staged should be the report files,
+`manifest.json`, and the per-package sections, with the analysis beside them unchanged.
+
 `problems.md` and `failures.md` are *assembled* rather than written whole.
 Each package with a section has its own file —
 `revdep/problems/<package>.md`, `revdep/failures/<package>.md` —
@@ -706,7 +727,7 @@ and a different report.
 ### Re-checking what was broken
 
 `packages: broken` takes the packages to check from the report in `revdep/` of the checked tree,
-which this workflow no longer writes there, so it reads one committed by hand or before:
+that is, the report last committed from a run's artifact, as above:
 `manifest.json` when this workflow wrote it (every result that is not `ok`),
 and otherwise revdepcheck's own markdown —
 the `# <package> (<version>)` headings of `problems.md` and `failures.md`,

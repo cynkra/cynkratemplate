@@ -88,6 +88,10 @@ from "an earlier run of this one":
   whose body starts with `<!-- release-checklist: <package> <version> -->`,
   the `release-comment` job creates or updates one comment there with the run's link and what it found,
   through the `revdep-release-comment` action.
+  `revdep/` is still the repository's record, committed by the maintainer from a run's artifact
+  with the first commit to the release branch after the checks;
+  `packages: broken` and the rows a subset run carries over read that record.
+  [`revdep2/README.md`](../revdep2/README.md#the-report-stays-in-the-run) has the commands.
 
 ## The image lifecycle
 

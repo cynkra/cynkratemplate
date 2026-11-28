@@ -17,12 +17,13 @@
 #     Nothing is committed anywhere.
 #
 # Environment:
-#   GH_TOKEN, GH_REPO   a token with `pull-requests: write`, and the repository, owner/name
+#   GH_TOKEN, GH_REPO   the job's own token, with `pull-requests: write`, and the repository, owner/name;
+#                       the comment is found among github-actions[bot]'s, which is who that token writes as
 #   GH                  the gh command, default `gh`; a test stubs it
 #   REPORT_DIR          the downloaded report artifact
 #   ARTIFACT            the report artifact's name, as the comment names it
 #   WORKFLOW            the workflow's name, part of the comment's marker
-#   REF                 the checked ref; only a branch name can match a pull request's head
+#   REF                 the checked ref, `refs/heads/` or not; only a branch can match a pull request's head
 #   WHICH, DEPTH, PART, PACKAGES
 #                       the dispatch's scope; runs of another scope get a comment of their own
 #   GITHUB_SERVER_URL, GITHUB_RUN_ID, GITHUB_STEP_SUMMARY
@@ -39,6 +40,7 @@ report=${REPORT_DIR:?}
 workflow=${WORKFLOW:?}
 artifact=${ARTIFACT:-}
 ref=${REF:-}
+ref=${ref#refs/heads/}
 run_id=${GITHUB_RUN_ID:?}
 run_url="${GITHUB_SERVER_URL:-https://github.com}/$repo/actions/runs/$run_id"
 
@@ -72,6 +74,7 @@ retry_of=$(jq -r '.retry_of // "0" | tostring' "$report/run.json")
 [[ $sha =~ ^[0-9a-f]{7,40}$ ]] || sha=''
 [[ $retry_of =~ ^[1-9][0-9]*$ ]] || retry_of=''
 
+ref_shown=$(clean "$ref")
 if [ -z "$ref" ]; then
   notice "No branch" "No ref to look up; the results are on the run's summary page and in its artifact."
   exit 0
@@ -101,12 +104,12 @@ done <<<"$found"
 
 if [ "${#prs[@]}" -eq 0 ]; then
   notice "No release pull request" \
-    "No open pull request from $ref starts its body with $marker; the results are on the run's summary page and in its artifact."
-  summary "- Release pull request: none for \`$ref\` starts its body with \`$marker\`." ""
+    "No open pull request from $ref_shown starts its body with $marker; the results are on the run's summary page and in its artifact."
+  summary "- Release pull request: none for \`$ref_shown\` starts its body with \`$marker\`." ""
   exit 0
 fi
 if [ "${#prs[@]}" -gt 1 ]; then
-  echo "::warning title=More than one release pull request::Open pull requests ${prs[*]/#/#} from $ref all start with $marker; none is written to."
+  echo "::warning title=More than one release pull request::Open pull requests ${prs[*]/#/#} from $ref_shown all start with $marker; none is written to."
   summary "- Release pull request: ${prs[*]/#/#} all start with \`$marker\`; none is written to." ""
   exit 0
 fi
@@ -122,7 +125,9 @@ if [ -n "$packages" ]; then
       scope_text="the packages the report on the branch lists as broken or failed"
       ;;
     *)
-      scope_key="packages"
+      # Its own comment per list: the list, sorted, as a short hash.
+      # shellcheck disable=SC2086  # split the cleaned list into words
+      scope_key="packages=$(printf '%s\n' $packages | tr ',' '\n' | sed '/^$/d' | LC_ALL=C sort -u | sha256sum | cut -c1-8)"
       scope_text="selected packages ($packages)"
       ;;
   esac

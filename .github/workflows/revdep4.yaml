@@ -97,7 +97,7 @@ on:
         type: string
         default: ""
       packages:
-        description: "Packages to check (comma/space separated), or 'broken' to take what the committed revdep/ report lists as broken or failed; default: all reverse dependencies"
+        description: "Packages to check (comma/space separated), or 'broken' to take what the revdep/ report last committed from a run's artifact lists as broken or failed; default: all reverse dependencies"
         type: string
         default: ""
       which:
@@ -872,6 +872,12 @@ jobs:
 
     name: "Collect results and report"
 
+    outputs:
+      # How many packages this run compared; zero means it learnt nothing,
+      # and `release-comment` then leaves the release pull request's comment
+      # as it is.
+      compared: ${{ steps.collect.outputs.compared }}
+
     permissions:
       # To check out the ref under test.
       contents: read
@@ -992,9 +998,12 @@ jobs:
     needs:
       - collect
 
+    # Only after a collect that finished, so the artifact is whole, and that
+    # compared something: a run in which every shard died would otherwise
+    # replace a good comment with a list of packages it never checked.
     if: >-
-      !cancelled()
-      && needs.collect.result != 'skipped'
+      needs.collect.result == 'success'
+      && needs.collect.outputs.compared != '0'
 
     runs-on: ubuntu-26.04
 
