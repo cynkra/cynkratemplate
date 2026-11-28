@@ -24,6 +24,7 @@
 #   ARTIFACT            the report artifact's name, as the comment names it
 #   WORKFLOW            the workflow's name, part of the comment's marker
 #   REF                 the checked ref, `refs/heads/` or not; only a branch can match a pull request's head
+#   REPORT_COMMIT       the commit this run pushed its report as, empty where it pushed none
 #   WHICH, DEPTH, PART, PACKAGES
 #                       the dispatch's scope; runs of another scope get a comment of their own
 #   GITHUB_SERVER_URL, GITHUB_RUN_ID, GITHUB_STEP_SUMMARY
@@ -73,6 +74,8 @@ retry_of=$(jq -r '.retry_of // "0" | tostring' "$report/run.json")
 [[ $version =~ ^[0-9]+([.-][0-9]+)+$ ]] || fail "Report" "run.json names no valid version: '$version'."
 [[ $sha =~ ^[0-9a-f]{7,40}$ ]] || sha=''
 [[ $retry_of =~ ^[1-9][0-9]*$ ]] || retry_of=''
+report_commit=${REPORT_COMMIT:-}
+[[ $report_commit =~ ^[0-9a-f]{40}$ ]] || report_commit=''
 
 ref_shown=$(clean "$ref")
 if [ -z "$ref" ]; then
@@ -190,7 +193,11 @@ trap "rm -f '$errf' '$body'" EXIT
   printf ', for %s' "$scope_text"
   [ -z "$retry_of" ] || printf ', retrying [run %s](%s)' "$retry_of" "${run_url%/*}/$retry_of"
   echo "."
-  if [ -n "$sha" ] && [ -n "$head_sha" ] && [ "$head_sha" != "$sha" ]; then
+  if [ -n "$report_commit" ]; then
+    echo
+    echo "This run committed its report to the branch as $report_commit."
+  fi
+  if [ -n "$sha" ] && [ -n "$head_sha" ] && [ "$head_sha" != "$sha" ] && [ "$head_sha" != "$report_commit" ]; then
     echo
     echo "The pull request's head is now $head_sha, which this run did not check."
   fi

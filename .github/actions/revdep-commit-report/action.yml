@@ -23,10 +23,16 @@ inputs:
     required: false
     default: ""
 
+outputs:
+  sha:
+    description: "The commit that was pushed; empty where nothing was."
+    value: ${{ steps.commit.outputs.sha }}
+
 runs:
   using: "composite"
   steps:
     - name: Commit the report to the checked ref
+      id: commit
       env:
         REF_INPUT: ${{ inputs.ref }}
         WORKFLOW: ${{ inputs.workflow }}
@@ -87,5 +93,6 @@ runs:
         git fetch origin "${REF}"
         git rebase "origin/${REF}"
         git push origin "HEAD:${REF}"
+        echo "sha=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
         echo "::notice::Report committed to ${REF}."
       shell: bash

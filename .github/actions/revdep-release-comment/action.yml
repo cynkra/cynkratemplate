@@ -25,6 +25,10 @@ inputs:
   ref:
     description: "The checked ref, with or without `refs/heads/`. Only a branch can be a pull request's head."
     required: true
+  report-commit:
+    description: "The commit this run pushed its report as; empty where it pushed none."
+    required: false
+    default: ""
   which:
     description: "The `which` the run was dispatched with."
     required: false
@@ -54,6 +58,7 @@ runs:
         ARTIFACT: ${{ inputs.artifact }}
         WORKFLOW: ${{ inputs.workflow }}
         REF: ${{ inputs.ref }}
+        REPORT_COMMIT: ${{ inputs.report-commit }}
         WHICH: ${{ inputs.which }}
         DEPTH: ${{ inputs.depth }}
         PART: ${{ inputs.part }}

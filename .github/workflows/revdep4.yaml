@@ -885,6 +885,9 @@ jobs:
       # and `commit` and `release-comment` then leave the committed report and
       # the release pull request's comment as they are.
       compared: ${{ steps.collect.outputs.compared }}
+      # The commit the plan checked, from the report's run.json: the commit
+      # job commits on top of it, not on whatever the branch is now.
+      sha: ${{ steps.checked.outputs.sha }}
 
     permissions:
       # To check out the ref under test.
@@ -966,6 +969,13 @@ jobs:
           Rscript "${REVDEPX_DIR}/collect.R"
         shell: bash
 
+      - name: Record the checked commit
+        id: checked
+        if: steps.collect.outcome == 'success'
+        run: |
+          echo "sha=$(jq -r '.sha // empty' revdep/run.json)" >> "$GITHUB_OUTPUT"
+        shell: bash
+
       - name: Upload the report
         uses: actions/upload-artifact@v7
         if: always()
@@ -1005,51 +1015,69 @@ jobs:
   # with `commit: false`, as the release process does, it does not run, and
   # the report stays in the run.
   #
-  # The checkout's per-package sections are removed before the artifact is
-  # unpacked over `revdep/`, so a package the run found fixed loses its
-  # section, as it did when the collector committed in place; the action
-  # stages only the generated files. `!cancelled()` and `compared > 0`, as for
-  # the comment: a run that learnt nothing must not overwrite the good record.
-  # The action does nothing where the ref is not a branch of this repository.
+  # The checkout's per-package sections are replaced by the report's, so a
+  # package the run found fixed loses its section, as it did when the
+  # collector committed in place; the action stages only the generated files.
+  # `!cancelled()` and `compared > 0`, as for the comment: a run that learnt
+  # nothing must not overwrite the good record. The action does nothing where
+  # the ref is not a branch of this repository.
   commit:
     needs:
       - collect
 
-    if: ${{ !cancelled() && inputs.commit && vars.REVDEPX_COMMIT_REPORT != 'false' && needs.collect.result == 'success' && needs.collect.outputs.compared != '0' }}
+    if: ${{ !cancelled() && inputs.commit && vars.REVDEPX_COMMIT_REPORT != 'false' && needs.collect.result == 'success' && needs.collect.outputs.compared != '0' && needs.collect.outputs.sha != '' }}
 
     runs-on: ubuntu-26.04
 
-    # The artifact carries the raw check output too, which can be large.
-    timeout-minutes: 30
+    timeout-minutes: 10
 
     name: "Commit the report to the checked ref"
 
     permissions:
       contents: write
 
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+
     steps:
-      - name: Check out the ref under test
+      # The commit the plan checked, so the report lands on top of the tree it
+      # describes; the action rebases onto the branch's tip before pushing,
+      # and a conflict with newer `revdep/` changes fails that step visibly.
+      - name: Check out the checked commit
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.ref || github.ref }}
-
-      - name: Remove the per-package sections the report replaces
-        run: rm -rf revdep/problems revdep/failures
-        shell: bash
+          ref: ${{ needs.collect.outputs.sha }}
 
       - name: Download the report
         uses: actions/download-artifact@v8
         with:
           name: revdepx-report
-          path: revdep
+          path: ${{ runner.temp }}/report
+
+      # Only the files the action stages, not the raw check output beside
+      # them. The two directories are emptied and recreated rather than
+      # removed, because an artifact drops empty directories: a run that
+      # cleared every section must still stage their removal.
+      - name: Copy the report files into revdep/
+        env:
+          REPORT: ${{ runner.temp }}/report
+        run: |
+          set -eu
+          rm -rf revdep/problems revdep/failures
+          mkdir -p revdep/problems revdep/failures
+          for f in README.md problems.md failures.md cran.md manifest.json problems failures; do
+            if [ -e "${REPORT}/${f}" ]; then cp -R "${REPORT}/${f}" revdep/; fi
+          done
+        shell: bash
 
       # A protected branch, a read-only token or a race with another push
       # leaves the report in the artifact; it does not fail the run.
       - name: Commit the report to the checked ref
+        id: commit
         continue-on-error: true
         uses: cynkra/cynkratemplate/.github/actions/revdep-commit-report@main
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.ref_name }}
           workflow: revdep4
 
   # Whether or not the report is committed: where the checked branch has an
@@ -1058,8 +1086,11 @@ jobs:
   # requests, and without a checkout, because the report comes as this run's
   # artifact.
   release-comment:
+    # After `commit`, so the comment can tell the report commit from a
+    # pull request head that moved for another reason.
     needs:
       - collect
+      - commit
 
     # Only after a collect that finished, so the artifact is whole, and that
     # compared something: a run in which every shard died would otherwise
@@ -1094,6 +1125,7 @@ jobs:
           artifact: revdepx-report
           workflow: revdep4
           ref: ${{ inputs.ref || github.ref_name }}
+          report-commit: ${{ needs.commit.outputs.sha }}
           which: ${{ env.REVDEPX_WHICH }}
           depth: ${{ env.REVDEPX_DEPTH }}
           part: ${{ env.REVDEPX_PART }}
