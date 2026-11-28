@@ -20,6 +20,12 @@
 # (the same lesson revdep2 learnt on the host). Everything downstream (the
 # universe image, every check container) stands on this.
 #
+# ccache is there for the compilers, and only callers that put /usr/lib/ccache
+# first on their PATH use it: build.R, for the vendored engine it compiles on
+# the critical path of every run, and check-half.sh, for the revdeps' own
+# compiles, which a check runs twice. Without this package /usr/lib/ccache
+# does not exist, and both fall back to the plain compilers.
+#
 # Usage:
 #   base-image.sh <r-version> <registry-image>   # ensure it exists, print ref
 #   base-image.sh --tag-only <r-version>         # print the tag; no docker
@@ -110,6 +116,7 @@ RUN apt-get update \\
       xvfb xauth xfonts-base \\
       libtcl8.6 libtk8.6 \\
       tidy curl file git locales unzip \\
+      ccache \\
     && rm -rf /var/lib/apt/lists/*
 # Rust, for the reverse dependencies that compile cargo crates -- run
 # 32260705703 left exactly six packages uninstallable, every one of them
