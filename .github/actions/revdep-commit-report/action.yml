@@ -23,10 +23,19 @@ inputs:
     required: false
     default: ""
 
+outputs:
+  sha:
+    description: "The commit that was pushed; empty where nothing was."
+    value: ${{ steps.commit.outputs.sha }}
+  parent:
+    description: "The commit it was pushed on top of, after the rebase; empty where nothing was pushed."
+    value: ${{ steps.commit.outputs.parent }}
+
 runs:
   using: "composite"
   steps:
     - name: Commit the report to the checked ref
+      id: commit
       env:
         REF_INPUT: ${{ inputs.ref }}
         WORKFLOW: ${{ inputs.workflow }}
@@ -48,8 +57,8 @@ runs:
             exit 0
           fi
         else
-          REF="${REF_INPUT}"
-          if ! git ls-remote --exit-code --heads origin "${REF}" > /dev/null 2>&1; then
+          REF="${REF_INPUT#refs/heads/}"
+          if ! git ls-remote --exit-code origin "refs/heads/${REF}" > /dev/null 2>&1; then
             echo "::notice::${REF} is not a branch of this repository; the report stays in the artifact only."
             exit 0
           fi
@@ -84,8 +93,21 @@ runs:
         fi
         git commit -m "${subject}" \
           -m "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-        git fetch origin "${REF}"
-        git rebase "origin/${REF}"
-        git push origin "HEAD:${REF}"
+        git fetch origin "refs/heads/${REF}:refs/remotes/origin/${REF}"
+        # A conflict means the branch changed `revdep/` since the checked
+        # commit; the newer files win, and the report stays in the artifact.
+        if ! git rebase "origin/${REF}"; then
+          git rebase --abort || true
+          echo "::warning::The report conflicts with newer revdep/ changes on ${REF}; not pushed. The artifact has it."
+          exit 0
+        fi
+        # The rebase drops the commit where the branch already has this report.
+        if [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/${REF}")" ]; then
+          echo "::notice::The report is unchanged on ${REF}; nothing to commit."
+          exit 0
+        fi
+        git push origin "HEAD:refs/heads/${REF}"
+        echo "sha=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+        echo "parent=$(git rev-parse HEAD^)" >> "${GITHUB_OUTPUT}"
         echo "::notice::Report committed to ${REF}."
       shell: bash

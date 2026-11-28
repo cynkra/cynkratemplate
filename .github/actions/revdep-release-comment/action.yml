@@ -1,0 +1,72 @@
+name: "Point the release pull request at the revdep run"
+description: >
+  Where the checked branch has an open release pull request, the one whose
+  body's first line is `<!-- release-checklist: <package> <version> -->`,
+  create or update one comment there with the run's link, its scope, the
+  counts per result and the newly broken packages. Without one, the run's
+  summary page and its report artifact are the results, and nothing is
+  written. This action commits nothing; the workflow's `commit` input decides
+  that. `release-comment.sh` beside this file says the rest.
+
+  The calling job needs `pull-requests: write`, and nothing else: it gets the
+  report as an artifact of the same run, not from a checkout. The action
+  writes with the job's own token, as github-actions[bot].
+
+inputs:
+  report:
+    description: "The directory the report artifact was downloaded to."
+    required: true
+  artifact:
+    description: "The report artifact's name, as the comment names it."
+    required: true
+  workflow:
+    description: "The workflow's name; part of the comment's marker."
+    required: true
+  ref:
+    description: "The checked ref, with or without `refs/heads/`. Only a branch can be a pull request's head."
+    required: true
+  report-commit:
+    description: "The commit this run pushed its report as; empty where it pushed none."
+    required: false
+    default: ""
+  report-parent:
+    description: "The commit that report commit sits on, after the rebase; empty where it pushed none."
+    required: false
+    default: ""
+  which:
+    description: "The `which` the run was dispatched with."
+    required: false
+    default: ""
+  depth:
+    description: "The `depth` the run was dispatched with."
+    required: false
+    default: ""
+  part:
+    description: "The `part` the run was dispatched with."
+    required: false
+    default: ""
+  packages:
+    description: "The `packages` the run was dispatched with."
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Point the release pull request at the run
+      env:
+        # The job's own token: the comment is found as github-actions[bot]'s.
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        REPORT_DIR: ${{ inputs.report }}
+        ARTIFACT: ${{ inputs.artifact }}
+        WORKFLOW: ${{ inputs.workflow }}
+        REF: ${{ inputs.ref }}
+        REPORT_COMMIT: ${{ inputs.report-commit }}
+        REPORT_PARENT: ${{ inputs.report-parent }}
+        WHICH: ${{ inputs.which }}
+        DEPTH: ${{ inputs.depth }}
+        PART: ${{ inputs.part }}
+        PACKAGES: ${{ inputs.packages }}
+      run: bash "${GITHUB_ACTION_PATH}/release-comment.sh"
+      shell: bash

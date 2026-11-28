@@ -78,9 +78,18 @@ from "an earlier run of this one":
   and consumed by whichever runs next.
 - **Serialization**: both workflows share one concurrency group
   per checked ref (`revdepx-<ref>`),
-  because they also share the committed `revdep/` report
-  and the baseline lineage;
-  interleaving them would race both.
+  because they also share the committed `revdep/` report,
+  the release pull request's comment, and the baseline lineage;
+  interleaving them would race all three.
+- **Commits**: `revdep4`, like `revdep2`, commits the report to the checked branch in a `commit` job of its own,
+  the only one with `contents: write`, unless dispatched with `commit: false`.
+  The release process turns it off, because on a release branch a commit would move the head the checks were run for;
+  that run's report is committed by hand from its artifact
+  ([`revdep2/README.md`](../revdep2/README.md#committing-a-release-runs-report-by-hand) has the commands).
+  Either way, where the branch has an open release pull request,
+  whose body starts with `<!-- release-checklist: <package> <version> -->`,
+  the `release-comment` job creates or updates one comment there with the run's link and what it found,
+  through the `revdep-release-comment` action.
 
 ## The image lifecycle
 
@@ -180,7 +189,7 @@ Repository variables (`vars.*`) shared by both:
 a saturated shard runs each check at roughly half speed,
 so a floor sized for uncontended times kills healthy checks),
 `REVDEPX_DEADLINE_MINUTES`,
-`REVDEPX_COMMIT_REPORT`,
+`REVDEPX_COMMIT_REPORT` (`false` turns the commit off for every run, whatever the `commit` input says),
 `REVDEPX_MEMORY_PER_CHECK` (per-check container memory cap, default 6g;
 a machine-sized cap is derived when it is cleared),
 `REVDEPX_CHECK_FLAGS` (compiler flags appended for the check's own compile

@@ -619,15 +619,73 @@ so its report is complete again, not a fragment.
 
 ## The report is the repository's record
 
-`revdep/` in the checkout is where the results live between runs.
 `revdepcheck::cloud_check()` wrote `README.md`, `problems.md`,
-`failures.md` and `cran.md` there long before this workflow existed,
+`failures.md` and `cran.md` to `revdep/` long before this workflow existed,
 `revdep/run-broken.R` read them back to re-check what was broken,
 and the analysis next to them — `problems-analysis.md`, `examples/`,
 the notification scripts — is what a human adds on top.
 So the collector writes the same four files, in the same format
-(they come out of revdepcheck itself), plus `manifest.json`,
-and commits them back to the ref that was checked.
+(they come out of revdepcheck itself), plus `manifest.json` and `run.json`,
+into `revdep/` of the checkout,
+and uploads that directory as the `revdep2-report` artifact.
+The headline, the counts and the report itself go to the run's summary page as well.
+
+The `commit` job then commits the report back to the ref that was checked.
+The dispatch input `commit`, on by default, turns that off,
+and the release process sets it to `false`:
+a commit to a release branch moves its head while the release is being prepared,
+and the checks would have to run again for the new head.
+That job alone has `contents: write`, and it does not run at all with `commit: false`.
+
+Whether or not it commits, where the checked branch has an open release pull request,
+the `release-comment` job writes one comment there:
+the run's link, its scope, the counts per result and the newly broken packages.
+The release pull request is the one whose body's first line is
+`<!-- release-checklist: <package> <version> -->`,
+the marker krlmlr/r-release-actions finds it by,
+for the package and the version the run checked.
+The comment starts with `<!-- release-revdep: <package> <version> <workflow> <scope> -->`,
+and a later run of the same workflow for the same scope updates it in place,
+while a run of another scope, such as `which: strong` or one `part`, gets a comment of its own.
+That job alone has `pull-requests: write`.
+Without a release pull request, the summary, the artifact and the commit are the results.
+
+### Committing a release run's report by hand
+
+A run dispatched with `commit: false` leaves `revdep/` as it was.
+On a release branch, its report goes in with the first commit that goes there after the checks,
+which may be after the CRAN submission and before the release pull request is merged.
+Fetch the run's report artifact, copy the report files into `revdep/`, and commit them and nothing else,
+from the root of the package's repository
+(the artifact is `revdep2-report` for `revdep2`; set `artifact=revdepx-report` for `revdep4`):
+
+```sh
+(
+  set -eu
+  run=<run-id>; artifact=revdep2-report
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  gh run download "$run" --name "$artifact" --dir "$tmp"
+  test -f "$tmp/manifest.json"
+  rm -rf revdep/problems revdep/failures
+  mkdir -p revdep
+  for f in README.md problems.md failures.md cran.md manifest.json problems failures; do
+    if [ -e "$tmp/$f" ]; then cp -R "$tmp/$f" revdep/; fi
+    if [ -e "revdep/$f" ] || [ -n "$(git ls-files -- "revdep/$f")" ]; then git add -A -- "revdep/$f"; fi
+  done
+  git status --short revdep
+)
+git commit -m "chore: Update revdep report from run <run-id>"
+```
+
+The subshell stops at the first failure without closing your shell,
+and nothing in `revdep/` is touched before the download has succeeded and holds a manifest.
+The download goes to a fresh directory, removed at the end, because `gh run download` refuses to overwrite existing files,
+and the artifact holds all of `revdep/`.
+The two directories are removed first because a package the run found fixed has no section in the artifact,
+and copying over them would leave its old one in place.
+Only the files the workflow used to commit are copied and staged, removals included:
+`pkgs/`, the timings, `run.json` and the analysis beside the report are left as they are.
 
 `problems.md` and `failures.md` are *assembled* rather than written whole.
 Each package with a section has its own file —
@@ -701,7 +759,7 @@ The same applies to a protected branch, a read-only token, or a push
 that races with someone else's — the step is `continue-on-error`,
 because a report that cannot be committed is still a report.
 Set the repository variable `REVDEP2_COMMIT_REPORT` to `false`
-to turn the commit off entirely.
+to turn the commit off in every run, whatever the `commit` input says.
 
 ### Re-checking what was broken
 
@@ -724,6 +782,10 @@ the report is about *results*, a retry is about *coverage*.
 | A revdep breaks under the dev version | `newly_broken` in manifest and report; the run stays green |
 | The checked ref is a tag or a SHA | the report is not committed; a `::notice::` says so and the artifact still has it |
 | The report cannot be pushed (protection, fork, race) | the step is `continue-on-error`; the run keeps its result |
+| The checked ref has no open release pull request | no comment; a `::notice::` says so |
+| The release pull request's head moved after the run started | the comment names the commit the run checked and the new head |
+| The report was committed, so the release pull request's head is the report commit | the comment names the report commit; it warns only where that commit sits on a commit the run did not check |
+| The report conflicts with newer `revdep/` changes on the branch | not pushed; a `::warning::` in the log says so, and the artifact has the report |
 | A revdep fails the same way under both versions | `ok` (no *new* problems), visible in the report's tables |
 | A revdep fails to *install* under both versions | `failed` — there is nothing to compare |
 | A check times out | `timeout` kills it at `max(floor, factor × its CRAN time)`; reported `timeout`, not `failed`, with the check step it died at |
@@ -1395,7 +1457,7 @@ at the next `if`.
 | Ref to check (branch, tag, SHA) | `ref` | — | the dispatched ref |
 | Packages to check, or `broken` for the committed report's | `packages` | `REVDEP2_PACKAGES` | all revdeps |
 | Where that report lives | — | `REVDEP2_REPORT_DIR` | `revdep` |
-| Commit the report back to the checked branch | — | `REVDEP2_COMMIT_REPORT` | on |
+| Commit the report back to the checked branch | `commit` | `REVDEP2_COMMIT_REPORT` (`false` turns it off for every run) | on |
 | Revdep set | `which` | — | `strong` |
 | Revdep depth (`1`, `2`, …, `all`) | `depth` | — | 1 |
 | Retry a run | `retry-run` | — | — |
