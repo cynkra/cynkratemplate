@@ -31,8 +31,7 @@
 # Environment variables (inputs):
 #   REVDEP2_PACKAGES        - explicit packages to check (comma/space separated;
 #                             default: all reverse dependencies), or the word
-#                             `broken` to take them from the committed report,
-#                             the one last committed from a run's artifact
+#                             `broken` to take them from the committed report
 #   REVDEP2_WHICH           - "most" (default; adds Suggests/Enhances
 #                             dependents) or "strong"
 #   REVDEP2_RETRY_RUN       - run id of an earlier revdep2 run; check only the
@@ -41,7 +40,6 @@
 #                             set too big for a single run (the plan refuses
 #                             such a batch and prints the G it needs)
 #   REVDEP2_RECHECK_REPORT  - if truthy, check what the committed report lists
-#                             (last committed from a run's artifact)
 #                             as broken or failed (same as REVDEP2_PACKAGES=broken)
 #   REVDEP2_REPORT_DIR      - where that report lives (default: revdep)
 #   REVDEP2_SHARD_BUDGET_MINUTES - check-time target per shard (default: 45)
@@ -377,8 +375,7 @@ if (length(packages_input) > 0) {
   selection <- "explicit"
   candidates <- unique(packages_input)
 } else if (recheck_report) {
-  # The committed report is the durable record of what was wrong last time --
-  # committed by the maintainer from a run's artifact, never by the workflow:
+  # The committed report is the durable record of what was wrong last time:
   # every package it lists as a problem or a failure, re-checked. This is the
   # `revdep/run-broken.R` loop that predates this workflow, as an input.
   found <- report_packages(report_dir)

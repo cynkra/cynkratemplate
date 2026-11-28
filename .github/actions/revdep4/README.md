@@ -194,7 +194,7 @@ so calibration never mixes the two setups' overheads),
 the baseline artifact,
 the universe image on GHCR and the base image under it,
 the comparison code,
-and the report format in the `revdep` directory.
+and the report committed to the `revdep` directory.
 `REVDEPX_WORKFLOWS` says whose histories the plan scans,
 so old `revdep3` runs still feed baselines and timings
 while they remain within the age bounds.

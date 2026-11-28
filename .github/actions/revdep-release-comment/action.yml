@@ -5,8 +5,8 @@ description: >
   create or update one comment there with the run's link, its scope, the
   counts per result and the newly broken packages. Without one, the run's
   summary page and its report artifact are the results, and nothing is
-  written. Nothing is ever committed. `release-comment.sh` beside this file
-  says the rest.
+  written. This action commits nothing; the workflow's `commit` input decides
+  that. `release-comment.sh` beside this file says the rest.
 
   The calling job needs `pull-requests: write`, and nothing else: it gets the
   report as an artifact of the same run, not from a checkout. The action

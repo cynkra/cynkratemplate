@@ -14,7 +14,7 @@
 #     is created or updated in place, with the run's link, its scope, the counts per result, and the newly broken packages.
 #     Without one, or with more than one, it says so in the log and the step summary and writes nothing:
 #     the run's summary page and its report artifact are the results either way.
-#     Nothing is committed anywhere.
+#     Whether the report is also committed is the workflow's `commit` input, not this script's business.
 #
 # Environment:
 #   GH_TOKEN, GH_REPO   the job's own token, with `pull-requests: write`, and the repository, owner/name;
