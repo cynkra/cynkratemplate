@@ -1,0 +1,64 @@
+name: "Point the release pull request at the revdep run"
+description: >
+  Where the checked branch has an open release pull request, the one whose
+  body's first line is `<!-- release-checklist: <package> <version> -->`,
+  create or update one comment there with the run's link, its scope, the
+  counts per result and the newly broken packages. Without one, the run's
+  summary page and its report artifact are the results, and nothing is
+  written. Nothing is ever committed. `release-comment.sh` beside this file
+  says the rest.
+
+  The calling job needs `pull-requests: write`, and nothing else: it gets the
+  report as an artifact of the same run, not from a checkout.
+
+inputs:
+  report:
+    description: "The directory the report artifact was downloaded to."
+    required: true
+  artifact:
+    description: "The report artifact's name, as the comment names it."
+    required: true
+  workflow:
+    description: "The workflow's name; part of the comment's marker."
+    required: true
+  ref:
+    description: "The checked ref. Only a branch can be a pull request's head."
+    required: true
+  which:
+    description: "The `which` the run was dispatched with."
+    required: false
+    default: ""
+  depth:
+    description: "The `depth` the run was dispatched with."
+    required: false
+    default: ""
+  part:
+    description: "The `part` the run was dispatched with."
+    required: false
+    default: ""
+  packages:
+    description: "The `packages` the run was dispatched with."
+    required: false
+    default: ""
+  gh-token:
+    description: "A token with `pull-requests: write`."
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Point the release pull request at the run
+      env:
+        GH_TOKEN: ${{ inputs.gh-token }}
+        GH_REPO: ${{ github.repository }}
+        REPORT_DIR: ${{ inputs.report }}
+        ARTIFACT: ${{ inputs.artifact }}
+        WORKFLOW: ${{ inputs.workflow }}
+        REF: ${{ inputs.ref }}
+        WHICH: ${{ inputs.which }}
+        DEPTH: ${{ inputs.depth }}
+        PART: ${{ inputs.part }}
+        PACKAGES: ${{ inputs.packages }}
+      run: bash "${GITHUB_ACTION_PATH}/release-comment.sh"
+      shell: bash

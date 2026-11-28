@@ -63,7 +63,11 @@
 # tag; the scripts come with the actions, not from that tree), `depth` widens the net to
 # transitive reverse dependencies, and `dry-run` stops after planning. Check
 # results never turn the run red -- the summary and the report artifact are
-# the deliverable; only infrastructure failures fail jobs.
+# the deliverable; only infrastructure failures fail jobs. Nothing is
+# committed to the checked branch: on a release branch a commit would move
+# the head the checks were run for. Where the branch has an open release pull
+# request, the one whose body starts with `<!-- release-checklist: <package>
+# <version> -->`, one comment there points at the run instead.
 
 on:
   workflow_dispatch:
@@ -775,8 +779,8 @@ jobs:
     name: "Collect results and report"
 
     permissions:
-      # To commit the report back to the checked branch.
-      contents: write
+      # To check out the ref under test.
+      contents: read
       # To download the retried run's report artifact, which lives on that run.
       actions: read
 
@@ -862,39 +866,6 @@ jobs:
           retention-days: 90
           overwrite: true
 
-      # The report is also the repository's own record: `revdep/README.md` and
-      # friends have been committed here since `revdepcheck::cloud_check()`
-      # wrote them, and `recheck-report` reads them back. Only the four
-      # generated files and the manifest are staged -- the analysis, the
-      # examples and the notification scripts next to them are human-authored,
-      # and `pkgs/` is gigabytes of check output that belongs in the artifact
-      # only.
-      #
-      # A ref that is not a branch (a tag, a SHA, a fork's ref) cannot receive
-      # a commit; that is a fact about the dispatch, not a failure, so the step
-      # says so and stops. `continue-on-error` covers the rest: a protected
-      # branch, a read-only token on a fork, a race with another push. The
-      # report is in the artifact either way.
-      # `!cancelled()` rather than `always()`: a cancelled run has no shard
-      # results, so its report is every package `missing`. Run 31303054725 was
-      # cancelled and pushed 104k lines of that onto the branch it was testing.
-      # A run with red shards is a different thing and still reports.
-      #
-      # `compared > 0` covers the rest of that family: a run in which *no*
-      # package produced a comparison learnt nothing, and the committed report
-      # is the repository's record and what `packages: broken` reads back. The
-      # report is still built and uploaded; only overwriting the good one is
-      # skipped.
-      - name: Commit the report to the checked ref
-        if: >-
-          !cancelled()
-          && vars.REVDEP2_COMMIT_REPORT != 'false'
-          && steps.collect.outputs.compared != '0'
-        continue-on-error: true
-        uses: cynkra/cynkratemplate/.github/actions/revdep-commit-report@main
-        with:
-          ref: ${{ inputs.ref }}
-
       - name: Upload the new baseline
         uses: actions/upload-artifact@v7
         if: always()
@@ -916,3 +887,46 @@ jobs:
           if-no-files-found: ignore
           retention-days: 90
           overwrite: true
+
+  # The report stays in the run. Where the checked branch has an open release
+  # pull request, one comment there links to it and says what it found; a
+  # job of its own so that only this one can write to pull requests, and
+  # without a checkout, because the report comes as this run's artifact.
+  release-comment:
+    needs:
+      - collect
+
+    if: >-
+      !cancelled()
+      && needs.collect.result != 'skipped'
+
+    runs-on: ubuntu-26.04
+
+    timeout-minutes: 10
+
+    name: "Point the release pull request at the run"
+
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Download the report
+        id: report
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: revdep2-report
+          path: ${{ runner.temp }}/report
+
+      - name: Point the release pull request at the run
+        if: steps.report.outcome == 'success'
+        uses: cynkra/cynkratemplate/.github/actions/revdep-release-comment@main
+        with:
+          report: ${{ runner.temp }}/report
+          artifact: revdep2-report
+          workflow: revdep2
+          ref: ${{ inputs.ref || github.ref_name }}
+          which: ${{ env.REVDEP2_WHICH }}
+          depth: ${{ env.REVDEP2_DEPTH }}
+          part: ${{ env.REVDEP2_PART }}
+          packages: ${{ env.REVDEP2_PACKAGES }}

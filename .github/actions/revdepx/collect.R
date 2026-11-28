@@ -693,22 +693,15 @@ if (has_revdepcheck) {
 tally <- function(what) sum(results_tbl == what)
 not_ok <- sum(results_tbl != "ok")
 
-# Whether this report is worth writing over the committed one.
-#
-# The report in `revdep/` is the repository's record, and `packages: broken`
-# reads it back to decide what to re-check. A run in which nothing produced a
+# Whether this run compared anything at all. A run in which nothing produced a
 # comparison -- every shard dead, every package `missing`, a bad plan, a driver
-# bug that turned the whole set into `depfail` -- would replace that record with
-# a list of things it never learnt anything about, and there is no way back to
-# it. So the run says out loud whether it compared anything at all, and the
-# workflow gates the commit on that; the artifact is uploaded either way, so
-# nothing is hidden, only the destructive step is skipped.
+# bug that turned the whole set into `depfail` -- learnt nothing, and says so
+# out loud. The report is written and uploaded either way; it is never
+# committed.
 #
 # Only *this run's* comparisons count. A retry whose shards all died still
 # carries the donor run's good results (`carried = TRUE`) -- that is the
-# retry contract -- but they are the donor's learning, not this run's, and a
-# gate they could pass would let the exact run this gate exists for (learnt
-# nothing, every fresh package `missing`) overwrite the record after all.
+# retry contract -- but they are the donor's learning, not this run's.
 compared <- sum(vapply(
   entries,
   function(e) {
@@ -718,10 +711,7 @@ compared <- sum(vapply(
 ))
 set_output("compared", compared)
 if (compared == 0) {
-  inform(
-    "No package produced a comparison; the report is written and uploaded, ",
-    "but the committed one is left alone"
-  )
+  inform("No package produced a comparison; the report is written and uploaded")
 }
 
 # The one sentence a reader needs, before any table.

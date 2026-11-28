@@ -78,9 +78,16 @@ from "an earlier run of this one":
   and consumed by whichever runs next.
 - **Serialization**: both workflows share one concurrency group
   per checked ref (`revdepx-<ref>`),
-  because they also share the committed `revdep/` report
+  because they also share the release pull request's comment
   and the baseline lineage;
   interleaving them would race both.
+- **No commits**: no revdep workflow commits its report to the checked branch,
+  which on a release branch would move the head the checks were run for.
+  The report is the run's: its summary page and the `revdepx-report` artifact.
+  Where the branch has an open release pull request,
+  whose body starts with `<!-- release-checklist: <package> <version> -->`,
+  the `release-comment` job creates or updates one comment there with the run's link and what it found,
+  through the `revdep-release-comment` action.
 
 ## The image lifecycle
 
@@ -180,7 +187,6 @@ Repository variables (`vars.*`) shared by both:
 a saturated shard runs each check at roughly half speed,
 so a floor sized for uncontended times kills healthy checks),
 `REVDEPX_DEADLINE_MINUTES`,
-`REVDEPX_COMMIT_REPORT`,
 `REVDEPX_MEMORY_PER_CHECK` (per-check container memory cap, default 6g;
 a machine-sized cap is derived when it is cleared),
 `REVDEPX_CHECK_FLAGS` (compiler flags appended for the check's own compile
